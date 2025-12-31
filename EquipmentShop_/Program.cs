@@ -47,14 +47,69 @@ else
 {
     app.UseDeveloperExceptionPage();
 
-    // Seed database
-    using (var scope = app.Services.CreateScope())
+    try
     {
-        var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        dbContext.Database.EnsureCreated();
+        using (var scope = app.Services.CreateScope())
+        {
+            var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
-        // Если есть SeedData, раскомментируйте:
-        // await SeedData.InitializeAsync(dbContext);
+            // Создаем базу если не существует
+            await dbContext.Database.EnsureCreatedAsync();
+
+            // Проверяем, пустая ли база
+            if (!dbContext.Products.Any())
+            {
+                Console.WriteLine("База данных пустая, начинаем инициализацию...");
+
+                // Создаем категорию
+                var category = new Core.Entities.Category
+                {
+                    Name = "Ноутбуки",
+                    Slug = "laptops-" + DateTime.Now.Ticks, // Уникальный slug
+                    Description = "Игровые и рабочие ноутбуки",
+                    IsActive = true,
+                    ShowInMenu = true
+                };
+
+                dbContext.Categories.Add(category);
+                await dbContext.SaveChangesAsync();
+                Console.WriteLine($"Создана категория: {category.Name}");
+
+                // Добавляем товары
+                var product1 = new Core.Entities.Product
+                {
+                    Name = "Тестовый ноутбук 1",
+                    Slug = "test-laptop-1-" + DateTime.Now.Ticks,
+                    Description = "Описание тестового ноутбука",
+                    Price = 999.99m,
+                    ImageUrl = "/images/products/default.jpg",
+                    CategoryId = category.Id,
+                    Brand = "TestBrand",
+                    StockQuantity = 10,
+                    IsAvailable = true
+                };
+
+                dbContext.Products.Add(product1);
+                await dbContext.SaveChangesAsync();
+                Console.WriteLine($"Добавлен товар: {product1.Name}");
+            }
+            else
+            {
+                Console.WriteLine($"В базе уже есть {dbContext.Products.Count()} товаров");
+            }
+        }
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"Ошибка при инициализации базы данных: {ex.Message}");
+
+        // Выводим внутренние исключения
+        var innerEx = ex.InnerException;
+        while (innerEx != null)
+        {
+            Console.WriteLine($"Внутренняя ошибка: {innerEx.Message}");
+            innerEx = innerEx.InnerException;
+        }
     }
 }
 

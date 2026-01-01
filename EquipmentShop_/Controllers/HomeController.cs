@@ -16,8 +16,21 @@ public class HomeController : Controller
 
     public async Task<IActionResult> Index()
     {
-        var featuredProducts = await _productRepository.GetFeaturedAsync(8);
-        return View(featuredProducts);
+        try
+        {
+            var featuredProducts = await _productRepository.GetFeaturedAsync(8);
+            var newArrivals = await _productRepository.GetNewArrivalsAsync(6);
+
+            ViewBag.FeaturedProducts = featuredProducts;
+            ViewBag.NewArrivals = newArrivals;
+
+            return View();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Ошибка при загрузке данных для главной страницы");
+            return View(new List<Core.Entities.Product>());
+        }
     }
 
     public IActionResult Privacy()

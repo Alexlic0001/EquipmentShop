@@ -14,6 +14,6 @@ namespace EquipmentShop.Core.Interfaces
         Task DeleteAsync(T entity);
         Task<int> CountAsync(Expression<Func<T, bool>>? predicate = null);
         Task<bool> ExistsAsync(Expression<Func<T, bool>> predicate);
-        Task<IEnumerable<Product>> FilterAsync(ProductFilter filter);
+        
     }
 }

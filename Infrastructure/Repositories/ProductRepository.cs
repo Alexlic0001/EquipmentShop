@@ -353,9 +353,5 @@ namespace EquipmentShop.Infrastructure.Repositories
             return await _context.Products.AnyAsync(predicate);
         }
 
-        //public Task<IEnumerable<Product>> FilterAsync(Core.Interfaces.ProductFilter filter)
-        //{
-        //    throw new NotImplementedException();
-        //}
     }
 }

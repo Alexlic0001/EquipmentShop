@@ -3,6 +3,7 @@ using EquipmentShop.Infrastructure.Repositories;
 using EquipmentShop.Infrastructure.Services;
 using EquipmentShop.Core.Interfaces;
 using Microsoft.EntityFrameworkCore;
+using EquipmentShop.Core.Entities; // Добавили правильное пространство имен
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -62,7 +63,7 @@ else
                 Console.WriteLine("База данных пустая, начинаем инициализацию...");
 
                 // Создаем категорию
-                var category = new Core.Entities.Category
+                var category = new Category // Убрали Core.Entities.
                 {
                     Name = "Ноутбуки",
                     Slug = "laptops-" + DateTime.Now.Ticks, // Уникальный slug
@@ -76,7 +77,7 @@ else
                 Console.WriteLine($"Создана категория: {category.Name}");
 
                 // Добавляем товары
-                var product1 = new Core.Entities.Product
+                var product1 = new Product // Убрали Core.Entities.
                 {
                     Name = "Тестовый ноутбук 1",
                     Slug = "test-laptop-1-" + DateTime.Now.Ticks,
@@ -92,6 +93,19 @@ else
                 dbContext.Products.Add(product1);
                 await dbContext.SaveChangesAsync();
                 Console.WriteLine($"Добавлен товар: {product1.Name}");
+
+                // Создаем тестовую корзину
+                var cart = new ShoppingCart
+                {
+                    Id = "test-cart-123",
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow,
+                    ExpiresAt = DateTime.UtcNow.AddDays(30)
+                };
+
+                dbContext.ShoppingCarts.Add(cart);
+                await dbContext.SaveChangesAsync();
+                Console.WriteLine("Создана тестовая корзина");
             }
             else
             {
@@ -102,6 +116,7 @@ else
     catch (Exception ex)
     {
         Console.WriteLine($"Ошибка при инициализации базы данных: {ex.Message}");
+        Console.WriteLine($"StackTrace: {ex.StackTrace}");
 
         // Выводим внутренние исключения
         var innerEx = ex.InnerException;

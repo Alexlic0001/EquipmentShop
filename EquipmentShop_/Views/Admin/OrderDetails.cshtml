@@ -1,0 +1,124 @@
+﻿@using EquipmentShop.Core.Enums
+
+@model EquipmentShop.Core.Entities.Order
+@{
+    ViewData["Title"] = $"Заказ {Model.OrderNumber}";
+    Layout = "_Layout";
+}
+
+<div class="container mt-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a asp-action="Dashboard">Админ-панель</a></li>
+            <li class="breadcrumb-item"><a asp-action="Orders">Заказы</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Заказ @Model.OrderNumber</li>
+        </ol>
+    </nav>
+
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card mb-3">
+                <div class="card-header">
+                    <h5 class="mb-0">Товары в заказе</h5>
+                </div>
+                <div class="card-body">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Товар</th>
+                                <th>Цена</th>
+                                <th>Количество</th>
+                                <th>Сумма</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var item in Model.OrderItems)
+                            {
+                                <tr>
+                                    <td>@item.ProductName</td>
+                                    <td>@item.UnitPrice.ToString("C0")</td>
+                                    <td>@item.Quantity</td>
+                                    <td>@item.TotalPrice.ToString("C0")</td>
+                                </tr>
+                            }
+                        </tbody>
+                        <tfoot>
+                            <tr>
+                                <td colspan="3" class="text-end"><strong>Итого:</strong></td>
+                                <td><strong>@Model.Total.ToString("C0")</strong></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card mb-3">
+                <div class="card-header">
+                    <h5 class="mb-0">Информация о заказе</h5>
+                </div>
+                <div class="card-body">
+                    <table class="table">
+                        <tr>
+                            <td><strong>Номер:</strong></td>
+                            <td>@Model.OrderNumber</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Клиент:</strong></td>
+                            <td>@Model.CustomerName</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Email:</strong></td>
+                            <td>@Model.CustomerEmail</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Телефон:</strong></td>
+                            <td>@Model.CustomerPhone</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Статус:</strong></td>
+                            <td>
+                                @if (Model.Status == EquipmentShop.Core.Enums.OrderStatus.Delivered)
+                                {
+                                    <span class="badge bg-success">Доставлен</span>
+                                }
+                                else if (Model.Status == EquipmentShop.Core.Enums.OrderStatus.Cancelled)
+                                {
+                                    <span class="badge bg-danger">Отменен</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-warning">@Model.Status.ToString()</span>
+                                }
+                            </td>
+                        </tr>
+                        <tr>
+                            <td><strong>Дата:</strong></td>
+                            <td>@Model.OrderDate.ToString("dd.MM.yyyy HH:mm")</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Доставка</h5>
+                </div>
+                <div class="card-body">
+                    <p>@Model.ShippingAddress</p>
+                    @if (!string.IsNullOrEmpty(Model.ShippingCity))
+                    {
+                        <p>@Model.ShippingCity</p>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="mt-3">
+        <a asp-action="Orders" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> Назад к списку
+        </a>
+    </div>
+</div>

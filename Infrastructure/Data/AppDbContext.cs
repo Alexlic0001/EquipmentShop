@@ -1,17 +1,21 @@
-﻿using Microsoft.EntityFrameworkCore;
-using EquipmentShop.Core.Entities;
+﻿using EquipmentShop.Core.Entities;
 using EquipmentShop.Core.Enums;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using System.Text.Json;
 
 namespace EquipmentShop.Infrastructure.Data
 {
-    public class AppDbContext : DbContext
+    public class AppDbContext : IdentityDbContext<ApplicationUser>
     {
         public AppDbContext(DbContextOptions<AppDbContext> options) : base(options)
         {
         }
 
         // DbSets
+        public DbSet<ApplicationUser> ApplicationUsers => Set<ApplicationUser>();
         public DbSet<Product> Products => Set<Product>();
         public DbSet<Category> Categories => Set<Category>();
         public DbSet<Order> Orders => Set<Order>();
@@ -25,6 +29,43 @@ namespace EquipmentShop.Infrastructure.Data
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
+
+            // Конфигурация ApplicationUser
+            modelBuilder.Entity<ApplicationUser>(entity =>
+            {
+                entity.Property(u => u.FirstName)
+                    .HasMaxLength(100);
+
+                entity.Property(u => u.LastName)
+                    .HasMaxLength(100);
+
+                entity.Property(u => u.PhoneNumber)
+                    .HasMaxLength(20);
+
+                entity.Property(u => u.AvatarUrl)
+                    .HasMaxLength(500);
+
+                entity.Property(u => u.Address)
+                    .HasMaxLength(500);
+
+                entity.Property(u => u.City)
+                    .HasMaxLength(100);
+
+                entity.Property(u => u.Region)
+                    .HasMaxLength(100);
+
+                entity.Property(u => u.PostalCode)
+                    .HasMaxLength(20);
+
+                // Конвертация списка адресов в JSON
+                entity.Property(u => u.AdditionalAddresses)
+                    .HasConversion(
+                        v => JsonSerializer.Serialize(v, JsonSerializerOptions.Default),
+                        v => JsonSerializer.Deserialize<List<UserAddress>>(v, JsonSerializerOptions.Default) ?? new List<UserAddress>()
+                    );
+            });
+
+
 
             // Конфигурация Product
             modelBuilder.Entity<Product>(entity =>
@@ -428,5 +469,186 @@ namespace EquipmentShop.Infrastructure.Data
 
             return await base.SaveChangesAsync(cancellationToken);
         }
-    }
+
+
+
+
+
+
+
+        public static async Task InitializeAsync(IServiceProvider serviceProvider)
+        {
+            using var scope = serviceProvider.CreateScope();
+            var services = scope.ServiceProvider;
+
+            try
+            {
+                var context = services.GetRequiredService<AppDbContext>();
+                var userManager = services.GetRequiredService<UserManager<ApplicationUser>>();
+                var roleManager = services.GetRequiredService<RoleManager<IdentityRole>>();
+
+                // Создаем базу если не существует
+                await context.Database.EnsureCreatedAsync();
+                Console.WriteLine("Database created successfully!");
+
+                // Создаем роли
+                string[] roles = { "Admin", "User", "Manager" };
+                foreach (var role in roles)
+                {
+                    if (!await roleManager.RoleExistsAsync(role))
+                    {
+                        await roleManager.CreateAsync(new IdentityRole(role));
+                        Console.WriteLine($"Created role: {role}");
+                    }
+                }
+
+                // Создаем администратора
+                var adminEmail = "admin@shop.com";
+                var adminUser = await userManager.FindByEmailAsync(adminEmail);
+                if (adminUser == null)
+                {
+                    adminUser = new ApplicationUser
+                    {
+                        UserName = adminEmail,
+                        Email = adminEmail,
+                        FirstName = "Admin",
+                        LastName = "User",
+                        EmailConfirmed = true
+                    };
+
+                    var result = await userManager.CreateAsync(adminUser, "Admin123!");
+                    if (result.Succeeded)
+                    {
+                        await userManager.AddToRoleAsync(adminUser, "Admin");
+                        Console.WriteLine($"Created admin user: {adminEmail}");
+                    }
+                    else
+                    {
+                        Console.WriteLine($"Failed to create admin: {string.Join(", ", result.Errors.Select(e => e.Description))}");
+                    }
+                }
+
+                // Создаем тестового пользователя
+                var userEmail = "user@shop.com";
+                var testUser = await userManager.FindByEmailAsync(userEmail);
+                if (testUser == null)
+                {
+                    testUser = new ApplicationUser
+                    {
+                        UserName = userEmail,
+                        Email = userEmail,
+                        FirstName = "Test",
+                        LastName = "User",
+                        EmailConfirmed = true
+                    };
+
+                    var result = await userManager.CreateAsync(testUser, "User123!");
+                    if (result.Succeeded)
+                    {
+                        Console.WriteLine($"Created test user: {userEmail}");
+                    }
+                    else
+                    {
+                        Console.WriteLine($"Failed to create test user: {string.Join(", ", result.Errors.Select(e => e.Description))}");
+                    }
+                }
+
+                // Добавляем тестовые товары если их нет
+                if (!context.Products.Any())
+                {
+                    Console.WriteLine("Adding sample data...");
+
+                    // Создаем категории
+                    var categories = new List<Category>
+                {
+                    new Category
+                    {
+                        Name = "Ноутбуки",
+                        Slug = "laptops",
+                        Description = "Игровые и рабочие ноутбуки",
+                        IsActive = true,
+                        ShowInMenu = true
+                    },
+                    new Category
+                    {
+                        Name = "Комплектующие",
+                        Slug = "components",
+                        Description = "Процессоры, видеокарты, память",
+                        IsActive = true,
+                        ShowInMenu = true
+                    }
+                };
+
+                    await context.Categories.AddRangeAsync(categories);
+                    await context.SaveChangesAsync();
+
+                    // Добавляем товары
+                    var products = new List<Product>
+                {
+                    new Product
+                    {
+                        Name = "Игровой ноутбук ASUS ROG",
+                        Slug = "asus-rog-gaming-laptop",
+                        Description = "Мощный игровой ноутбук с видеокартой RTX 3060",
+                        ShortDescription = "Игровой ноутбук для современных игр",
+                        Price = 2899.99m,
+                        OldPrice = 3299.99m,
+                        ImageUrl = "/images/products/default.jpg",
+                        CategoryId = categories[0].Id,
+                        Brand = "ASUS",
+                        StockQuantity = 15,
+                        IsAvailable = true,
+                        IsFeatured = true,
+                        IsNew = true
+                    },
+                    new Product
+                    {
+                        Name = "Процессор Intel Core i9",
+                        Slug = "intel-core-i9-processor",
+                        Description = "Флагманский процессор 13-го поколения",
+                        ShortDescription = "Мощный процессор для игр и работы",
+                        Price = 699.99m,
+                        ImageUrl = "/images/products/default.jpg",
+                        CategoryId = categories[1].Id,
+                        Brand = "Intel",
+                        StockQuantity = 8,
+                        IsAvailable = true,
+                        IsNew = true
+                    }
+                };
+
+                    await context.Products.AddRangeAsync(products);
+                    await context.SaveChangesAsync();
+
+                    Console.WriteLine("Sample data added successfully!");
+                }
+                else
+                {
+                    Console.WriteLine($"Database already has {context.Products.Count()} products");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"An error occurred while initializing the database: {ex.Message}");
+                if (ex.InnerException != null)
+                {
+                    Console.WriteLine($"Inner exception: {ex.InnerException.Message}");
+                }
+            }
+        }
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+}
 }

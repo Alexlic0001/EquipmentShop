@@ -1,0 +1,49 @@
+﻿@{
+    ViewData["Title"] = "Панель администратора";
+    Layout = "_Layout";
+}
+
+<div class="container mt-4">
+    <h1>Панель администратора</h1>
+
+    <div class="row mt-4">
+        <div class="col-md-4">
+            <div class="card text-white bg-primary mb-3">
+                <div class="card-header">Товары</div>
+                <div class="card-body">
+                    <h5 class="card-title">@ViewBag.TotalProducts</h5>
+                    <p class="card-text">Всего товаров в магазине</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card text-white bg-success mb-3">
+                <div class="card-header">Заказы</div>
+                <div class="card-body">
+                    <h5 class="card-title">@ViewBag.TotalOrders</h5>
+                    <p class="card-text">Всего заказов</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card text-white bg-info mb-3">
+                <div class="card-header">Категории</div>
+                <div class="card-body">
+                    <h5 class="card-title">@ViewBag.TotalCategories</h5>
+                    <p class="card-text">Категорий товаров</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="mt-4">
+        <h3>Быстрые действия</h3>
+        <div class="btn-group" role="group">
+            <a asp-action="Products" class="btn btn-outline-primary">Управление товарами</a>
+            <a asp-action="Orders" class="btn btn-outline-success">Управление заказами</a>
+            <a asp-action="Categories" class="btn btn-outline-info">Управление категориями</a>
+        </div>
+    </div>
+</div>

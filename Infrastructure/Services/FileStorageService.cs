@@ -1,28 +1,15 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Threading.Tasks;
+﻿using EquipmentShop.Core.Interfaces;
 using Microsoft.Extensions.Logging;
-using EquipmentShop.Core.Interfaces;
 
 namespace EquipmentShop.Infrastructure.Services
 {
     public class FileStorageService : IFileStorageService
     {
         private readonly ILogger<FileStorageService> _logger;
-        private readonly string _storagePath;
 
         public FileStorageService(ILogger<FileStorageService> logger)
         {
             _logger = logger;
-            // Указываем путь для хранения файлов
-            _storagePath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads");
-
-            // Создаем папку если не существует
-            if (!Directory.Exists(_storagePath))
-            {
-                Directory.CreateDirectory(_storagePath);
-            }
         }
 
         public async Task<string> SaveProductImageAsync(Stream fileStream, string fileName)
@@ -44,12 +31,20 @@ namespace EquipmentShop.Infrastructure.Services
         {
             try
             {
-                var folderPath = Path.Combine(_storagePath, subFolder);
-                Directory.CreateDirectory(folderPath);
+                var webRootPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
+                var uploadsFolder = Path.Combine(webRootPath, "uploads", subFolder);
 
-                var uniqueFileName = $"{Guid.NewGuid()}{Path.GetExtension(fileName)}";
-                var filePath = Path.Combine(folderPath, uniqueFileName);
+                // Создаем папку если не существует
+                if (!Directory.Exists(uploadsFolder))
+                {
+                    Directory.CreateDirectory(uploadsFolder);
+                }
 
+                // Генерируем уникальное имя файла
+                var uniqueFileName = Guid.NewGuid().ToString() + Path.GetExtension(fileName);
+                var filePath = Path.Combine(uploadsFolder, uniqueFileName);
+
+                // Сохраняем файл
                 using (var file = new FileStream(filePath, FileMode.Create))
                 {
                     await fileStream.CopyToAsync(file);
@@ -59,69 +54,70 @@ namespace EquipmentShop.Infrastructure.Services
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Ошибка при сохранении файла");
+                _logger.LogError(ex, "Ошибка при сохранении файла {FileName}", fileName);
                 throw;
             }
         }
 
-        public Task<bool> DeleteFileAsync(string filePath)
+        public async Task<bool> DeleteFileAsync(string filePath)
         {
             try
             {
                 if (string.IsNullOrEmpty(filePath))
-                    return Task.FromResult(false);
+                    return false;
 
-                var fullPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", filePath.TrimStart('/'));
+                var webRootPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
+                var fullPath = Path.Combine(webRootPath, filePath.TrimStart('/'));
 
                 if (File.Exists(fullPath))
                 {
                     File.Delete(fullPath);
-                    return Task.FromResult(true);
+                    return true;
                 }
 
-                return Task.FromResult(false);
+                return false;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Ошибка при удалении файла");
-                return Task.FromResult(false);
+                _logger.LogError(ex, "Ошибка при удалении файла {FilePath}", filePath);
+                return false;
             }
         }
 
-        public Task<Stream> GetFileAsync(string filePath)
+        public async Task<Stream> GetFileAsync(string filePath)
         {
             try
             {
-                var fullPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", filePath.TrimStart('/'));
+                var webRootPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
+                var fullPath = Path.Combine(webRootPath, filePath.TrimStart('/'));
 
                 if (!File.Exists(fullPath))
                     throw new FileNotFoundException("Файл не найден");
 
-                return Task.FromResult<Stream>(new FileStream(fullPath, FileMode.Open, FileAccess.Read));
+                return new FileStream(fullPath, FileMode.Open, FileAccess.Read);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Ошибка при получении файла");
+                _logger.LogError(ex, "Ошибка при получении файла {FilePath}", filePath);
                 throw;
             }
         }
 
-        public Task<string> GenerateUniqueFileName(string originalFileName)
+        public async Task<string> GenerateUniqueFileName(string originalFileName)
         {
             var extension = Path.GetExtension(originalFileName);
-            return Task.FromResult($"{Guid.NewGuid()}{extension}");
+            return $"{Guid.NewGuid()}{extension}";
         }
 
-        public Task<IEnumerable<string>> GetProductGalleryAsync(int productId)
+        public async Task<IEnumerable<string>> GetProductGalleryAsync(int productId)
         {
             // Заглушка для демо
-            return Task.FromResult<IEnumerable<string>>(new List<string>());
+            return new List<string>();
         }
 
-        public Task ClearProductGalleryAsync(int productId)
+        public async Task ClearProductGalleryAsync(int productId)
         {
             // Заглушка для демо
-            return Task.CompletedTask;
         }
     }
 }

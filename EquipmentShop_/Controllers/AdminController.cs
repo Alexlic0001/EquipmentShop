@@ -1,9 +1,9 @@
-﻿// Controllers/AdminController.cs
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using EquipmentShop.Core.Interfaces;
 using EquipmentShop.Core.Entities;
 using EquipmentShop.Core.Constants;
+using Microsoft.AspNetCore.Http;
 
 namespace EquipmentShop.Controllers
 {
@@ -14,17 +14,20 @@ namespace EquipmentShop.Controllers
         private readonly IProductRepository _productRepository;
         private readonly ICategoryRepository _categoryRepository;
         private readonly IOrderRepository _orderRepository;
+        private readonly IFileStorageService _fileStorageService;
         private readonly ILogger<AdminController> _logger;
 
         public AdminController(
             IProductRepository productRepository,
             ICategoryRepository categoryRepository,
             IOrderRepository orderRepository,
+            IFileStorageService fileStorageService,
             ILogger<AdminController> logger)
         {
             _productRepository = productRepository;
             _categoryRepository = categoryRepository;
             _orderRepository = orderRepository;
+            _fileStorageService = fileStorageService;
             _logger = logger;
         }
 
@@ -60,6 +63,261 @@ namespace EquipmentShop.Controllers
             return View(product);
         }
 
+
+
+        [HttpGet("products/create")]
+        public async Task<IActionResult> CreateProduct()
+        {
+            var categories = await _categoryRepository.GetAllAsync();
+            ViewBag.Categories = categories;
+            return View();
+        }
+
+
+        [HttpPost("products/create")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> CreateProduct(Product product, IFormFile imageFile)
+        {
+            if (ModelState.IsValid)
+            {
+                // Обработка изображения
+                if (imageFile != null && imageFile.Length > 0)
+                {
+                    try
+                    {
+                        var fileName = await _fileStorageService.GenerateUniqueFileName(imageFile.FileName);
+                        var filePath = await _fileStorageService.SaveProductImageAsync(
+                            imageFile.OpenReadStream(),
+                            fileName);
+
+                        product.ImageUrl = filePath;
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Ошибка при загрузке изображения");
+                        ModelState.AddModelError("", "Ошибка при загрузке изображения");
+                        ViewBag.Categories = await _categoryRepository.GetAllAsync();
+                        return View(product);
+                    }
+                }
+                else if (string.IsNullOrEmpty(product.ImageUrl))
+                {
+                    product.ImageUrl = AppConstants.DefaultProductImage;
+                }
+
+                // Убедимся, что Slug не пустой
+                if (string.IsNullOrEmpty(product.Slug))
+                {
+                    product.Slug = GenerateSlug(product.Name);
+                }
+
+                product.CreatedAt = DateTime.UtcNow;
+                product.UpdatedAt = DateTime.UtcNow;
+                product.IsAvailable = product.StockQuantity > 0;
+
+                // Обработка тегов
+                if (!string.IsNullOrEmpty(product.TagsString))
+                {
+                    product.Tags = product.TagsString
+                        .Split(',', StringSplitOptions.RemoveEmptyEntries)
+                        .Select(t => t.Trim())
+                        .Where(t => !string.IsNullOrEmpty(t))
+                        .ToList();
+                }
+
+                try
+                {
+                    // Преобразуем SpecificationsString перед сохранением
+                    if (!string.IsNullOrEmpty(product.SpecificationsString))
+                    {
+                        var specsDict = new Dictionary<string, string>();
+                        var lines = product.SpecificationsString
+                            .Split(new[] { '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries);
+
+                        foreach (var line in lines)
+                        {
+                            var parts = line.Split(':', 2);
+                            if (parts.Length == 2)
+                            {
+                                specsDict[parts[0].Trim()] = parts[1].Trim();
+                            }
+                        }
+
+                        product.Specifications = specsDict;
+                    }
+
+                    await _productRepository.AddAsync(product);
+                    TempData["Success"] = "Товар успешно создан";
+                    return RedirectToAction("Products");
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Ошибка при создании товара");
+                    ModelState.AddModelError("", "Ошибка при сохранении товара");
+                }
+            }
+
+            var categories = await _categoryRepository.GetAllAsync();
+            ViewBag.Categories = categories;
+            return View(product);
+        }
+
+
+
+
+
+
+
+
+
+        [HttpGet("products/edit/{id}")]
+        public async Task<IActionResult> EditProduct(int id)
+        {
+            var product = await _productRepository.GetByIdAsync(id);
+            if (product == null)
+            {
+                return NotFound();
+            }
+
+            // Преобразуем теги в строку для отображения в форме
+            if (product.Tags != null && product.Tags.Any())
+            {
+                product.TagsString = string.Join(", ", product.Tags);
+            }
+
+            var categories = await _categoryRepository.GetAllAsync();
+            ViewBag.Categories = categories;
+            return View(product);
+        }
+
+        [HttpPost("products/edit/{id}")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> EditProduct(int id, Product product, IFormFile imageFile)
+        {
+            if (id != product.Id)
+            {
+                return NotFound();
+            }
+
+            if (ModelState.IsValid)
+            {
+                var existingProduct = await _productRepository.GetByIdAsync(id);
+                if (existingProduct == null)
+                {
+                    return NotFound();
+                }
+
+                // Обновляем изображение если загружено новое
+                if (imageFile != null && imageFile.Length > 0)
+                {
+                    try
+                    {
+                        // Удаляем старое изображение если это не дефолтное
+                        if (!string.IsNullOrEmpty(existingProduct.ImageUrl) &&
+                            !existingProduct.ImageUrl.Contains("default"))
+                        {
+                            await _fileStorageService.DeleteFileAsync(existingProduct.ImageUrl);
+                        }
+
+                        // Сохраняем новое изображение
+                        var fileName = await _fileStorageService.GenerateUniqueFileName(imageFile.FileName);
+                        var filePath = await _fileStorageService.SaveProductImageAsync(
+                            imageFile.OpenReadStream(),
+                            fileName);
+
+                        product.ImageUrl = filePath;
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Ошибка при загрузке изображения");
+                        ModelState.AddModelError("", "Ошибка при загрузке изображения");
+                        ViewBag.Categories = await _categoryRepository.GetAllAsync();
+                        return View(product);
+                    }
+                }
+                else
+                {
+                    // Сохраняем старое изображение
+                    product.ImageUrl = existingProduct.ImageUrl;
+                }
+
+                // Убедимся, что Slug не пустой
+                if (string.IsNullOrEmpty(product.Slug))
+                {
+                    product.Slug = GenerateSlug(product.Name);
+                }
+
+                // Сохраняем даты и статистику
+                product.CreatedAt = existingProduct.CreatedAt;
+                product.UpdatedAt = DateTime.UtcNow;
+                product.IsAvailable = product.StockQuantity > 0;
+                product.Rating = existingProduct.Rating;
+                product.ReviewsCount = existingProduct.ReviewsCount;
+                product.SoldCount = existingProduct.SoldCount;
+
+                // Обработка тегов
+                if (!string.IsNullOrEmpty(product.TagsString))
+                {
+                    product.Tags = product.TagsString
+                        .Split(',', StringSplitOptions.RemoveEmptyEntries)
+                        .Select(t => t.Trim())
+                        .Where(t => !string.IsNullOrEmpty(t))
+                        .ToList();
+                }
+                else
+                {
+                    product.Tags = existingProduct.Tags;
+                }
+
+                try
+                {
+                    await _productRepository.UpdateAsync(product);
+                    TempData["Success"] = "Товар успешно обновлен";
+                    return RedirectToAction("ProductDetails", new { id = product.Id });
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Ошибка при обновлении товара");
+                    ModelState.AddModelError("", "Ошибка при обновлении товара");
+                }
+            }
+
+            var categories = await _categoryRepository.GetAllAsync();
+            ViewBag.Categories = categories;
+            return View(product);
+        }
+
+        [HttpPost("products/delete/{id}")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> DeleteProduct(int id)
+        {
+            var product = await _productRepository.GetByIdAsync(id);
+            if (product == null)
+            {
+                return NotFound();
+            }
+
+            try
+            {
+                // Удаляем изображение если это не дефолтное
+                if (!string.IsNullOrEmpty(product.ImageUrl) &&
+                    !product.ImageUrl.Contains("default"))
+                {
+                    await _fileStorageService.DeleteFileAsync(product.ImageUrl);
+                }
+
+                await _productRepository.DeleteAsync(product);
+                TempData["Success"] = "Товар успешно удален";
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Ошибка при удалении товара");
+                TempData["Error"] = "Ошибка при удалении товара";
+            }
+
+            return RedirectToAction("Products");
+        }
+
         [HttpGet("orders")]
         public async Task<IActionResult> Orders()
         {
@@ -83,6 +341,61 @@ namespace EquipmentShop.Controllers
         {
             var categories = await _categoryRepository.GetAllAsync();
             return View(categories);
+        }
+
+        private string GenerateSlug(string name)
+        {
+            if (string.IsNullOrEmpty(name))
+                return string.Empty;
+
+            var slug = name.ToLowerInvariant()
+                .Replace(" ", "-")
+                .Replace("--", "-")
+                .Replace("---", "-")
+                .Replace("----", "-")
+                .Replace("&", "and")
+                .Replace("+", "plus")
+                .Replace("%", "percent")
+                .Replace("$", "dollar")
+                .Replace("#", "sharp")
+                .Replace("@", "at")
+                .Replace("!", "")
+                .Replace("?", "")
+                .Replace(".", "")
+                .Replace(",", "")
+                .Replace(":", "")
+                .Replace(";", "")
+                .Replace("'", "")
+                .Replace("\"", "")
+                .Replace("(", "")
+                .Replace(")", "")
+                .Replace("[", "")
+                .Replace("]", "")
+                .Replace("{", "")
+                .Replace("}", "")
+                .Replace("<", "")
+                .Replace(">", "")
+                .Replace("=", "")
+                .Replace("~", "")
+                .Replace("`", "")
+                .Replace("^", "")
+                .Replace("*", "");
+
+            // Удаляем все не-ASCII символы
+            slug = System.Text.RegularExpressions.Regex.Replace(slug, @"[^\u0000-\u007F]+", string.Empty);
+
+            // Удаляем двойные дефисы
+            while (slug.Contains("--"))
+                slug = slug.Replace("--", "-");
+
+            // Удаляем дефисы в начале и конце
+            slug = slug.Trim('-');
+
+            // Если после всех преобразований slug пустой, генерируем на основе даты
+            if (string.IsNullOrEmpty(slug))
+                slug = $"product-{DateTime.Now:yyyyMMddHHmmss}";
+
+            return slug;
         }
     }
 }

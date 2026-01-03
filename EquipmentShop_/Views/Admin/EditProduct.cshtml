@@ -1,0 +1,351 @@
+﻿@model EquipmentShop.Core.Entities.Product
+@{
+    ViewData["Title"] = "Редактирование товара";
+    Layout = "_Layout";
+}
+
+<div class="container mt-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a asp-action="Dashboard">Админ-панель</a></li>
+            <li class="breadcrumb-item"><a asp-action="Products">Товары</a></li>
+            <li class="breadcrumb-item"><a asp-action="ProductDetails" asp-route-id="@Model.Id">@Model.Name</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Редактирование</li>
+        </ol>
+    </nav>
+
+    <h1>Редактирование товара: @Model.Name</h1>
+
+    <form asp-action="EditProduct" method="post" enctype="multipart/form-data">
+        @Html.AntiForgeryToken()
+        <input type="hidden" asp-for="Id" />
+        <input type="hidden" asp-for="CreatedAt" />
+
+        <div class="row">
+            <div class="col-md-8">
+                <div class="card mb-3">
+                    <div class="card-header">
+                        <h5 class="mb-0">Основная информация</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label asp-for="Name" class="form-label">Название товара *</label>
+                            <input asp-for="Name" class="form-control" required>
+                            <span asp-validation-for="Name" class="text-danger"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="Slug" class="form-label">URL-адрес (slug)</label>
+                            <input asp-for="Slug" class="form-control">
+                            <span asp-validation-for="Slug" class="text-danger"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="ShortDescription" class="form-label">Краткое описание</label>
+                            <textarea asp-for="ShortDescription" class="form-control" rows="2"></textarea>
+                            <span asp-validation-for="ShortDescription" class="text-danger"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="Description" class="form-label">Полное описание *</label>
+                            <textarea asp-for="Description" class="form-control" rows="6" required></textarea>
+                            <span asp-validation-for="Description" class="text-danger"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card mb-3">
+                    <div class="card-header">
+                        <h5 class="mb-0">Цена и наличие</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="Price" class="form-label">Цена *</label>
+                                <div class="input-group">
+                                    <input asp-for="Price" class="form-control" type="number" step="0.01" min="0" required>
+                                    <span class="input-group-text">BYN</span>
+                                </div>
+                                <span asp-validation-for="Price" class="text-danger"></span>
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="OldPrice" class="form-label">Старая цена</label>
+                                <div class="input-group">
+                                    <input asp-for="OldPrice" class="form-control" type="number" step="0.01" min="0">
+                                    <span class="input-group-text">BYN</span>
+                                </div>
+                                <span asp-validation-for="OldPrice" class="text-danger"></span>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="StockQuantity" class="form-label">Количество на складе *</label>
+                                <input asp-for="StockQuantity" class="form-control" type="number" min="0" required>
+                                <span asp-validation-for="StockQuantity" class="text-danger"></span>
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="MinStockThreshold" class="form-label">Минимальный запас</label>
+                                <input asp-for="MinStockThreshold" class="form-control" type="number" min="0">
+                                <small class="text-muted">Система предупредит, когда останется меньше этого количества</small>
+                                <span asp-validation-for="MinStockThreshold" class="text-danger"></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card mb-3">
+                    <div class="card-header">
+                        <h5 class="mb-0">Технические характеристики</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label asp-for="Brand" class="form-label">Бренд</label>
+                            <input asp-for="Brand" class="form-control">
+                            <span asp-validation-for="Brand" class="text-danger"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="SpecificationsString" class="form-label">Характеристики</label>
+                            <textarea asp-for="SpecificationsString" class="form-control" rows="6"></textarea>
+                            <small class="text-muted">Введите характеристики в формате ключ: значение</small>
+                            <input type="hidden" asp-for="Specifications" id="specificationsHidden">
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="TagsString" class="form-label">Теги (через запятую)</label>
+                            <input asp-for="TagsString" class="form-control" placeholder="игровой, ноутбук, rtx">
+                            <small class="text-muted">Теги для поиска и фильтрации</small>
+                            <span asp-validation-for="TagsString" class="text-danger"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="card mb-3">
+                    <div class="card-header">
+                        <h5 class="mb-0">Изображение товара</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label class="form-label">Текущее изображение</label>
+                            <div class="text-center">
+                                <img src="@Model.ImageUrl" class="img-fluid rounded mb-2" style="max-height: 200px;" alt="Текущее изображение">
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Заменить изображение</label>
+                            <input type="file" name="imageFile" class="form-control" accept="image/*">
+                            <small class="text-muted">Оставьте пустым, чтобы оставить текущее</small>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="ImageUrl" class="form-label">Или URL изображения</label>
+                            <input asp-for="ImageUrl" class="form-control">
+                        </div>
+
+                        <div class="text-center">
+                            <img id="imagePreview" src="@Model.ImageUrl" class="img-fluid rounded mt-2" style="max-height: 150px; display: none;" alt="Превью">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card mb-3">
+                    <div class="card-header">
+                        <h5 class="mb-0">Категория</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label asp-for="CategoryId" class="form-label">Категория *</label>
+                            <select asp-for="CategoryId" class="form-select" required>
+                                <option value="">Выберите категорию</option>
+                                @foreach (var category in ViewBag.Categories as List<EquipmentShop.Core.Entities.Category>)
+                                {
+                                    <option value="@category.Id" selected="@(Model.CategoryId == category.Id)">
+                                        @category.Name
+                                    </option>
+                                }
+                            </select>
+                            <span asp-validation-for="CategoryId" class="text-danger"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card mb-3">
+                    <div class="card-header">
+                        <h5 class="mb-0">Настройки отображения</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="form-check mb-3">
+                            <input asp-for="IsFeatured" class="form-check-input">
+                            <label asp-for="IsFeatured" class="form-check-label">
+                                Рекомендуемый товар
+                            </label>
+                        </div>
+
+                        <div class="form-check mb-3">
+                            <input asp-for="IsNew" class="form-check-input">
+                            <label asp-for="IsNew" class="form-check-label">
+                                Новинка
+                            </label>
+                        </div>
+
+                        <div class="form-check mb-3">
+                            <input asp-for="IsAvailable" class="form-check-input">
+                            <label asp-for="IsAvailable" class="form-check-label">
+                                Доступен для продажи
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card mb-3">
+                    <div class="card-header">
+                        <h5 class="mb-0">SEO оптимизация</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label asp-for="MetaTitle" class="form-label">Meta Title</label>
+                            <input asp-for="MetaTitle" class="form-control">
+                            <small class="text-muted">Заголовок для поисковых систем</small>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="MetaDescription" class="form-label">Meta Description</label>
+                            <textarea asp-for="MetaDescription" class="form-control" rows="3"></textarea>
+                            <small class="text-muted">Описание для поисковых систем</small>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="MetaKeywords" class="form-label">Meta Keywords</label>
+                            <input asp-for="MetaKeywords" class="form-control">
+                            <small class="text-muted">Ключевые слова через запятую</small>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card mb-3">
+                    <div class="card-header">
+                        <h5 class="mb-0">Статистика</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-2">
+                            <small class="text-muted">Создан:</small>
+                            <p>@Model.CreatedAt.ToString("dd.MM.yyyy HH:mm")</p>
+                        </div>
+
+                        <div class="mb-2">
+                            <small class="text-muted">Обновлен:</small>
+                            <p>@Model.UpdatedAt.ToString("dd.MM.yyyy HH:mm")</p>
+                        </div>
+
+                        <div class="mb-2">
+                            <small class="text-muted">Рейтинг:</small>
+                            <p>@Model.Rating / 5 (@Model.ReviewsCount отзывов)</p>
+                        </div>
+
+                        <div class="mb-2">
+                            <small class="text-muted">Продано:</small>
+                            <p>@Model.SoldCount шт.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="mt-4">
+            <button type="submit" class="btn btn-success">
+                <i class="fas fa-save"></i> Сохранить изменения
+            </button>
+            <a asp-action="ProductDetails" asp-route-id="@Model.Id" class="btn btn-secondary">
+                <i class="fas fa-times"></i> Отмена
+            </a>
+            <button type="button" class="btn btn-danger float-end" data-bs-toggle="modal" data-bs-target="#deleteModal">
+                <i class="fas fa-trash"></i> Удалить товар
+            </button>
+        </div>
+    </form>
+</div>
+
+<!-- Модальное окно удаления -->
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Удаление товара</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Вы уверены, что хотите удалить товар "<strong>@Model.Name</strong>"?</p>
+                <p class="text-danger">Это действие нельзя отменить!</p>
+            </div>
+            <div class="modal-footer">
+                <form asp-action="DeleteProduct" asp-route-id="@Model.Id" method="post">
+                    @Html.AntiForgeryToken()
+                    <button type="submit" class="btn btn-danger">Удалить</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Преобразование JSON спецификаций
+        document.querySelector('form').addEventListener('submit', function(e) {
+            try {
+                const specText = document.getElementById('specificationsInput').value;
+                if (specText.trim()) {
+                    const lines = specText.split('\n').filter(line => line.trim());
+                    const specs = {};
+
+                    lines.forEach(line => {
+                        const parts = line.split(':').map(part => part.trim());
+                        if (parts.length >= 2) {
+                            specs[parts[0]] = parts.slice(1).join(':');
+                        }
+                    });
+
+                    document.getElementById('specificationsHidden').value = JSON.stringify(specs);
+                }
+            } catch (err) {
+                console.error('Ошибка парсинга характеристик:', err);
+            }
+        });
+
+        // Превью нового изображения
+        document.querySelector('input[name="imageFile"]').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            const preview = document.getElementById('imagePreview');
+
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    preview.src = e.target.result;
+                    preview.style.display = 'block';
+                };
+                reader.readAsDataURL(file);
+            } else {
+                preview.style.display = 'none';
+            }
+        });
+
+        // Генерация slug из названия
+        document.getElementById('Name').addEventListener('blur', function() {
+            const slugInput = document.getElementById('Slug');
+            if (!slugInput.value) {
+                const slug = this.value
+                    .toLowerCase()
+                    .replace(/[^\w\s-]/g, '')
+                    .replace(/[\s_-]+/g, '-')
+                    .replace(/^-+|-+$/g, '');
+                slugInput.value = slug;
+            }
+        });
+    </script>
+}

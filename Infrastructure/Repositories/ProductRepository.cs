@@ -294,6 +294,32 @@ namespace EquipmentShop.Infrastructure.Repositories
         {
             try
             {
+                // Преобразуем строку спецификаций в Dictionary
+                if (!string.IsNullOrEmpty(product.SpecificationsString))
+                {
+                    try
+                    {
+                        var specsDict = new Dictionary<string, string>();
+                        var lines = product.SpecificationsString
+                            .Split('\n', StringSplitOptions.RemoveEmptyEntries);
+
+                        foreach (var line in lines)
+                        {
+                            var parts = line.Split(':', 2, StringSplitOptions.TrimEntries);
+                            if (parts.Length == 2)
+                            {
+                                specsDict[parts[0]] = parts[1];
+                            }
+                        }
+
+                        product.Specifications = specsDict;
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex, "Ошибка при парсинге спецификаций");
+                    }
+                }
+
                 product.CreatedAt = DateTime.UtcNow;
                 product.UpdatedAt = DateTime.UtcNow;
 
@@ -313,6 +339,12 @@ namespace EquipmentShop.Infrastructure.Repositories
         {
             try
             {
+                // Преобразуем SpecificationsString в Dictionary если нужно
+                if (!string.IsNullOrEmpty(product.SpecificationsString))
+                {
+                    product.Specifications = ParseSpecifications(product.SpecificationsString);
+                }
+
                 product.UpdatedAt = DateTime.UtcNow;
                 _context.Products.Update(product);
                 await _context.SaveChangesAsync();
@@ -323,6 +355,62 @@ namespace EquipmentShop.Infrastructure.Repositories
                 throw;
             }
         }
+
+
+
+
+        private Dictionary<string, string> ParseSpecifications(string specificationsString)
+        {
+            var specs = new Dictionary<string, string>();
+
+            if (string.IsNullOrEmpty(specificationsString))
+                return specs;
+
+            try
+            {
+                // Парсим в формате JSON если это JSON
+                if (specificationsString.Trim().StartsWith("{") && specificationsString.Trim().EndsWith("}"))
+                {
+                    return System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, string>>(specificationsString)
+                        ?? new Dictionary<string, string>();
+                }
+
+                // Парсим в формате ключ: значение
+                var lines = specificationsString.Split(new[] { '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries);
+                foreach (var line in lines)
+                {
+                    var parts = line.Split(':', 2);
+                    if (parts.Length == 2)
+                    {
+                        specs[parts[0].Trim()] = parts[1].Trim();
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Ошибка при парсинге спецификаций");
+            }
+
+            return specs;
+        }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
         public async Task DeleteAsync(Product product)
         {

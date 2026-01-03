@@ -1,4 +1,4 @@
-﻿using EquipmentShop.Core.Entities;
+﻿using System.ComponentModel.DataAnnotations.Schema;
 
 namespace EquipmentShop.Core.Entities
 {
@@ -49,6 +49,15 @@ namespace EquipmentShop.Core.Entities
         // Навигационные свойства
         public ICollection<Review> Reviews { get; set; } = new List<Review>();
         public ICollection<OrderItem> OrderItems { get; set; } = new List<OrderItem>();
+
+        // Для работы в форме (НЕ сохраняется в БД)
+        [NotMapped]
+        [System.Text.Json.Serialization.JsonIgnore]
+        public string TagsString { get; set; } = string.Empty;
+
+        [NotMapped]
+        [System.Text.Json.Serialization.JsonIgnore]
+        public string SpecificationsString { get; set; } = string.Empty;
 
         // Методы
         public decimal GetDiscountPercentage()

@@ -638,17 +638,5 @@ namespace EquipmentShop.Infrastructure.Data
         }
     
 
-
-
-
-
-
-
-
-
-
-
-
-
-}
+    }
 }

@@ -58,6 +58,8 @@ builder.Services.AddScoped<IReviewService, ReviewRepository>();
 builder.Services.AddScoped<IShoppingCartService, ShoppingCartService>();
 builder.Services.AddScoped<IFileStorageService, FileStorageService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
+builder.Services.AddScoped<OrderService>();
+builder.Services.AddHttpContextAccessor();
 
 // IWebHostEnvironment НЕ регистрируем - он уже есть по умолчанию
 
@@ -74,6 +76,7 @@ else
     app.UseHsts();
 }
 
+app.UseSession();
 app.UseHttpsRedirection();
 app.UseStaticFiles();
 app.UseRouting();

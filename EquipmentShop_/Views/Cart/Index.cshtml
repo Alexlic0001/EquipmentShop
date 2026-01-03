@@ -1,0 +1,180 @@
+﻿@model EquipmentShop.Core.ViewModels.CartViewModel
+@{
+    ViewData["Title"] = "Корзина покупок";
+    Layout = "_Layout";
+}
+
+<div class="container py-5">
+    <h1 class="mb-4">Корзина покупок</h1>
+
+    @if (Model.IsEmpty)
+    {
+        <div class="alert alert-info">
+            <div class="text-center py-5">
+                <i class="fas fa-shopping-cart fa-4x text-muted mb-3"></i>
+                <h3>Ваша корзина пуста</h3>
+                <p class="text-muted">Добавьте товары из каталога</p>
+                <a asp-controller="Products" asp-action="Index" class="btn btn-primary mt-3">
+                    <i class="fas fa-shopping-bag"></i> Перейти к покупкам
+                </a>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="row">
+            <div class="col-lg-8">
+                <div class="card shadow-sm mb-4">
+                    <div class="card-header bg-white">
+                        <h5 class="mb-0">Товары в корзине (@Model.Items.Count)</h5>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Товар</th>
+                                        <th>Цена</th>
+                                        <th>Количество</th>
+                                        <th>Сумма</th>
+                                        <th></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var item in Model.Items)
+                                    {
+                                        <tr>
+                                            <td>
+                                                <div class="d-flex align-items-center">
+                                                    <img src="@item.ImageUrl"
+                                                         class="img-thumbnail me-3"
+                                                         style="width: 60px; height: 60px; object-fit: cover;"
+                                                         alt="@item.ProductName">
+                                                    <div>
+                                                        <a asp-controller="Products"
+                                                           asp-action="Details"
+                                                           asp-route-id="@item.ProductId"
+                                                           class="text-decoration-none text-dark fw-semibold">
+                                                            @item.ProductName
+                                                        </a>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td class="align-middle">
+                                                <span class="fw-semibold">@item.Price.ToString("C0")</span>
+                                            </td>
+                                            <td class="align-middle">
+                                                <div class="input-group input-group-sm" style="width: 120px;">
+                                                    <input type="number"
+                                                           value="@item.Quantity"
+                                                           min="1"
+                                                           max="10"
+                                                           class="form-control text-center"
+                                                           readonly>
+                                                </div>
+                                            </td>
+                                            <td class="align-middle fw-bold">@item.TotalPrice.ToString("C0")</td>
+                                            <td class="align-middle">
+                                                <form asp-action="RemoveFromCart" method="post"
+                                                      onsubmit="return confirm('Удалить товар из корзины?');">
+                                                    @Html.AntiForgeryToken()
+                                                    <input type="hidden" name="productId" value="@item.ProductId">
+                                                    <button type="submit" class="btn btn-link text-danger" title="Удалить">
+                                                        <i class="fas fa-trash"></i>
+                                                    </button>
+                                                </form>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="card-footer bg-white">
+                        <div class="d-flex justify-content-between">
+                            <a asp-controller="Products" asp-action="Index" class="btn btn-outline-primary">
+                                <i class="fas fa-arrow-left"></i> Продолжить покупки
+                            </a>
+                            <form asp-action="ClearCart" method="post"
+                                  onsubmit="return confirm('Очистить всю корзину?');">
+                                @Html.AntiForgeryToken()
+                                <button type="submit" class="btn btn-outline-danger">
+                                    <i class="fas fa-trash-alt"></i> Очистить корзину
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-4">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-white">
+                        <h5 class="mb-0">Итого</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Товары (@Model.Items.Sum(i => i.Quantity) шт.)</span>
+                            <span class="fw-semibold">@Model.Subtotal.ToString("C0")</span>
+                        </div>
+
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Доставка</span>
+                            <span class="fw-semibold @(Model.ShippingCost == 0 ? "text-success" : "")">
+                                @(Model.ShippingCost == 0 ? "Бесплатно" : Model.ShippingCost.ToString("C0"))
+                            </span>
+                        </div>
+
+                        <div class="d-flex justify-content-between mb-3">
+                            <span>НДС</span>
+                            <span class="fw-semibold">@Model.TaxAmount.ToString("C0")</span>
+                        </div>
+
+                        <hr>
+
+                        <div class="d-flex justify-content-between mb-4">
+                            <span class="h5 mb-0">Всего к оплате</span>
+                            <span class="h4 text-primary fw-bold">@Model.Total.ToString("C0")</span>
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <a href="#" class="btn btn-primary btn-lg">
+                                <i class="fas fa-lock"></i> Перейти к оформлению
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@if (TempData["Success"] != null)
+{
+    <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
+        <div class="toast show" role="alert">
+            <div class="toast-header bg-success text-white">
+                <strong class="me-auto"><i class="fas fa-check-circle"></i> Успех</strong>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast"></button>
+            </div>
+            <div class="toast-body">
+                @TempData["Success"]
+            </div>
+        </div>
+    </div>
+}
+
+@if (TempData["Error"] != null)
+{
+    <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
+        <div class="toast show" role="alert">
+            <div class="toast-header bg-danger text-white">
+                <strong class="me-auto"><i class="fas fa-exclamation-circle"></i> Ошибка</strong>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast"></button>
+            </div>
+            <div class="toast-body">
+                @TempData["Error"]
+            </div>
+        </div>
+    </div>
+}

@@ -1,25 +1,16 @@
-﻿
-using EquipmentShop.Core.Enums;
+﻿using System.ComponentModel.DataAnnotations;
 
 namespace EquipmentShop.Core.ViewModels
 {
     public class CartViewModel
     {
         public string CartId { get; set; } = string.Empty;
-        public string? UserId { get; set; }
         public List<CartItemViewModel> Items { get; set; } = new();
         public decimal Subtotal { get; set; }
         public decimal ShippingCost { get; set; }
         public decimal TaxAmount { get; set; }
-        public decimal DiscountAmount { get; set; }
-        public decimal Total => Subtotal + ShippingCost + TaxAmount - DiscountAmount;
-        public int TotalItems => Items.Sum(i => i.Quantity);
+        public decimal Total { get; set; }
         public bool IsEmpty => !Items.Any();
-
-        public ShippingMethod ShippingMethod { get; set; } = ShippingMethod.Courier;
-        public bool IsShippingRequired { get; set; } = true;
-
-        public bool HasDiscount => DiscountAmount > 0;
     }
 
     public class CartItemViewModel
@@ -31,8 +22,8 @@ namespace EquipmentShop.Core.ViewModels
         public string ImageUrl { get; set; } = string.Empty;
         public decimal Price { get; set; }
         public int Quantity { get; set; }
-        public decimal TotalPrice => Price * Quantity;
         public int MaxQuantity { get; set; } = 10;
+        public decimal TotalPrice => Price * Quantity;
         public bool IsAvailable { get; set; }
         public string? SelectedAttributes { get; set; }
 
@@ -44,7 +35,25 @@ namespace EquipmentShop.Core.ViewModels
     {
         public int ItemCount { get; set; }
         public decimal Total { get; set; }
-        public string FormattedTotal => Total.ToString("C0");
         public bool IsEmpty => ItemCount == 0;
+    }
+
+    public class MiniCartViewModel
+    {
+        public List<CartItemViewModel> Items { get; set; } = new();
+        public int TotalItems { get; set; }
+        public decimal Subtotal { get; set; }
+        public bool IsEmpty => !Items.Any();
+    }
+
+    public class AddToCartViewModel
+    {
+        [Required]
+        public int ProductId { get; set; }
+
+        [Range(1, 10, ErrorMessage = "Количество должно быть от 1 до 10")]
+        public int Quantity { get; set; } = 1;
+
+        public string? Attributes { get; set; }
     }
 }

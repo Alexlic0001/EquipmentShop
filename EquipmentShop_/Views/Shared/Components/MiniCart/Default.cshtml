@@ -1,0 +1,65 @@
+﻿@model EquipmentShop.Core.ViewModels.MiniCartViewModel
+
+<div class="dropdown">
+    <a href="@Url.Action("Index", "Cart")"
+       class="nav-link dropdown-toggle"
+       data-bs-toggle="dropdown"
+       aria-expanded="false">
+        <i class="fas fa-shopping-cart"></i>
+        <span class="badge bg-danger" style="@(Model.TotalItems > 0 ? "" : "display: none;")">
+            @Model.TotalItems
+        </span>
+    </a>
+
+    <div class="dropdown-menu dropdown-menu-end" style="min-width: 300px;">
+        @if (Model.IsEmpty)
+        {
+            <div class="p-3 text-center">
+                <i class="fas fa-shopping-cart fa-2x text-muted mb-2"></i>
+                <p class="text-muted mb-0">Корзина пуста</p>
+            </div>
+        }
+        else
+        {
+            <div class="px-3 py-2 border-bottom">
+                <h6 class="mb-0">Корзина</h6>
+            </div>
+
+            <div class="p-3" style="max-height: 300px; overflow-y: auto;">
+                @foreach (var item in Model.Items.Take(5))
+                {
+                    <div class="d-flex align-items-center mb-3">
+                        <img src="@item.ImageUrl"
+                             class="img-thumbnail me-2"
+                             style="width: 50px; height: 50px; object-fit: cover;"
+                             alt="@item.ProductName">
+                        <div class="flex-grow-1">
+                            <h6 class="mb-0" style="font-size: 0.9rem;">@item.ProductName</h6>
+                            <small class="text-muted">@item.Quantity × @item.Price.ToString("C0")</small>
+                        </div>
+                        <span class="fw-semibold">@item.TotalPrice.ToString("C0")</span>
+                    </div>
+                }
+
+                @if (Model.Items.Count > 5)
+                {
+                    <div class="text-center">
+                        <small class="text-muted">И еще @(Model.Items.Count - 5) товар(ов)</small>
+                    </div>
+                }
+            </div>
+
+            <div class="px-3 py-2 border-top bg-light">
+                <div class="d-flex justify-content-between mb-2">
+                    <span>Итого:</span>
+                    <span class="fw-bold text-primary">@Model.Subtotal.ToString("C0")</span>
+                </div>
+                <div class="d-grid gap-2">
+                    <a href="@Url.Action("Index", "Cart")" class="btn btn-primary btn-sm">
+                        <i class="fas fa-shopping-cart"></i> Перейти в корзину
+                    </a>
+                </div>
+            </div>
+        }
+    </div>
+</div>

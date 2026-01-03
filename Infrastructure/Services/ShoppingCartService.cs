@@ -35,9 +35,10 @@ namespace EquipmentShop.Infrastructure.Services
                 throw new CartNotFoundException(cartId);
             }
 
-            // Очищаем просроченные корзины
+            // Проверяем срок действия корзины
             if (cart.IsExpired)
             {
+                _logger.LogInformation("Корзина {CartId} просрочена, очищаем её", cartId);
                 await ClearCartAsync(cartId);
                 throw new CartException(cartId, "Корзина просрочена");
             }
@@ -49,12 +50,40 @@ namespace EquipmentShop.Infrastructure.Services
         {
             try
             {
-                return await GetCartAsync(cartId);
+                var cart = await GetCartAsync(cartId);
+
+                // Если пользователь авторизовался, привязываем корзину к пользователю
+                if (!string.IsNullOrEmpty(userId) && cart.UserId != userId)
+                {
+                    await TransferCartToUserAsync(cartId, userId);
+                    cart = await GetCartAsync(cartId);
+                }
+
+                return cart;
             }
             catch (CartNotFoundException)
             {
-                return await CreateCartAsync(userId);
+                return await CreateCartWithIdAsync(cartId, userId);
             }
+        }
+
+        private async Task<ShoppingCart> CreateCartWithIdAsync(string cartId, string? userId = null)
+        {
+            var cart = new ShoppingCart
+            {
+                Id = cartId,
+                UserId = userId,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+                ExpiresAt = DateTime.UtcNow.AddDays(30) // Корзина хранится 30 дней
+            };
+
+            _context.ShoppingCarts.Add(cart);
+            await _context.SaveChangesAsync();
+
+            _logger.LogInformation("Создана новая корзина с ID: {CartId}", cartId);
+
+            return cart;
         }
 
         public async Task<ShoppingCart> GetUserCartAsync(string userId)
@@ -66,7 +95,8 @@ namespace EquipmentShop.Infrastructure.Services
 
             if (cart == null)
             {
-                return await CreateCartAsync(userId);
+                // Создаем новую корзину для пользователя
+                return await CreateCartWithIdAsync(Guid.NewGuid().ToString(), userId);
             }
 
             return cart;
@@ -74,19 +104,8 @@ namespace EquipmentShop.Infrastructure.Services
 
         public async Task<ShoppingCart> CreateCartAsync(string? userId = null)
         {
-            var cart = new ShoppingCart
-            {
-                Id = Guid.NewGuid().ToString(),
-                UserId = userId,
-                CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow,
-                ExpiresAt = DateTime.UtcNow.AddDays(30)
-            };
-
-            _context.ShoppingCarts.Add(cart);
-            await _context.SaveChangesAsync();
-
-            return cart;
+            var cartId = Guid.NewGuid().ToString();
+            return await CreateCartWithIdAsync(cartId, userId);
         }
 
         public async Task AddItemAsync(string cartId, int productId, int quantity = 1, string? attributes = null)
@@ -145,6 +164,8 @@ namespace EquipmentShop.Infrastructure.Services
 
             cart.UpdatedAt = DateTime.UtcNow;
             await _context.SaveChangesAsync();
+
+            _logger.LogInformation("Добавлен товар {ProductId} в корзину {CartId}", productId, cartId);
         }
 
         public async Task UpdateItemQuantityAsync(string cartId, int productId, int quantity)
@@ -198,6 +219,7 @@ namespace EquipmentShop.Infrastructure.Services
                 cart.UpdatedAt = DateTime.UtcNow;
 
                 await _context.SaveChangesAsync();
+                _logger.LogInformation("Удален товар {ProductId} из корзины {CartId}", productId, cartId);
             }
         }
 
@@ -214,6 +236,7 @@ namespace EquipmentShop.Infrastructure.Services
             cart.UpdatedAt = DateTime.UtcNow;
 
             await _context.SaveChangesAsync();
+            _logger.LogInformation("Очищена корзина {CartId}", cartId);
         }
 
         public async Task MergeCartsAsync(string sourceCartId, string targetCartId)
@@ -268,15 +291,19 @@ namespace EquipmentShop.Infrastructure.Services
         public async Task TransferCartToUserAsync(string cartId, string userId)
         {
             var cart = await GetCartAsync(cartId);
-            var userCart = await GetUserCartAsync(userId);
 
-            // Если у пользователя уже есть корзина, объединяем
-            if (userCart.Id != cartId)
+            // Проверяем, есть ли у пользователя другая корзина
+            var userCart = await _context.ShoppingCarts
+                .FirstOrDefaultAsync(c => c.UserId == userId && c.Id != cartId && !c.IsExpired);
+
+            if (userCart != null)
             {
+                // Объединяем корзины
                 await MergeCartsAsync(cartId, userCart.Id);
             }
             else
             {
+                // Просто привязываем корзину к пользователю
                 cart.UserId = userId;
                 cart.UpdatedAt = DateTime.UtcNow;
                 await _context.SaveChangesAsync();
@@ -285,14 +312,28 @@ namespace EquipmentShop.Infrastructure.Services
 
         public async Task<int> GetCartItemCountAsync(string cartId)
         {
-            var cart = await GetOrCreateCartAsync(cartId);
-            return cart.Items.Sum(i => i.Quantity);
+            try
+            {
+                var cart = await GetCartAsync(cartId);
+                return cart.TotalItems;
+            }
+            catch
+            {
+                return 0;
+            }
         }
 
         public async Task<decimal> GetCartTotalAsync(string cartId)
         {
-            var cart = await GetOrCreateCartAsync(cartId);
-            return cart.Items.Sum(i => i.TotalPrice);
+            try
+            {
+                var cart = await GetCartAsync(cartId);
+                return cart.Subtotal;
+            }
+            catch
+            {
+                return 0;
+            }
         }
 
         public async Task<bool> ValidateCartAsync(string cartId)
@@ -350,6 +391,20 @@ namespace EquipmentShop.Infrastructure.Services
             await ClearCartAsync(cartId);
 
             return cart;
+        }
+
+        // Новый метод для продления срока действия корзины
+        public async Task RenewCartExpirationAsync(string cartId)
+        {
+            var cart = await GetCartAsync(cartId);
+            cart.ExpiresAt = DateTime.UtcNow.AddDays(30);
+            cart.UpdatedAt = DateTime.UtcNow;
+            await _context.SaveChangesAsync();
+        }
+
+        Task IShoppingCartService.CreateCartWithIdAsync(string cartId, string? v)
+        {
+            return CreateCartWithIdAsync(cartId, v);
         }
     }
 }

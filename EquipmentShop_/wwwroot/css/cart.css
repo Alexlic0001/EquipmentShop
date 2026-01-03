@@ -1,0 +1,57 @@
+﻿/* Стили для корзины */
+.cart-item-image {
+    width: 60px;
+    height: 60px;
+    object-fit: cover;
+}
+
+.quantity-input {
+    width: 50px;
+    text-align: center;
+}
+
+.quantity-btn {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.cart-summary {
+    position: sticky;
+    top: 20px;
+}
+
+.mini-cart-item {
+    transition: background-color 0.2s;
+}
+
+    .mini-cart-item:hover {
+        background-color: #f8f9fa;
+    }
+
+/* Анимация добавления в корзину */
+@keyframes addToCart {
+    0% {
+        transform: scale(1);
+    }
+
+    50% {
+        transform: scale(1.1);
+    }
+
+    100% {
+        transform: scale(1);
+    }
+}
+
+.added-to-cart {
+    animation: addToCart 0.5s ease;
+}
+
+/* Стили для пустой корзины */
+.empty-cart-icon {
+    font-size: 4rem;
+    opacity: 0.3;
+}

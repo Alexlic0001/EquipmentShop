@@ -8,7 +8,7 @@
     <h1>Управление товарами</h1>
 
     <div class="mt-3">
-        <a asp-controller="Products" asp-action="Create" class="btn btn-success">
+        <a asp-action="CreateProduct" class="btn btn-success"> <!-- Измените здесь -->
             <i class="fas fa-plus"></i> Добавить товар
         </a>
     </div>
@@ -42,7 +42,12 @@
                                 <img src="@product.ImageUrl" alt="@product.Name"
                                      style="width: 60px; height: 60px; object-fit: cover;">
                             </td>
-                            <td>@product.Name</td>
+                            <td>
+                                <a asp-action="ProductDetails" asp-route-id="@product.Id" 
+                                   class="text-decoration-none text-dark">
+                                    @product.Name
+                                </a>
+                            </td>
                             <td>@product.Price.ToString("C0")</td>
                             <td>
                                 @if (product.StockQuantity > 0)
@@ -56,18 +61,65 @@
                             </td>
                             <td>
                                 <a asp-action="ProductDetails" asp-route-id="@product.Id"
-                                   class="btn btn-sm btn-info">
+                                   class="btn btn-sm btn-info" title="Просмотр">
                                     <i class="fas fa-eye"></i>
                                 </a>
-                                <a asp-controller="Products" asp-action="Edit" asp-route-id="@product.Id"
-                                   class="btn btn-sm btn-warning">
+                                <a asp-action="EditProduct" asp-route-id="@product.Id"
+                                   class="btn btn-sm btn-warning" title="Редактировать">
                                     <i class="fas fa-edit"></i>
                                 </a>
+                             
+                                <button type="button" class="btn btn-sm btn-danger" 
+                                        data-bs-toggle="modal" data-bs-target="#deleteModal@(product.Id)" 
+                                        title="Удалить">
+                                    <i class="fas fa-trash"></i>
+                                </button>
                             </td>
                         </tr>
+                        
+                        <!-- Модальное окно удаления для каждого товара -->
+                        <div class="modal fade" id="deleteModal@(product.Id)" tabindex="-1" aria-hidden="true">
+                            <div class="modal-dialog">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title">Удаление товара</h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                    </div>
+                                    <div class="modal-body">
+                                        <p>Вы уверены, что хотите удалить товар "<strong>@product.Name</strong>"?</p>
+                                        <p class="text-danger">Это действие нельзя отменить!</p>
+                                    </div>
+                                    <div class="modal-footer">
+                                        <form asp-action="DeleteProduct" asp-route-id="@product.Id" method="post">
+                                            @Html.AntiForgeryToken()
+                                            <button type="submit" class="btn btn-danger">Удалить</button>
+                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     }
                 </tbody>
             </table>
         </div>
     }
 </div>
+
+@if (TempData["Success"] != null)
+{
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            alert('@TempData["Success"]');
+        });
+    </script>
+}
+
+@if (TempData["Error"] != null)
+{
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            alert('Ошибка: @TempData["Error"]');
+        });
+    </script>
+}

@@ -68,8 +68,8 @@ namespace EquipmentShop.Controllers
         [HttpGet("products/create")]
         public async Task<IActionResult> CreateProduct()
         {
-            var categories = await _categoryRepository.GetAllAsync();
-            ViewBag.Categories = categories;
+            var categoriesForCreate = await _categoryRepository.GetAllAsync();
+            ViewBag.Categories = categoriesForCreate;
             return View();
         }
 
@@ -78,7 +78,38 @@ namespace EquipmentShop.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> CreateProduct(Product product, IFormFile imageFile)
         {
-            if (ModelState.IsValid)
+            // Получаем категории для представления
+            var allCategories = await _categoryRepository.GetAllAsync();
+            ViewBag.Categories = allCategories;
+
+            // Проверяем только обязательные поля вручную
+            var errors = new List<string>();
+
+            if (string.IsNullOrWhiteSpace(product.Name))
+                errors.Add("Название товара обязательно");
+
+            if (string.IsNullOrWhiteSpace(product.Description))
+                errors.Add("Описание товара обязательно");
+
+            if (product.Price <= 0)
+                errors.Add("Цена должна быть больше 0");
+
+            if (product.StockQuantity < 0)
+                errors.Add("Количество не может быть отрицательным");
+
+            if (product.CategoryId <= 0)
+                errors.Add("Категория обязательна");
+
+            if (errors.Any())
+            {
+                foreach (var error in errors)
+                {
+                    ModelState.AddModelError("", error);
+                }
+                return View(product);
+            }
+
+            try
             {
                 // Обработка изображения
                 if (imageFile != null && imageFile.Length > 0)
@@ -95,17 +126,15 @@ namespace EquipmentShop.Controllers
                     catch (Exception ex)
                     {
                         _logger.LogError(ex, "Ошибка при загрузке изображения");
-                        ModelState.AddModelError("", "Ошибка при загрузке изображения");
-                        ViewBag.Categories = await _categoryRepository.GetAllAsync();
-                        return View(product);
+                        product.ImageUrl = AppConstants.DefaultProductImage;
                     }
                 }
-                else if (string.IsNullOrEmpty(product.ImageUrl))
+                else
                 {
                     product.ImageUrl = AppConstants.DefaultProductImage;
                 }
 
-                // Убедимся, что Slug не пустой
+                // Устанавливаем значения по умолчанию
                 if (string.IsNullOrEmpty(product.Slug))
                 {
                     product.Slug = GenerateSlug(product.Name);
@@ -115,51 +144,27 @@ namespace EquipmentShop.Controllers
                 product.UpdatedAt = DateTime.UtcNow;
                 product.IsAvailable = product.StockQuantity > 0;
 
-                // Обработка тегов
-                if (!string.IsNullOrEmpty(product.TagsString))
-                {
-                    product.Tags = product.TagsString
-                        .Split(',', StringSplitOptions.RemoveEmptyEntries)
-                        .Select(t => t.Trim())
-                        .Where(t => !string.IsNullOrEmpty(t))
-                        .ToList();
-                }
+                // Устанавливаем дефолтные мета-данные
+                if (string.IsNullOrEmpty(product.MetaTitle))
+                    product.MetaTitle = product.Name;
 
-                try
-                {
-                    // Преобразуем SpecificationsString перед сохранением
-                    if (!string.IsNullOrEmpty(product.SpecificationsString))
-                    {
-                        var specsDict = new Dictionary<string, string>();
-                        var lines = product.SpecificationsString
-                            .Split(new[] { '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries);
+                if (string.IsNullOrEmpty(product.MetaDescription))
+                    product.MetaDescription = product.Description.Length > 160
+                        ? product.Description.Substring(0, 160) + "..."
+                        : product.Description;
 
-                        foreach (var line in lines)
-                        {
-                            var parts = line.Split(':', 2);
-                            if (parts.Length == 2)
-                            {
-                                specsDict[parts[0].Trim()] = parts[1].Trim();
-                            }
-                        }
+                // Сохраняем товар
+                await _productRepository.AddAsync(product);
 
-                        product.Specifications = specsDict;
-                    }
-
-                    await _productRepository.AddAsync(product);
-                    TempData["Success"] = "Товар успешно создан";
-                    return RedirectToAction("Products");
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Ошибка при создании товара");
-                    ModelState.AddModelError("", "Ошибка при сохранении товара");
-                }
+                TempData["Success"] = "Товар успешно создан";
+                return RedirectToAction("Products");
             }
-
-            var categories = await _categoryRepository.GetAllAsync();
-            ViewBag.Categories = categories;
-            return View(product);
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Ошибка при создании товара");
+                ModelState.AddModelError("", $"Ошибка при создании товара: {ex.Message}");
+                return View(product);
+            }
         }
 
 
@@ -185,8 +190,8 @@ namespace EquipmentShop.Controllers
                 product.TagsString = string.Join(", ", product.Tags);
             }
 
-            var categories = await _categoryRepository.GetAllAsync();
-            ViewBag.Categories = categories;
+            var categoriesForEditView = await _categoryRepository.GetAllAsync();
+            ViewBag.Categories = categoriesForEditView;
             return View(product);
         }
 
@@ -198,6 +203,10 @@ namespace EquipmentShop.Controllers
             {
                 return NotFound();
             }
+
+            // Получаем категории один раз в начале
+            var categoriesForEdit = await _categoryRepository.GetAllAsync();
+            ViewBag.Categories = categoriesForEdit;
 
             if (ModelState.IsValid)
             {
@@ -231,7 +240,6 @@ namespace EquipmentShop.Controllers
                     {
                         _logger.LogError(ex, "Ошибка при загрузке изображения");
                         ModelState.AddModelError("", "Ошибка при загрузке изображения");
-                        ViewBag.Categories = await _categoryRepository.GetAllAsync();
                         return View(product);
                     }
                 }
@@ -282,8 +290,6 @@ namespace EquipmentShop.Controllers
                 }
             }
 
-            var categories = await _categoryRepository.GetAllAsync();
-            ViewBag.Categories = categories;
             return View(product);
         }
 

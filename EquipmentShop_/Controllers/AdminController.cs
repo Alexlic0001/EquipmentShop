@@ -403,5 +403,225 @@ namespace EquipmentShop.Controllers
 
             return slug;
         }
+
+        // Методы для работы с категориями
+        [HttpGet("categories/create")]
+        public async Task<IActionResult> CreateCategory()
+        {
+            var allCategories = await _categoryRepository.GetAllAsync();
+            ViewBag.ParentCategories = allCategories.Where(c => c.IsActive).ToList();
+            return View();
+        }
+
+        [HttpPost("categories/create")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> CreateCategory(Category category, IFormFile imageFile)
+        {
+            var allCategories = await _categoryRepository.GetAllAsync();
+            ViewBag.ParentCategories = allCategories.Where(c => c.IsActive).ToList();
+
+            if (string.IsNullOrWhiteSpace(category.Name))
+            {
+                ModelState.AddModelError("Name", "Название категории обязательно");
+                return View(category);
+            }
+
+            try
+            {
+                // Обработка изображения
+                if (imageFile != null && imageFile.Length > 0)
+                {
+                    try
+                    {
+                        var fileName = await _fileStorageService.GenerateUniqueFileName(imageFile.FileName);
+                        var filePath = await _fileStorageService.SaveCategoryImageAsync(
+                            imageFile.OpenReadStream(),
+                            fileName);
+
+                        category.ImageUrl = filePath;
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Ошибка при загрузке изображения");
+                        category.ImageUrl = AppConstants.DefaultCategoryImage;
+                    }
+                }
+                else if (string.IsNullOrEmpty(category.ImageUrl))
+                {
+                    category.ImageUrl = AppConstants.DefaultCategoryImage;
+                }
+
+                // Генерируем slug если пустой
+                if (string.IsNullOrEmpty(category.Slug))
+                {
+                    category.Slug = category.Name.ToLower()
+                        .Replace(" ", "-")
+                        .Replace(".", "")
+                        .Replace(",", "");
+                }
+
+                // Устанавливаем значения по умолчанию
+                if (string.IsNullOrEmpty(category.MetaTitle))
+                    category.MetaTitle = category.Name;
+
+                if (string.IsNullOrEmpty(category.MetaDescription))
+                    category.MetaDescription = category.Description ?? category.Name;
+
+                category.IsActive = true;
+
+                await _categoryRepository.AddAsync(category);
+
+                TempData["Success"] = "Категория успешно создана";
+                return RedirectToAction("Categories");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Ошибка при создании категории");
+                ModelState.AddModelError("", $"Ошибка при создании категории: {ex.Message}");
+                return View(category);
+            }
+        }
+
+        [HttpGet("categories/edit/{id}")]
+        public async Task<IActionResult> EditCategory(int id)
+        {
+            var category = await _categoryRepository.GetByIdAsync(id);
+            if (category == null)
+            {
+                return NotFound();
+            }
+
+            var allCategories = await _categoryRepository.GetAllAsync();
+            ViewBag.ParentCategories = allCategories.Where(c => c.IsActive && c.Id != id).ToList();
+
+            return View(category);
+        }
+
+        [HttpPost("categories/edit/{id}")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> EditCategory(int id, Category category, IFormFile imageFile)
+        {
+            if (id != category.Id)
+            {
+                return NotFound();
+            }
+
+            var allCategories = await _categoryRepository.GetAllAsync();
+            ViewBag.ParentCategories = allCategories.Where(c => c.IsActive && c.Id != id).ToList();
+
+            if (string.IsNullOrWhiteSpace(category.Name))
+            {
+                ModelState.AddModelError("Name", "Название категории обязательно");
+                return View(category);
+            }
+
+            try
+            {
+                var existingCategory = await _categoryRepository.GetByIdAsync(id);
+                if (existingCategory == null)
+                {
+                    return NotFound();
+                }
+
+                // Обработка изображения
+                if (imageFile != null && imageFile.Length > 0)
+                {
+                    try
+                    {
+                        // Удаляем старое изображение если это не дефолтное
+                        if (!string.IsNullOrEmpty(existingCategory.ImageUrl) &&
+                            !existingCategory.ImageUrl.Contains("default"))
+                        {
+                            await _fileStorageService.DeleteFileAsync(existingCategory.ImageUrl);
+                        }
+
+                        // Сохраняем новое изображение
+                        var fileName = await _fileStorageService.GenerateUniqueFileName(imageFile.FileName);
+                        var filePath = await _fileStorageService.SaveCategoryImageAsync(
+                            imageFile.OpenReadStream(),
+                            fileName);
+
+                        category.ImageUrl = filePath;
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Ошибка при загрузке изображения");
+                        category.ImageUrl = existingCategory.ImageUrl;
+                    }
+                }
+                else
+                {
+                    category.ImageUrl = existingCategory.ImageUrl;
+                }
+
+                // Генерируем slug если пустой
+                if (string.IsNullOrEmpty(category.Slug))
+                {
+                    category.Slug = category.Name.ToLower()
+                        .Replace(" ", "-")
+                        .Replace(".", "")
+                        .Replace(",", "");
+                }
+
+                await _categoryRepository.UpdateAsync(category);
+
+                TempData["Success"] = "Категория успешно обновлена";
+                return RedirectToAction("Categories");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Ошибка при обновлении категории");
+                ModelState.AddModelError("", $"Ошибка при обновлении категории: {ex.Message}");
+                return View(category);
+            }
+        }
+
+        [HttpPost("categories/delete/{id}")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> DeleteCategory(int id)
+        {
+            var category = await _categoryRepository.GetByIdAsync(id);
+            if (category == null)
+            {
+                return NotFound();
+            }
+
+            try
+            {
+                // Проверяем, есть ли товары в категории
+                var hasProducts = await _categoryRepository.HasProductsAsync(id);
+                if (hasProducts)
+                {
+                    TempData["Error"] = "Нельзя удалить категорию, в которой есть товары";
+                    return RedirectToAction("Categories");
+                }
+
+                // Проверяем, есть ли подкатегории
+                var hasSubCategories = category.SubCategories?.Any() ?? false;
+                if (hasSubCategories)
+                {
+                    TempData["Error"] = "Нельзя удалить категорию, у которой есть подкатегории";
+                    return RedirectToAction("Categories");
+                }
+
+                // Удаляем изображение если это не дефолтное
+                if (!string.IsNullOrEmpty(category.ImageUrl) &&
+                    !category.ImageUrl.Contains("default"))
+                {
+                    await _fileStorageService.DeleteFileAsync(category.ImageUrl);
+                }
+
+                await _categoryRepository.DeleteAsync(category);
+                TempData["Success"] = "Категория успешно удалена";
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Ошибка при удалении категории");
+                TempData["Error"] = "Ошибка при удалении категории";
+            }
+
+            return RedirectToAction("Categories");
+        }
+
     }
 }

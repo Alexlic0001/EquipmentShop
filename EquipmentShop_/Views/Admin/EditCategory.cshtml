@@ -1,0 +1,188 @@
+﻿@model EquipmentShop.Core.Entities.Category
+@{
+    ViewData["Title"] = "Редактирование категории";
+    Layout = "_Layout";
+}
+
+<div class="container mt-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a asp-action="Dashboard">Админ-панель</a></li>
+            <li class="breadcrumb-item"><a asp-action="Categories">Категории</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Редактирование: @Model.Name</li>
+        </ol>
+    </nav>
+
+    <h1>Редактирование категории: @Model.Name</h1>
+
+    <form asp-action="EditCategory" method="post" enctype="multipart/form-data">
+        @Html.AntiForgeryToken()
+        <input type="hidden" asp-for="Id" />
+
+        <div class="row">
+            <div class="col-md-8">
+                <div class="card mb-3">
+                    <div class="card-header">
+                        <h5 class="mb-0">Основная информация</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label asp-for="Name" class="form-label">Название категории *</label>
+                            <input asp-for="Name" class="form-control" required>
+                            <span asp-validation-for="Name" class="text-danger"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="Slug" class="form-label">URL-адрес (slug)</label>
+                            <input asp-for="Slug" class="form-control">
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="Description" class="form-label">Описание</label>
+                            <textarea asp-for="Description" class="form-control" rows="4"></textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card mb-3">
+                    <div class="card-header">
+                        <h5 class="mb-0">Настройки отображения</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="DisplayOrder" class="form-label">Порядок отображения</label>
+                                <input asp-for="DisplayOrder" class="form-control" type="number">
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="IconClass" class="form-label">Иконка</label>
+                                <input asp-for="IconClass" class="form-control">
+                            </div>
+                        </div>
+
+                        <div class="form-check mb-3">
+                            <input asp-for="ShowInMenu" class="form-check-input">
+                            <label asp-for="ShowInMenu" class="form-check-label">
+                                Показывать в меню
+                            </label>
+                        </div>
+
+                        <div class="form-check mb-3">
+                            <input asp-for="ShowOnHomepage" class="form-check-input">
+                            <label asp-for="ShowOnHomepage" class="form-check-label">
+                                Показывать на главной странице
+                            </label>
+                        </div>
+
+                        <div class="form-check mb-3">
+                            <input asp-for="IsActive" class="form-check-input">
+                            <label asp-for="IsActive" class="form-check-label">
+                                Активная категория
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="card mb-3">
+                    <div class="card-header">
+                        <h5 class="mb-0">Изображение категории</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label class="form-label">Текущее изображение</label>
+                            <div class="text-center">
+                                <img src="@Model.ImageUrl" class="img-fluid rounded mb-2" style="max-height: 150px;" alt="Текущее изображение">
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Заменить изображение</label>
+                            <input type="file" name="imageFile" class="form-control" accept="image/*">
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="ImageUrl" class="form-label">Или URL изображения</label>
+                            <input asp-for="ImageUrl" class="form-control">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card mb-3">
+                    <div class="card-header">
+                        <h5 class="mb-0">Родительская категория</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label asp-for="ParentCategoryId" class="form-label">Родительская категория</label>
+                            <select asp-for="ParentCategoryId" class="form-select">
+                                <option value="">Нет (основная категория)</option>
+                                @foreach (var parentCategory in ViewBag.ParentCategories as List<EquipmentShop.Core.Entities.Category>)
+                                {
+                                    <option value="@parentCategory.Id" selected="@(Model.ParentCategoryId == parentCategory.Id)">
+                                        @parentCategory.Name
+                                    </option>
+                                }
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card mb-3">
+                    <div class="card-header">
+                        <h5 class="mb-0">SEO оптимизация</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label asp-for="MetaTitle" class="form-label">Meta Title</label>
+                            <input asp-for="MetaTitle" class="form-control">
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="MetaDescription" class="form-label">Meta Description</label>
+                            <textarea asp-for="MetaDescription" class="form-control" rows="3"></textarea>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="mt-4">
+            <button type="submit" class="btn btn-success">
+                <i class="fas fa-save"></i> Сохранить изменения
+            </button>
+            <a asp-action="Categories" class="btn btn-secondary">
+                <i class="fas fa-times"></i> Отмена
+            </a>
+            <button type="button" class="btn btn-danger float-end" data-bs-toggle="modal" data-bs-target="#deleteModal">
+                <i class="fas fa-trash"></i> Удалить категорию
+            </button>
+        </div>
+    </form>
+</div>
+
+<!-- Модальное окно удаления -->
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Удаление категории</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Вы уверены, что хотите удалить категорию "<strong>@Model.Name</strong>"?</p>
+                <p class="text-danger">Это действие нельзя отменить!</p>
+                <p class="text-warning">Убедитесь, что в категории нет товаров и подкатегорий.</p>
+            </div>
+            <div class="modal-footer">
+                <form asp-action="DeleteCategory" asp-route-id="@Model.Id" method="post">
+                    @Html.AntiForgeryToken()
+                    <button type="submit" class="btn btn-danger">Удалить</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>

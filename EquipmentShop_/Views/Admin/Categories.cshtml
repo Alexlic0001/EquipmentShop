@@ -8,7 +8,7 @@
     <h1>Управление категориями</h1>
 
     <div class="mt-3">
-        <a href="#" class="btn btn-success">
+        <a asp-action="CreateCategory" class="btn btn-success">
             <i class="fas fa-plus"></i> Добавить категорию
         </a>
     </div>
@@ -28,6 +28,7 @@
                         <th>ID</th>
                         <th>Название</th>
                         <th>Описание</th>
+                        <th>Родительская</th>
                         <th>Товаров</th>
                         <th>Статус</th>
                         <th>Действия</th>
@@ -40,6 +41,7 @@
                             <td>@category.Id</td>
                             <td>@category.Name</td>
                             <td>@(category.Description?.Length > 50 ? category.Description.Substring(0, 50) + "..." : category.Description)</td>
+                            <td>@category.ParentCategory?.Name</td>
                             <td>@category.Products?.Count</td>
                             <td>
                                 @if (category.IsActive)
@@ -52,14 +54,59 @@
                                 }
                             </td>
                             <td>
-                                <a href="#" class="btn btn-sm btn-warning">
+                                <a asp-action="EditCategory" asp-route-id="@category.Id"
+                                   class="btn btn-sm btn-warning">
                                     <i class="fas fa-edit"></i>
                                 </a>
+                                <button type="button" class="btn btn-sm btn-danger"
+                                        data-bs-toggle="modal" data-bs-target="#deleteModal@(category.Id)">
+                                    <i class="fas fa-trash"></i>
+                                </button>
                             </td>
                         </tr>
+
+                        <!-- Модальное окно удаления для каждой категории -->
+                        <div class="modal fade" id="deleteModal@(category.Id)" tabindex="-1" aria-hidden="true">
+                            <div class="modal-dialog">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title">Удаление категории</h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                    </div>
+                                    <div class="modal-body">
+                                        <p>Вы уверены, что хотите удалить категорию "<strong>@category.Name</strong>"?</p>
+                                        <p class="text-danger">Это действие нельзя отменить!</p>
+                                        <p class="text-warning">Убедитесь, что в категории нет товаров и подкатегорий.</p>
+                                    </div>
+                                    <div class="modal-footer">
+                                        <form asp-action="DeleteCategory" asp-route-id="@category.Id" method="post">
+                                            @Html.AntiForgeryToken()
+                                            <button type="submit" class="btn btn-danger">Удалить</button>
+                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     }
                 </tbody>
             </table>
         </div>
     }
 </div>
+
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show mt-3" role="alert">
+        @TempData["Success"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show mt-3" role="alert">
+        @TempData["Error"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}

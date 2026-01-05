@@ -1,4 +1,5 @@
 ﻿
+using EquipmentShop.Core.Constants;
 using EquipmentShop.Core.Enums;
 using System.ComponentModel.DataAnnotations;
 
@@ -21,7 +22,7 @@ namespace EquipmentShop.Core.ViewModels
 
         public string StatusDisplay => GetStatusDisplay();
         public string PaymentStatusDisplay => GetPaymentStatusDisplay();
-        public string FormattedTotal => Total.ToString("C0");
+        public string FormattedTotal => $"{Total:N0}{AppConstants.CurrencySymbol}";
         public bool CanBeCancelled => Status == OrderStatus.Pending || Status == OrderStatus.Processing;
         public bool IsPaid => PaymentStatus == PaymentStatus.Paid;
 

@@ -11,7 +11,7 @@ namespace EquipmentShop.Core.Constants
 
         // Валюты
         public const string DefaultCurrency = "BYN";
-        public const string CurrencySymbol = "₽";
+        public const string CurrencySymbol = " р.";
 
         // Налоги
         public const decimal DefaultTaxRate = 0.20m; // 20% НДС

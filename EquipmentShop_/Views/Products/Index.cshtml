@@ -1,4 +1,5 @@
-﻿@model IEnumerable<EquipmentShop.Core.Entities.Product>
+﻿@using EquipmentShop.Core.Constants
+@model IEnumerable<EquipmentShop.Core.Entities.Product>
 @{
     ViewData["Title"] = "Каталог товаров";
 }
@@ -30,12 +31,10 @@
                             </h5>
 
                             <div class="mb-2">
-                                <span class="h5 text-primary">@product.Price.ToString("C0")</span>
+                                <span class="h5 text-primary">@product.Price.ToString("N0")@AppConstants.CurrencySymbol</span>
                                 @if (product.OldPrice.HasValue)
                                 {
-                                    <small class="text-muted text-decoration-line-through ms-2">
-                                        @product.OldPrice.Value.ToString("C0")
-                                    </small>
+                                    <small class="text-muted text-decoration-line-through ms-2">@product.OldPrice.Value.ToString("N0")@AppConstants.CurrencySymbol</small>
                                 }
                             </div>
 

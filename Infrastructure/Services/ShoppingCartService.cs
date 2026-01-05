@@ -35,8 +35,8 @@ namespace EquipmentShop.Infrastructure.Services
                 throw new CartNotFoundException(cartId);
             }
 
-            // Проверяем срок действия корзины
-            if (cart.IsExpired)
+            // Проверка срока действия корзины через безопасное условие
+            if (cart.ExpiresAt.HasValue && cart.ExpiresAt.Value < DateTime.UtcNow)
             {
                 _logger.LogInformation("Корзина {CartId} просрочена, очищаем её", cartId);
                 await ClearCartAsync(cartId);
@@ -52,7 +52,7 @@ namespace EquipmentShop.Infrastructure.Services
             {
                 var cart = await GetCartAsync(cartId);
 
-                // Если пользователь авторизовался, привязываем корзину к пользователю
+                // Привязка к пользователю при необходимости
                 if (!string.IsNullOrEmpty(userId) && cart.UserId != userId)
                 {
                     await TransferCartToUserAsync(cartId, userId);
@@ -75,14 +75,13 @@ namespace EquipmentShop.Infrastructure.Services
                 UserId = userId,
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow,
-                ExpiresAt = DateTime.UtcNow.AddDays(30) // Корзина хранится 30 дней
+                ExpiresAt = DateTime.UtcNow.AddDays(30)
             };
 
             _context.ShoppingCarts.Add(cart);
             await _context.SaveChangesAsync();
 
             _logger.LogInformation("Создана новая корзина с ID: {CartId}", cartId);
-
             return cart;
         }
 
@@ -93,15 +92,16 @@ namespace EquipmentShop.Infrastructure.Services
                 throw new ArgumentException("UserId не может быть пустым", nameof(userId));
             }
 
-            // Ищем корзину пользователя
+            // ИСПРАВЛЕНО: замена IsExpired на безопасное условие
             var cart = await _context.ShoppingCarts
                 .Include(c => c.Items)
                 .ThenInclude(i => i.Product)
-                .FirstOrDefaultAsync(c => c.UserId == userId && !c.IsExpired);
+                .FirstOrDefaultAsync(c =>
+                    c.UserId == userId &&
+                    (!c.ExpiresAt.HasValue || c.ExpiresAt.Value >= DateTime.UtcNow));
 
             if (cart == null)
             {
-                // Создаем новую корзину для пользователя
                 cart = new ShoppingCart
                 {
                     Id = $"cart_{userId}",
@@ -129,37 +129,28 @@ namespace EquipmentShop.Infrastructure.Services
         public async Task AddItemAsync(string cartId, int productId, int quantity = 1, string? attributes = null)
         {
             if (quantity <= 0)
-            {
                 throw new ArgumentException("Количество должно быть больше 0", nameof(quantity));
-            }
 
             var cart = await GetOrCreateCartAsync(cartId);
-            var product = await _productRepository.GetByIdAsync(productId);
+
+            var product = await _context.Products
+                .AsNoTracking()
+                .FirstOrDefaultAsync(p => p.Id == productId);
 
             if (product == null)
-            {
                 throw new ProductNotFoundException(productId);
-            }
 
-            if (!product.IsAvailable)
-            {
-                throw new InsufficientStockException(productId, product.Name, quantity, 0);
-            }
-
-            if (quantity > product.StockQuantity)
-            {
+            if (!product.IsAvailable || quantity > product.StockQuantity)
                 throw new InsufficientStockException(productId, product.Name, quantity, product.StockQuantity);
-            }
 
-            var existingItem = cart.Items.FirstOrDefault(i => i.ProductId == productId);
+            var existingItem = await _context.CartItems
+                .FirstOrDefaultAsync(i => i.CartId == cartId && i.ProductId == productId);
 
             if (existingItem != null)
             {
                 var newQuantity = existingItem.Quantity + quantity;
                 if (newQuantity > product.StockQuantity)
-                {
-                    throw new InsufficientStockException(productId, product.Name, newQuantity, product.StockQuantity);
-                }
+                    newQuantity = product.StockQuantity;
 
                 existingItem.Quantity = newQuantity;
                 existingItem.UpdatedAt = DateTime.UtcNow;
@@ -170,14 +161,14 @@ namespace EquipmentShop.Infrastructure.Services
                 {
                     CartId = cartId,
                     ProductId = productId,
-                    Product = product,
                     Price = product.Price,
                     Quantity = quantity,
                     SelectedAttributes = attributes,
-                    AddedAt = DateTime.UtcNow
+                    AddedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
                 };
 
-                cart.Items.Add(cartItem);
+                _context.CartItems.Add(cartItem);
             }
 
             cart.UpdatedAt = DateTime.UtcNow;
@@ -189,23 +180,20 @@ namespace EquipmentShop.Infrastructure.Services
         public async Task UpdateItemQuantityAsync(string cartId, int productId, int quantity)
         {
             if (quantity < 0)
-            {
                 throw new ArgumentException("Количество не может быть отрицательным", nameof(quantity));
-            }
 
             var cart = await GetCartAsync(cartId);
             var item = cart.Items.FirstOrDefault(i => i.ProductId == productId);
 
             if (item == null)
-            {
                 throw new Exception($"Товар с ID {productId} не найден в корзине");
-            }
 
-            var product = await _productRepository.GetByIdAsync(productId);
+            var product = await _context.Products
+                .AsNoTracking()
+                .FirstOrDefaultAsync(p => p.Id == productId);
+
             if (product == null)
-            {
                 throw new ProductNotFoundException(productId);
-            }
 
             if (quantity == 0)
             {
@@ -214,9 +202,7 @@ namespace EquipmentShop.Infrastructure.Services
             }
 
             if (quantity > product.StockQuantity)
-            {
                 throw new InsufficientStockException(productId, product.Name, quantity, product.StockQuantity);
-            }
 
             item.Quantity = quantity;
             item.UpdatedAt = DateTime.UtcNow;
@@ -235,8 +221,8 @@ namespace EquipmentShop.Infrastructure.Services
                 cart.Items.Remove(item);
                 _context.CartItems.Remove(item);
                 cart.UpdatedAt = DateTime.UtcNow;
-
                 await _context.SaveChangesAsync();
+
                 _logger.LogInformation("Удален товар {ProductId} из корзины {CartId}", productId, cartId);
             }
         }
@@ -252,8 +238,8 @@ namespace EquipmentShop.Infrastructure.Services
 
             cart.Items.Clear();
             cart.UpdatedAt = DateTime.UtcNow;
-
             await _context.SaveChangesAsync();
+
             _logger.LogInformation("Очищена корзина {CartId}", cartId);
         }
 
@@ -268,15 +254,12 @@ namespace EquipmentShop.Infrastructure.Services
 
                 if (targetItem != null)
                 {
-                    // Проверяем доступное количество
                     var product = await _productRepository.GetByIdAsync(sourceItem.ProductId);
                     if (product != null)
                     {
                         var newQuantity = targetItem.Quantity + sourceItem.Quantity;
                         if (newQuantity > product.StockQuantity)
-                        {
                             newQuantity = product.StockQuantity;
-                        }
 
                         targetItem.Quantity = newQuantity;
                         targetItem.UpdatedAt = DateTime.UtcNow;
@@ -299,10 +282,8 @@ namespace EquipmentShop.Infrastructure.Services
                 }
             }
 
-            // Удаляем исходную корзину
             _context.ShoppingCarts.Remove(sourceCart);
             targetCart.UpdatedAt = DateTime.UtcNow;
-
             await _context.SaveChangesAsync();
         }
 
@@ -310,18 +291,18 @@ namespace EquipmentShop.Infrastructure.Services
         {
             var cart = await GetCartAsync(cartId);
 
-            // Проверяем, есть ли у пользователя другая корзина
             var userCart = await _context.ShoppingCarts
-                .FirstOrDefaultAsync(c => c.UserId == userId && c.Id != cartId && !c.IsExpired);
+                .FirstOrDefaultAsync(c =>
+                    c.UserId == userId &&
+                    c.Id != cartId &&
+                    (!c.ExpiresAt.HasValue || c.ExpiresAt.Value >= DateTime.UtcNow));
 
             if (userCart != null)
             {
-                // Объединяем корзины
                 await MergeCartsAsync(cartId, userCart.Id);
             }
             else
             {
-                // Просто привязываем корзину к пользователю
                 cart.UserId = userId;
                 cart.UpdatedAt = DateTime.UtcNow;
                 await _context.SaveChangesAsync();
@@ -364,9 +345,7 @@ namespace EquipmentShop.Infrastructure.Services
                 {
                     var product = await _productRepository.GetByIdAsync(item.ProductId);
                     if (product == null || !product.IsAvailable || item.Quantity > product.StockQuantity)
-                    {
                         return false;
-                    }
                 }
 
                 return true;
@@ -382,17 +361,11 @@ namespace EquipmentShop.Infrastructure.Services
             var cart = await GetCartAsync(cartId);
 
             if (cart.IsEmpty)
-            {
                 throw new EmptyCartException(cartId);
-            }
 
-            // Валидация корзины
             if (!await ValidateCartAsync(cartId))
-            {
                 throw new CartException(cartId, "Корзина содержит недоступные товары");
-            }
 
-            // Создаем элементы заказа на основе корзины
             order.OrderItems = cart.Items.Select(item => new OrderItem
             {
                 ProductId = item.ProductId,
@@ -405,13 +378,10 @@ namespace EquipmentShop.Infrastructure.Services
 
             order.Subtotal = cart.Items.Sum(i => i.TotalPrice);
 
-            // Очищаем корзину
             await ClearCartAsync(cartId);
-
             return cart;
         }
 
-        // Новый метод для продления срока действия корзины
         public async Task RenewCartExpirationAsync(string cartId)
         {
             var cart = await GetCartAsync(cartId);
@@ -420,6 +390,7 @@ namespace EquipmentShop.Infrastructure.Services
             await _context.SaveChangesAsync();
         }
 
+        // Совместимость с интерфейсом из вашего текущего кода
         Task IShoppingCartService.CreateCartWithIdAsync(string cartId, string? v)
         {
             return CreateCartWithIdAsync(cartId, v);

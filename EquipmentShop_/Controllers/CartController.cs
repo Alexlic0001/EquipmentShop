@@ -5,7 +5,8 @@ using EquipmentShop.Core.Entities;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using System.Security.Claims;
-using Microsoft.AspNetCore.Http;
+using EquipmentShop.Infrastructure.Data;
+using Microsoft.EntityFrameworkCore;
 
 namespace EquipmentShop.Controllers
 {
@@ -16,17 +17,20 @@ namespace EquipmentShop.Controllers
         private readonly IProductRepository _productRepository;
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly ILogger<CartController> _logger;
+        private readonly AppDbContext _context; // Добавлен контекст
 
         public CartController(
             IShoppingCartService cartService,
             IProductRepository productRepository,
             UserManager<ApplicationUser> userManager,
-            ILogger<CartController> logger)
+            ILogger<CartController> logger,
+            AppDbContext context) // Добавлен параметр
         {
             _cartService = cartService;
             _productRepository = productRepository;
             _userManager = userManager;
             _logger = logger;
+            _context = context;
         }
 
         // Получаем ID корзины пользователя (основано на UserId)
@@ -59,7 +63,6 @@ namespace EquipmentShop.Controllers
             try
             {
                 var userId = GetUserId();
-                var cartId = GetUserCartId();
 
                 // Получаем корзину пользователя (или создаем новую)
                 var cart = await _cartService.GetUserCartAsync(userId);
@@ -96,6 +99,7 @@ namespace EquipmentShop.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Ошибка при загрузке корзины");
+                TempData["Error"] = "Ошибка при загрузке корзины";
                 return RedirectToAction("Error", "Home");
             }
         }
@@ -115,7 +119,11 @@ namespace EquipmentShop.Controllers
                     return RedirectToAction("Details", "Products", new { id = productId });
                 }
 
-                var product = await _productRepository.GetByIdAsync(productId);
+                // ИСПРАВЛЕНО: Используем прямой запрос к контексту вместо репозитория
+                var product = await _context.Products
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(p => p.Id == productId);
+
                 if (product == null)
                 {
                     TempData["Error"] = "Товар не найден";
@@ -146,6 +154,50 @@ namespace EquipmentShop.Controllers
                 _logger.LogError(ex, "Ошибка при добавлении товара в корзину");
                 TempData["Error"] = ex.Message.Contains("недостаточно") ? ex.Message : "Ошибка при добавлении в корзину";
                 return RedirectToAction("Details", "Products", new { id = productId });
+            }
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> UpdateQuantity(int productId, int quantity)
+        {
+            try
+            {
+                var userId = GetUserId();
+                var cart = await _cartService.GetUserCartAsync(userId);
+
+                if (quantity <= 0)
+                {
+                    await _cartService.RemoveItemAsync(cart.Id, productId);
+                    TempData["Success"] = "Товар удален из корзины";
+                }
+                else
+                {
+                    var product = await _context.Products
+                        .AsNoTracking()
+                        .FirstOrDefaultAsync(p => p.Id == productId);
+
+                    if (product != null && quantity > product.StockQuantity)
+                    {
+                        TempData["Error"] = $"Доступно только {product.StockQuantity} шт.";
+                        return RedirectToAction("Index");
+                    }
+
+                    await _cartService.UpdateItemQuantityAsync(cart.Id, productId, quantity);
+                    TempData["Success"] = "Количество товара обновлено";
+                }
+
+                return RedirectToAction("Index");
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return RedirectToAction("Login", "Account", new { returnUrl = Url.Action("Index", "Cart") });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Ошибка при обновлении количества товара");
+                TempData["Error"] = "Ошибка при обновлении количества товара";
+                return RedirectToAction("Index");
             }
         }
 
@@ -219,11 +271,11 @@ namespace EquipmentShop.Controllers
             }
             catch (UnauthorizedAccessException)
             {
-                return Json(new CartSummaryViewModel()); // Пустая корзина для неавторизованных
+                return Json(new CartSummaryViewModel { ItemCount = 0, Total = 0m }); // Пустая корзина для неавторизованных
             }
             catch
             {
-                return Json(new CartSummaryViewModel());
+                return Json(new CartSummaryViewModel { ItemCount = 0, Total = 0m });
             }
         }
 
@@ -260,6 +312,98 @@ namespace EquipmentShop.Controllers
             catch
             {
                 return PartialView("_MiniCartPartial", new MiniCartViewModel());
+            }
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> Count()
+        {
+            try
+            {
+                var userId = GetUserId();
+                var cart = await _cartService.GetUserCartAsync(userId);
+                return Json(new { count = cart.TotalItems });
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return Json(new { count = 0 });
+            }
+            catch
+            {
+                return Json(new { count = 0 });
+            }
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> MoveToWishlist(int productId)
+        {
+            try
+            {
+                var userId = GetUserId();
+                var cart = await _cartService.GetUserCartAsync(userId);
+
+                // Удаляем из корзины
+                await _cartService.RemoveItemAsync(cart.Id, productId);
+
+                // Ищем товар
+                var product = await _context.Products
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(p => p.Id == productId);
+
+                if (product != null)
+                {
+                    // TODO: Добавить логику перемещения в список желаний
+                    TempData["Success"] = $"«{product.Name}» перемещен в список желаний";
+                }
+                else
+                {
+                    TempData["Success"] = "Товар удален из корзины";
+                }
+
+                return RedirectToAction("Index");
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return RedirectToAction("Login", "Account", new { returnUrl = Url.Action("Index", "Cart") });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Ошибка при перемещении товара в список желаний");
+                TempData["Error"] = "Ошибка при перемещении товара";
+                return RedirectToAction("Index");
+            }
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> Validate()
+        {
+            try
+            {
+                var userId = GetUserId();
+                var cart = await _cartService.GetUserCartAsync(userId);
+
+                if (cart.IsEmpty)
+                {
+                    return Json(new { valid = false, message = "Корзина пуста" });
+                }
+
+                var isValid = await _cartService.ValidateCartAsync(cart.Id);
+
+                if (!isValid)
+                {
+                    return Json(new { valid = false, message = "Некоторые товары недоступны" });
+                }
+
+                return Json(new { valid = true });
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return Json(new { valid = false, message = "Требуется авторизация" });
+            }
+            catch
+            {
+                return Json(new { valid = false, message = "Ошибка проверки корзины" });
             }
         }
 

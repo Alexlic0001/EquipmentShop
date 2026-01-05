@@ -1,5 +1,5 @@
 ﻿@using EquipmentShop.Core.Enums
-
+@using EquipmentShop.Core.Constants
 @model EquipmentShop.Core.Entities.Order
 @{
     ViewData["Title"] = $"Заказ {Model.OrderNumber}";
@@ -36,16 +36,16 @@
                             {
                                 <tr>
                                     <td>@item.ProductName</td>
-                                    <td>@item.UnitPrice.ToString("C0")</td>
+                                    <td>@item.UnitPrice.ToString("N0")@AppConstants.CurrencySymbol</td>
                                     <td>@item.Quantity</td>
-                                    <td>@item.TotalPrice.ToString("C0")</td>
+                                    <td>@item.TotalPrice.ToString("N0")@AppConstants.CurrencySymbol</td>
                                 </tr>
                             }
                         </tbody>
                         <tfoot>
                             <tr>
                                 <td colspan="3" class="text-end"><strong>Итого:</strong></td>
-                                <td><strong>@Model.Total.ToString("C0")</strong></td>
+                                <td><strong>@Model.Total.ToString("N0")@AppConstants.CurrencySymbol</strong></td>
                             </tr>
                         </tfoot>
                     </table>

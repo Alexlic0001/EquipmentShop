@@ -1,4 +1,5 @@
-﻿@model EquipmentShop.Core.ViewModels.CartViewModel
+﻿@using EquipmentShop.Core.Constants
+@model EquipmentShop.Core.ViewModels.CartViewModel
 @{
     ViewData["Title"] = "Корзина покупок";
     Layout = "_Layout";
@@ -102,7 +103,7 @@ else
                                                     </div>
                                                 </td>
                                                 <td class="align-middle">
-                                                    <span class="fw-semibold">@item.Price.ToString("C0")</span>
+                                                    <span class="fw-semibold">@item.Price.ToString("N0")@AppConstants.CurrencySymbol</span>
                                                 </td>
                                                 <td class="align-middle">
                                                     <div class="d-flex justify-content-center align-items-center">
@@ -139,7 +140,7 @@ else
                                                         </small>
                                                     }
                                                 </td>
-                                                <td class="align-middle fw-bold">@item.TotalPrice.ToString("C0")</td>
+                                                <span class="fw-bold">@item.TotalPrice.ToString("N0")@AppConstants.CurrencySymbol</span>
                                                 <td class="align-middle">
                                                     <form asp-action="RemoveFromCart" method="post"
                                                           onsubmit="return confirm('Удалить товар из корзины?');">
@@ -209,13 +210,11 @@ else
                         <div class="card-body">
                             <div class="d-flex justify-content-between mb-2">
                                 <span>Товары (@Model.Items.Sum(i => i.Quantity) шт.)</span>
-                                <span class="fw-semibold">@Model.Subtotal.ToString("C0")</span>
+                                <span class="fw-semibold">@Model.Subtotal.ToString("N0")@AppConstants.CurrencySymbol</span>
                             </div>
                             <div class="d-flex justify-content-between mb-2">
                                 <span>Доставка</span>
-                                <span class="fw-semibold @(Model.ShippingCost == 0 ? "text-success" : "")">
-                                    @(Model.ShippingCost == 0 ? "Бесплатно" : Model.ShippingCost.ToString("C0"))
-                                </span>
+                                <span class="fw-semibold @(Model.ShippingCost == 0 ? "text-success" : "")">@(Model.ShippingCost == 0 ? "Бесплатно" : $"{Model.ShippingCost:N0}{AppConstants.CurrencySymbol}")</span>
                             </div>
                             <div class="d-flex justify-content-between mb-3">
                                 <span>НДС</span>
@@ -240,7 +239,7 @@ else
 
                             <div class="d-flex justify-content-between mb-4">
                                 <span class="h5 mb-0">Всего к оплате</span>
-                                <span class="h4 text-primary fw-bold">@Model.Total.ToString("C0")</span>
+                                <span class="h4 text-primary fw-bold">@Model.Total.ToString("N0")@AppConstants.CurrencySymbol</span>
                             </div>
 
                             <div class="d-grid gap-2 mb-3">

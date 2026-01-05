@@ -1,4 +1,5 @@
-﻿@model IEnumerable<EquipmentShop.Core.Entities.Order>
+﻿@using EquipmentShop.Core.Constants
+@model IEnumerable<EquipmentShop.Core.Entities.Order>
 @{
     ViewData["Title"] = "Управление заказами";
     Layout = "_Layout";
@@ -33,7 +34,7 @@
                         <tr>
                             <td>@order.OrderNumber</td>
                             <td>@order.CustomerName</td>
-                            <td>@order.Total.ToString("C0")</td>
+                            <td>@order.Total.ToString("N0")@AppConstants.CurrencySymbol</td>
                             <td>
                                 @if (order.Status == EquipmentShop.Core.Enums.OrderStatus.Delivered)
                                 {

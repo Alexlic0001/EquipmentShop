@@ -1,4 +1,5 @@
 ﻿
+using EquipmentShop.Core.Constants;
 using EquipmentShop.Core.Interfaces;
 
 namespace EquipmentShop.Core.ViewModels
@@ -29,8 +30,9 @@ namespace EquipmentShop.Core.ViewModels
 
         // Вычисляемые свойства
         public decimal DiscountPercentage => GetDiscountPercentage();
-        public string FormattedPrice => Price.ToString("C0");
-        public string FormattedOldPrice => OldPrice?.ToString("C0") ?? string.Empty;
+        public string FormattedPrice => $"{Price:N0}{AppConstants.CurrencySymbol}";
+        public string FormattedOldPrice => OldPrice.HasValue ? $"{OldPrice.Value:N0}{AppConstants.CurrencySymbol}" : string.Empty;
+        //public string FormattedOldPrice => OldPrice?.ToString("C0") ?? string.Empty;
         public bool IsOnSale => OldPrice.HasValue;
         public string StockStatus => GetStockStatus();
         public string RatingStars => new string('★', (int)Math.Round(Rating)) + new string('☆', 5 - (int)Math.Round(Rating));

@@ -65,8 +65,6 @@ namespace EquipmentShop.Infrastructure.Data
                     );
             });
 
-
-
             // Конфигурация Product
             modelBuilder.Entity<Product>(entity =>
             {
@@ -143,7 +141,7 @@ namespace EquipmentShop.Infrastructure.Data
                 entity.HasMany(p => p.Reviews)
                     .WithOne(r => r.Product)
                     .HasForeignKey(r => r.ProductId)
-                    .OnDelete(DeleteBehavior.Cascade);
+                    .OnDelete(DeleteBehavior.NoAction);
 
                 entity.HasMany(p => p.OrderItems)
                     .WithOne(oi => oi.Product)
@@ -310,6 +308,12 @@ namespace EquipmentShop.Infrastructure.Data
 
                 entity.Property(oi => oi.ProductAttributes)
                     .HasMaxLength(1000);
+
+                // Отношения
+                entity.HasOne(oi => oi.Product)
+                    .WithMany()
+                    .HasForeignKey(oi => oi.ProductId)
+                    .OnDelete(DeleteBehavior.Restrict);
             });
 
             // Конфигурация ShoppingCart
@@ -348,9 +352,15 @@ namespace EquipmentShop.Infrastructure.Data
 
                 entity.Property(i => i.SelectedAttributes)
                     .HasMaxLength(1000);
+
+                // Отношения
+                entity.HasOne(i => i.Product)
+                    .WithMany()
+                    .HasForeignKey(i => i.ProductId)
+                    .OnDelete(DeleteBehavior.Restrict);
             });
 
-            // Конфигурация Review
+            // ИСПРАВЛЕННАЯ конфигурация Review
             modelBuilder.Entity<Review>(entity =>
             {
                 entity.HasKey(r => r.Id);
@@ -396,7 +406,10 @@ namespace EquipmentShop.Infrastructure.Data
                     );
 
                 // Ограничения
-                object value = entity.HasCheckConstraint("CK_Review_Rating", "[Rating] >= 1 AND [Rating] <= 5");
+                entity.HasCheckConstraint("CK_Review_Rating", "[Rating] >= 1 AND [Rating] <= 5");
+
+                // ИСПРАВЛЕНО: Убрана связь с ApplicationUser, т.к. в Review.cs нет свойства User
+                // Вместо этого связь только через UserId
             });
 
             // Конфигурация Wishlist
@@ -419,6 +432,12 @@ namespace EquipmentShop.Infrastructure.Data
 
                 entity.HasIndex(wi => new { wi.WishlistId, wi.ProductId })
                     .IsUnique();
+
+                // Отношения
+                entity.HasOne(wi => wi.Product)
+                    .WithMany()
+                    .HasForeignKey(wi => wi.ProductId)
+                    .OnDelete(DeleteBehavior.Restrict);
             });
         }
 
@@ -470,12 +489,6 @@ namespace EquipmentShop.Infrastructure.Data
             return await base.SaveChangesAsync(cancellationToken);
         }
 
-
-
-
-
-
-
         public static async Task InitializeAsync(IServiceProvider serviceProvider)
         {
             using var scope = serviceProvider.CreateScope();
@@ -492,7 +505,7 @@ namespace EquipmentShop.Infrastructure.Data
                 Console.WriteLine("Database created successfully!");
 
                 // Создаем роли
-                string[] roles = { "Admin", "User", "Manager" };
+                string[] roles = { "Admin", "User", "Manager", "Customer" };
                 foreach (var role in roles)
                 {
                     if (!await roleManager.RoleExistsAsync(role))
@@ -528,15 +541,6 @@ namespace EquipmentShop.Infrastructure.Data
                     }
                 }
 
-                //
-                if (!await roleManager.RoleExistsAsync("Customer"))
-                {
-                    await roleManager.CreateAsync(new IdentityRole("Customer"));
-                    Console.WriteLine("Created role: Customer");
-                }
-
-
-
                 // Создаем тестового пользователя
                 var userEmail = "user@shop.com";
                 var testUser = await userManager.FindByEmailAsync(userEmail);
@@ -554,12 +558,22 @@ namespace EquipmentShop.Infrastructure.Data
                     var result = await userManager.CreateAsync(testUser, "User123!");
                     if (result.Succeeded)
                     {
+                        await userManager.AddToRoleAsync(testUser, "Customer");
                         Console.WriteLine($"Created test user: {userEmail}");
                     }
                     else
                     {
                         Console.WriteLine($"Failed to create test user: {string.Join(", ", result.Errors.Select(e => e.Description))}");
                     }
+                }
+
+                // ИСПРАВЛЕНО: Получаем userId безопасным способом
+                var testUserId = testUser?.Id;
+                if (string.IsNullOrEmpty(testUserId))
+                {
+                    // Получаем пользователя заново если Id пустой
+                    testUser = await userManager.FindByEmailAsync(userEmail);
+                    testUserId = testUser?.Id;
                 }
 
                 // Добавляем тестовые товары если их нет
@@ -569,62 +583,67 @@ namespace EquipmentShop.Infrastructure.Data
 
                     // Создаем категории
                     var categories = new List<Category>
-                {
-                    new Category
                     {
-                        Name = "Ноутбуки",
-                        Slug = "laptops",
-                        Description = "Игровые и рабочие ноутбуки",
-                        IsActive = true,
-                        ShowInMenu = true
-                    },
-                    new Category
-                    {
-                        Name = "Комплектующие",
-                        Slug = "components",
-                        Description = "Процессоры, видеокарты, память",
-                        IsActive = true,
-                        ShowInMenu = true
-                    }
-                };
+                        new Category
+                        {
+                            Name = "Ноутбуки",
+                            Slug = "laptops",
+                            Description = "Игровые и рабочие ноутбуки",
+                            IsActive = true,
+                            ShowInMenu = true,
+                            DisplayOrder = 1
+                        },
+                        new Category
+                        {
+                            Name = "Комплектующие",
+                            Slug = "components",
+                            Description = "Процессоры, видеокарты, память",
+                            IsActive = true,
+                            ShowInMenu = true,
+                            DisplayOrder = 2
+                        }
+                    };
 
                     await context.Categories.AddRangeAsync(categories);
                     await context.SaveChangesAsync();
 
                     // Добавляем товары
                     var products = new List<Product>
-                {
-                    new Product
                     {
-                        Name = "Игровой ноутбук ASUS ROG",
-                        Slug = "asus-rog-gaming-laptop",
-                        Description = "Мощный игровой ноутбук с видеокартой RTX 3060",
-                        ShortDescription = "Игровой ноутбук для современных игр",
-                        Price = 2899.99m,
-                        OldPrice = 3299.99m,
-                        ImageUrl = "/images/products/default.jpg",
-                        CategoryId = categories[0].Id,
-                        Brand = "ASUS",
-                        StockQuantity = 15,
-                        IsAvailable = true,
-                        IsFeatured = true,
-                        IsNew = true
-                    },
-                    new Product
-                    {
-                        Name = "Процессор Intel Core i9",
-                        Slug = "intel-core-i9-processor",
-                        Description = "Флагманский процессор 13-го поколения",
-                        ShortDescription = "Мощный процессор для игр и работы",
-                        Price = 699.99m,
-                        ImageUrl = "/images/products/default.jpg",
-                        CategoryId = categories[1].Id,
-                        Brand = "Intel",
-                        StockQuantity = 8,
-                        IsAvailable = true,
-                        IsNew = true
-                    }
-                };
+                        new Product
+                        {
+                            Name = "Игровой ноутбук ASUS ROG",
+                            Slug = "asus-rog-gaming-laptop",
+                            Description = "Мощный игровой ноутбук с видеокартой RTX 3060",
+                            ShortDescription = "Игровой ноутбук для современных игр",
+                            Price = 2899.99m,
+                            OldPrice = 3299.99m,
+                            ImageUrl = "/images/products/default.jpg",
+                            CategoryId = categories[0].Id,
+                            Brand = "ASUS",
+                            StockQuantity = 15,
+                            IsFeatured = true,
+                            IsNew = true,
+                            CreatedAt = DateTime.UtcNow,
+                            UpdatedAt = DateTime.UtcNow
+                        },
+                        new Product
+                        {
+                            Name = "Процессор Intel Core i9",
+                            Slug = "intel-core-i9-processor",
+                            Description = "Флагманский процессор 13-го поколения",
+                            ShortDescription = "Мощный процессор для игр и работы",
+                            Price = 699.99m,
+                            ImageUrl = "/images/products/default.jpg",
+                            CategoryId = categories[1].Id,
+                            Brand = "Intel",
+                            StockQuantity = 8,
+                            IsFeatured = false,
+                            IsNew = true,
+                            CreatedAt = DateTime.UtcNow,
+                            UpdatedAt = DateTime.UtcNow
+                        }
+                    };
 
                     await context.Products.AddRangeAsync(products);
                     await context.SaveChangesAsync();
@@ -635,6 +654,27 @@ namespace EquipmentShop.Infrastructure.Data
                 {
                     Console.WriteLine($"Database already has {context.Products.Count()} products");
                 }
+
+                // ИСПРАВЛЕНО: Проверяем наличие корзины безопасным способом
+                if (!string.IsNullOrEmpty(testUserId))
+                {
+                    var cartExists = await context.ShoppingCarts.AnyAsync(c => c.UserId == testUserId);
+
+                    if (!cartExists)
+                    {
+                        var testCart = new ShoppingCart
+                        {
+                            Id = $"cart_{testUserId}",
+                            UserId = testUserId,
+                            CreatedAt = DateTime.UtcNow,
+                            UpdatedAt = DateTime.UtcNow
+                        };
+
+                        context.ShoppingCarts.Add(testCart);
+                        await context.SaveChangesAsync();
+                        Console.WriteLine("Created test shopping cart");
+                    }
+                }
             }
             catch (Exception ex)
             {
@@ -643,9 +683,9 @@ namespace EquipmentShop.Infrastructure.Data
                 {
                     Console.WriteLine($"Inner exception: {ex.InnerException.Message}");
                 }
+                // Для отладки
+                Console.WriteLine($"StackTrace: {ex.StackTrace}");
             }
         }
-    
-
     }
 }

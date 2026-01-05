@@ -14,7 +14,7 @@ namespace EquipmentShop.Core.Constants
         public const string CurrencySymbol = " р.";
 
         // Налоги
-        public const decimal DefaultTaxRate = 0.20m; // 20% НДС
+        public const decimal DefaultTaxRate = 0.20m; // 20% НДС//
 
         // Доставка
         public const decimal FreeShippingThreshold = 50000m;

@@ -93,8 +93,8 @@
                                    data-bs-toggle="dropdown" aria-expanded="false">
                                     <i class="fas fa-shopping-cart"></i>
                                     <span id="cartItemCount" class="badge bg-danger cart-count"
-                                          style="@(ViewBag.CartItemCount > 0 ? "" : "display: none;")">
-                                        @(ViewBag.CartItemCount ?? 0)
+                                          style="display: none;">
+                                        0
                                     </span>
                                 </a>
                                 <div class="dropdown-menu dropdown-menu-end dropdown-menu-cart" aria-labelledby="cartDropdown">
@@ -102,34 +102,13 @@
                                         <h6 class="mb-0">Корзина</h6>
                                     </div>
                                     <div id="miniCartContent">
-                                        @if (ViewBag.CartItemCount > 0)
-                                        {
-                                            <!-- Контент мини-корзины будет обновляться через AJAX -->
-                                            <div class="p-3 text-center">
-                                                <div class="spinner-border spinner-border-sm text-primary" role="status">
-                                                    <span class="visually-hidden">Загрузка...</span>
-                                                </div>
-                                                <p class="text-muted mt-2">Загрузка корзины...</p>
+                                        <div class="p-3 text-center">
+                                            <div class="spinner-border spinner-border-sm text-primary" role="status">
+                                                <span class="visually-hidden">Загрузка...</span>
                                             </div>
-                                        }
-                                        else
-                                        {
-                                            <div class="p-3 text-center">
-                                                <i class="fas fa-shopping-cart fa-2x text-muted mb-2"></i>
-                                                <p class="text-muted mb-0">Корзина пуста</p>
-                                            </div>
-                                        }
-                                    </div>
-                                    @if (ViewBag.CartItemCount > 0)
-                                    {
-                                        <div class="px-3 py-2 border-top bg-light">
-                                            <div class="d-grid gap-2">
-                                                <a asp-controller="Cart" asp-action="Index" class="btn btn-primary btn-sm">
-                                                    <i class="fas fa-shopping-cart"></i> Перейти в корзину
-                                                </a>
-                                            </div>
+                                            <p class="text-muted mt-2">Загрузка корзины...</p>
                                         </div>
-                                    }
+                                    </div>
                                 </div>
                             </li>
 

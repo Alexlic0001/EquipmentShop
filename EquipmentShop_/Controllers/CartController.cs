@@ -10,21 +10,21 @@ using Microsoft.EntityFrameworkCore;
 
 namespace EquipmentShop.Controllers
 {
-    [Authorize] // ТОЛЬКО авторизованные пользователи
+    // Убран глобальный [Authorize]
     public class CartController : Controller
     {
         private readonly IShoppingCartService _cartService;
         private readonly IProductRepository _productRepository;
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly ILogger<CartController> _logger;
-        private readonly AppDbContext _context; // Добавлен контекст
+        private readonly AppDbContext _context;
 
         public CartController(
             IShoppingCartService cartService,
             IProductRepository productRepository,
             UserManager<ApplicationUser> userManager,
             ILogger<CartController> logger,
-            AppDbContext context) // Добавлен параметр
+            AppDbContext context)
         {
             _cartService = cartService;
             _productRepository = productRepository;
@@ -33,20 +33,6 @@ namespace EquipmentShop.Controllers
             _context = context;
         }
 
-        // Получаем ID корзины пользователя (основано на UserId)
-        private string GetUserCartId()
-        {
-            var userId = GetUserId();
-            if (string.IsNullOrEmpty(userId))
-            {
-                throw new UnauthorizedAccessException("Пользователь не авторизован");
-            }
-
-            // Используем userId как основу для ID корзины
-            return $"cart_{userId}";
-        }
-
-        // Получаем ID текущего пользователя
         private string GetUserId()
         {
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
@@ -57,16 +43,14 @@ namespace EquipmentShop.Controllers
             return userId;
         }
 
+        [Authorize]
         [HttpGet]
         public async Task<IActionResult> Index()
         {
             try
             {
                 var userId = GetUserId();
-
-                // Получаем корзину пользователя (или создаем новую)
                 var cart = await _cartService.GetUserCartAsync(userId);
-
                 var viewModel = new CartViewModel
                 {
                     CartId = cart.Id,
@@ -88,12 +72,10 @@ namespace EquipmentShop.Controllers
                     TaxAmount = CalculateTax(cart.Subtotal),
                     Total = cart.Subtotal + CalculateShippingCost(cart.Subtotal) + CalculateTax(cart.Subtotal)
                 };
-
                 return View(viewModel);
             }
             catch (UnauthorizedAccessException)
             {
-                // Редирект на страницу входа если не авторизован
                 return RedirectToAction("Login", "Account", new { returnUrl = Url.Action("Index", "Cart") });
             }
             catch (Exception ex)
@@ -104,22 +86,20 @@ namespace EquipmentShop.Controllers
             }
         }
 
+        [Authorize]
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> AddToCart(int productId, int quantity = 1)
         {
             try
             {
-                // Проверяем авторизацию
                 var userId = GetUserId();
-
                 if (quantity <= 0)
                 {
                     TempData["Error"] = "Количество должно быть больше 0";
                     return RedirectToAction("Details", "Products", new { id = productId });
                 }
 
-                // ИСПРАВЛЕНО: Используем прямой запрос к контексту вместо репозитория
                 var product = await _context.Products
                     .AsNoTracking()
                     .FirstOrDefaultAsync(p => p.Id == productId);
@@ -130,9 +110,7 @@ namespace EquipmentShop.Controllers
                     return RedirectToAction("Index", "Products");
                 }
 
-                // Получаем корзину пользователя
                 var cart = await _cartService.GetUserCartAsync(userId);
-
                 await _cartService.AddItemAsync(cart.Id, productId, quantity);
                 TempData["Success"] = $"«{product.Name}» добавлен в корзину";
 
@@ -140,10 +118,7 @@ namespace EquipmentShop.Controllers
             }
             catch (UnauthorizedAccessException)
             {
-                // Сохраняем информацию о товаре для добавления после входа
                 HttpContext.Session.SetString("PendingAddToCart", $"{productId},{quantity}");
-
-                // Редирект на страницу входа
                 return RedirectToAction("Login", "Account", new
                 {
                     returnUrl = Url.Action("Details", "Products", new { id = productId })
@@ -157,6 +132,7 @@ namespace EquipmentShop.Controllers
             }
         }
 
+        [Authorize]
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> UpdateQuantity(int productId, int quantity)
@@ -186,7 +162,6 @@ namespace EquipmentShop.Controllers
                     await _cartService.UpdateItemQuantityAsync(cart.Id, productId, quantity);
                     TempData["Success"] = "Количество товара обновлено";
                 }
-
                 return RedirectToAction("Index");
             }
             catch (UnauthorizedAccessException)
@@ -201,6 +176,7 @@ namespace EquipmentShop.Controllers
             }
         }
 
+        [Authorize]
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> RemoveFromCart(int productId)
@@ -209,10 +185,8 @@ namespace EquipmentShop.Controllers
             {
                 var userId = GetUserId();
                 var cart = await _cartService.GetUserCartAsync(userId);
-
                 await _cartService.RemoveItemAsync(cart.Id, productId);
                 TempData["Success"] = "Товар удален из корзины";
-
                 return RedirectToAction("Index");
             }
             catch (UnauthorizedAccessException)
@@ -227,6 +201,7 @@ namespace EquipmentShop.Controllers
             }
         }
 
+        [Authorize]
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> ClearCart()
@@ -235,10 +210,8 @@ namespace EquipmentShop.Controllers
             {
                 var userId = GetUserId();
                 var cart = await _cartService.GetUserCartAsync(userId);
-
                 await _cartService.ClearCartAsync(cart.Id);
                 TempData["Success"] = "Корзина очищена";
-
                 return RedirectToAction("Index");
             }
             catch (UnauthorizedAccessException)
@@ -253,25 +226,23 @@ namespace EquipmentShop.Controllers
             }
         }
 
+        // ✅ Доступен всем
         [HttpGet]
+        [AllowAnonymous]
         public async Task<IActionResult> GetCartSummary()
         {
             try
             {
-                var userId = GetUserId();
-                var cart = await _cartService.GetUserCartAsync(userId);
+                var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+                if (string.IsNullOrEmpty(userId))
+                    return Json(new CartSummaryViewModel { ItemCount = 0, Total = 0m });
 
-                var summary = new CartSummaryViewModel
+                var cart = await _cartService.GetUserCartAsync(userId);
+                return Json(new CartSummaryViewModel
                 {
                     ItemCount = cart.TotalItems,
                     Total = cart.Subtotal
-                };
-
-                return Json(summary);
-            }
-            catch (UnauthorizedAccessException)
-            {
-                return Json(new CartSummaryViewModel { ItemCount = 0, Total = 0m }); // Пустая корзина для неавторизованных
+                });
             }
             catch
             {
@@ -279,14 +250,18 @@ namespace EquipmentShop.Controllers
             }
         }
 
+        // ✅ Доступен всем — ключевой метод
         [HttpGet]
+        [AllowAnonymous]
         public async Task<IActionResult> MiniCart()
         {
             try
             {
-                var userId = GetUserId();
-                var cart = await _cartService.GetUserCartAsync(userId);
+                var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+                if (string.IsNullOrEmpty(userId))
+                    return PartialView("_MiniCartPartial", new MiniCartViewModel());
 
+                var cart = await _cartService.GetUserCartAsync(userId);
                 var miniCartViewModel = new MiniCartViewModel
                 {
                     Items = cart.Items?.Select(item => new CartItemViewModel
@@ -301,121 +276,15 @@ namespace EquipmentShop.Controllers
                     TotalItems = cart.TotalItems,
                     Subtotal = cart.Subtotal
                 };
-
                 return PartialView("_MiniCartPartial", miniCartViewModel);
             }
-            catch (UnauthorizedAccessException)
-            {
-                // Для неавторизованных показываем пустую корзину
-                return PartialView("_MiniCartPartial", new MiniCartViewModel());
-            }
             catch
             {
                 return PartialView("_MiniCartPartial", new MiniCartViewModel());
             }
         }
 
-        [HttpGet]
-        public async Task<IActionResult> Count()
-        {
-            try
-            {
-                var userId = GetUserId();
-                var cart = await _cartService.GetUserCartAsync(userId);
-                return Json(new { count = cart.TotalItems });
-            }
-            catch (UnauthorizedAccessException)
-            {
-                return Json(new { count = 0 });
-            }
-            catch
-            {
-                return Json(new { count = 0 });
-            }
-        }
-
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> MoveToWishlist(int productId)
-        {
-            try
-            {
-                var userId = GetUserId();
-                var cart = await _cartService.GetUserCartAsync(userId);
-
-                // Удаляем из корзины
-                await _cartService.RemoveItemAsync(cart.Id, productId);
-
-                // Ищем товар
-                var product = await _context.Products
-                    .AsNoTracking()
-                    .FirstOrDefaultAsync(p => p.Id == productId);
-
-                if (product != null)
-                {
-                    // TODO: Добавить логику перемещения в список желаний
-                    TempData["Success"] = $"«{product.Name}» перемещен в список желаний";
-                }
-                else
-                {
-                    TempData["Success"] = "Товар удален из корзины";
-                }
-
-                return RedirectToAction("Index");
-            }
-            catch (UnauthorizedAccessException)
-            {
-                return RedirectToAction("Login", "Account", new { returnUrl = Url.Action("Index", "Cart") });
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Ошибка при перемещении товара в список желаний");
-                TempData["Error"] = "Ошибка при перемещении товара";
-                return RedirectToAction("Index");
-            }
-        }
-
-        [HttpGet]
-        public async Task<IActionResult> Validate()
-        {
-            try
-            {
-                var userId = GetUserId();
-                var cart = await _cartService.GetUserCartAsync(userId);
-
-                if (cart.IsEmpty)
-                {
-                    return Json(new { valid = false, message = "Корзина пуста" });
-                }
-
-                var isValid = await _cartService.ValidateCartAsync(cart.Id);
-
-                if (!isValid)
-                {
-                    return Json(new { valid = false, message = "Некоторые товары недоступны" });
-                }
-
-                return Json(new { valid = true });
-            }
-            catch (UnauthorizedAccessException)
-            {
-                return Json(new { valid = false, message = "Требуется авторизация" });
-            }
-            catch
-            {
-                return Json(new { valid = false, message = "Ошибка проверки корзины" });
-            }
-        }
-
-        // Вспомогательные методы
-        private decimal CalculateShippingCost(decimal subtotal)
-        {
-            return subtotal >= 500 ? 0 : 10m;
-        }
-
-        private decimal CalculateTax(decimal subtotal)
-        {
-            return subtotal * 0.20m;
-        }
+        private decimal CalculateShippingCost(decimal subtotal) => subtotal >= 500 ? 0 : 10m;
+        private decimal CalculateTax(decimal subtotal) => subtotal * 0.20m;
     }
 }

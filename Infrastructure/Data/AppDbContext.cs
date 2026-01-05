@@ -528,6 +528,15 @@ namespace EquipmentShop.Infrastructure.Data
                     }
                 }
 
+                //
+                if (!await roleManager.RoleExistsAsync("Customer"))
+                {
+                    await roleManager.CreateAsync(new IdentityRole("Customer"));
+                    Console.WriteLine("Created role: Customer");
+                }
+
+
+
                 // Создаем тестового пользователя
                 var userEmail = "user@shop.com";
                 var testUser = await userManager.FindByEmailAsync(userEmail);

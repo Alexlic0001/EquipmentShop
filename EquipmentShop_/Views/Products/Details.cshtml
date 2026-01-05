@@ -42,27 +42,54 @@
                     <span class="text-muted ms-2">(@Model.ReviewsCount отзывов)</span>
                 </div>
             </div>
-
             <div class="mb-4">
                 @if (Model.StockQuantity > 0)
                 {
-                    <form asp-controller="Cart" asp-action="AddToCart" method="post">
-                        @Html.AntiForgeryToken()
-                        <input type="hidden" name="productId" value="@Model.Id">
-                        <input type="hidden" name="quantity" value="1">
-                        <button type="submit" class="btn btn-primary btn-lg w-100">
-                            <i class="fas fa-cart-plus"></i> Добавить в корзину
-                        </button>
-                    </form>
+                    @if (User.Identity.IsAuthenticated)
+                    {
+                        <form asp-controller="Cart" asp-action="AddToCart" method="post">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="productId" value="@Model.Id">
+                            <div class="row g-2">
+                                <div class="col-md-3">
+                                    <input type="number"
+                                           name="quantity"
+                                           value="1"
+                                           min="1"
+                                           max="@Math.Min(Model.StockQuantity, 10)"
+                                           class="form-control text-center">
+                                </div>
+                                <div class="col-md-9">
+                                    <button type="submit" class="btn btn-primary btn-lg w-100">
+                                        <i class="fas fa-cart-plus"></i> Добавить в корзину
+                                    </button>
+                                </div>
+                            </div>
+                        </form>
+                    }
+                    else
+                    {
+                        <div class="alert alert-warning">
+                            <p><i class="fas fa-info-circle"></i> Для добавления товара в корзину необходимо войти в систему</p>
+                            <div class="mt-2">
+                                <a asp-controller="Account" asp-action="Login"
+                                   asp-route-returnUrl="@Url.Action("Details", "Products", new { id = Model.Id })"
+                                   class="btn btn-primary btn-sm me-2">
+                                    <i class="fas fa-sign-in-alt"></i> Войти
+                                </a>
+                                <a asp-controller="Account" asp-action="Register"
+                                   class="btn btn-outline-primary btn-sm">
+                                    <i class="fas fa-user-plus"></i> Зарегистрироваться
+                                </a>
+                            </div>
+                        </div>
+                    }
                 }
                 else
                 {
                     <div class="alert alert-danger">
                         <i class="fas fa-times-circle"></i> Нет в наличии
                     </div>
-                    <button class="btn btn-secondary btn-lg w-100" disabled>
-                        Товар закончился
-                    </button>
                 }
             </div>
 

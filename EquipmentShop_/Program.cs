@@ -3,6 +3,7 @@ using EquipmentShop.Core.Interfaces;
 using EquipmentShop.Infrastructure.Data;
 using EquipmentShop.Infrastructure.Repositories;
 using EquipmentShop.Infrastructure.Services;
+using EquipmentShop.Middleware;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
@@ -10,7 +11,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Add services
 builder.Services.AddControllersWithViews();
-builder.Services.AddSession(); // Для корзины
+//builder.Services.AddSession(); // Для корзины----
 
 // Database
 builder.Services.AddDbContext<AppDbContext>(options =>
@@ -34,19 +35,21 @@ builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
 builder.Services.AddDistributedMemoryCache();
 builder.Services.AddSession(options =>
 {
-    options.IdleTimeout = TimeSpan.FromMinutes(30);
+    options.IdleTimeout = TimeSpan.FromDays(30); // Долгий таймаут
     options.Cookie.HttpOnly = true;
     options.Cookie.IsEssential = true;
     options.Cookie.Name = ".EquipmentShop.Session";
+    options.Cookie.MaxAge = TimeSpan.FromDays(30);
 });
 
 // Configure cookies
 builder.Services.ConfigureApplicationCookie(options =>
 {
+    options.Cookie.HttpOnly = true;
+    options.ExpireTimeSpan = TimeSpan.FromDays(30);
     options.LoginPath = "/Account/Login";
     options.LogoutPath = "/Account/Logout";
     options.AccessDeniedPath = "/Account/AccessDenied";
-    options.ExpireTimeSpan = TimeSpan.FromDays(30);
     options.SlidingExpiration = true;
 });
 
@@ -61,8 +64,6 @@ builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<OrderService>();
 builder.Services.AddHttpContextAccessor();
 
-// IWebHostEnvironment НЕ регистрируем - он уже есть по умолчанию
-
 var app = builder.Build();
 
 // Configure pipeline
@@ -76,12 +77,12 @@ else
     app.UseHsts();
 }
 
-app.UseSession();
 app.UseHttpsRedirection();
 app.UseStaticFiles();
 app.UseRouting();
-app.UseSession(); // Важно: ДО Authentication
-app.UseAuthentication(); // Важно: ДО Authorization
+app.UseSession(); // Только один раз!
+app.UseMiddleware<CartMiddleware>();
+app.UseAuthentication();
 app.UseAuthorization();
 
 // Initialize database

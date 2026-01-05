@@ -4,149 +4,336 @@
     Layout = "_Layout";
 }
 
-<div class="container py-5">
-    <h1 class="mb-4">Корзина покупок</h1>
-
-    @if (Model.IsEmpty)
-    {
-        <div class="alert alert-info">
+@if (!User.Identity.IsAuthenticated)
+{
+    <div class="container py-5">
+        <div class="alert alert-warning">
             <div class="text-center py-5">
-                <i class="fas fa-shopping-cart fa-4x text-muted mb-3"></i>
-                <h3>Ваша корзина пуста</h3>
-                <p class="text-muted">Добавьте товары из каталога</p>
-                <a asp-controller="Products" asp-action="Index" class="btn btn-primary mt-3">
-                    <i class="fas fa-shopping-bag"></i> Перейти к покупкам
-                </a>
+                <i class="fas fa-exclamation-triangle fa-4x text-warning mb-3"></i>
+                <h3>Требуется авторизация</h3>
+                <p class="text-muted">Для доступа к корзине необходимо войти в систему</p>
+                <div class="mt-4">
+                    <a asp-controller="Account" asp-action="Login"
+                       asp-route-returnUrl="@Url.Action("Index", "Cart")"
+                       class="btn btn-primary me-3">
+                        <i class="fas fa-sign-in-alt"></i> Войти
+                    </a>
+                    <a asp-controller="Account" asp-action="Register"
+                       class="btn btn-outline-primary">
+                        <i class="fas fa-user-plus"></i> Зарегистрироваться
+                    </a>
+                </div>
             </div>
         </div>
-    }
-    else
-    {
-        <div class="row">
-            <div class="col-lg-8">
-                <div class="card shadow-sm mb-4">
-                    <div class="card-header bg-white">
-                        <h5 class="mb-0">Товары в корзине (@Model.Items.Count)</h5>
-                    </div>
-                    <div class="card-body p-0">
-                        <div class="table-responsive">
-                            <table class="table table-hover mb-0">
-                                <thead class="table-light">
-                                    <tr>
-                                        <th>Товар</th>
-                                        <th>Цена</th>
-                                        <th>Количество</th>
-                                        <th>Сумма</th>
-                                        <th></th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    @foreach (var item in Model.Items)
-                                    {
+    </div>
+}
+else
+{
+    <div class="container py-5">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a asp-controller="Home" asp-action="Index">Главная</a></li>
+                <li class="breadcrumb-item active" aria-current="page">Корзина</li>
+            </ol>
+        </nav>
+
+        <h1 class="mb-4">Корзина покупок</h1>
+
+        @if (Model.IsEmpty)
+        {
+            <div class="alert alert-info">
+                <div class="text-center py-5">
+                    <i class="fas fa-shopping-cart fa-4x text-muted mb-3"></i>
+                    <h3>Ваша корзина пуста</h3>
+                    <p class="text-muted">Добавьте товары из каталога</p>
+                    <a asp-controller="Products" asp-action="Index" class="btn btn-primary mt-3">
+                        <i class="fas fa-shopping-bag"></i> Перейти к покупкам
+                    </a>
+                </div>
+            </div>
+        }
+        else
+        {
+            <div class="row">
+                <div class="col-lg-8">
+                    <div class="card shadow-sm mb-4">
+                        <div class="card-header bg-white">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <h5 class="mb-0">Товары в корзине (@Model.Items.Count)</h5>
+                                <small class="text-muted">Корзина ID: @Model.CartId</small>
+                            </div>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table table-hover mb-0">
+                                    <thead class="table-light">
                                         <tr>
-                                            <td>
-                                                <div class="d-flex align-items-center">
-                                                    <img src="@item.ImageUrl"
-                                                         class="img-thumbnail me-3"
-                                                         style="width: 60px; height: 60px; object-fit: cover;"
-                                                         alt="@item.ProductName">
-                                                    <div>
-                                                        <a asp-controller="Products"
-                                                           asp-action="Details"
-                                                           asp-route-id="@item.ProductId"
-                                                           class="text-decoration-none text-dark fw-semibold">
-                                                            @item.ProductName
-                                                        </a>
-                                                    </div>
-                                                </div>
-                                            </td>
-                                            <td class="align-middle">
-                                                <span class="fw-semibold">@item.Price.ToString("C0")</span>
-                                            </td>
-                                            <td class="align-middle">
-                                                <div class="input-group input-group-sm" style="width: 120px;">
-                                                    <input type="number"
-                                                           value="@item.Quantity"
-                                                           min="1"
-                                                           max="10"
-                                                           class="form-control text-center"
-                                                           readonly>
-                                                </div>
-                                            </td>
-                                            <td class="align-middle fw-bold">@item.TotalPrice.ToString("C0")</td>
-                                            <td class="align-middle">
-                                                <form asp-action="RemoveFromCart" method="post"
-                                                      onsubmit="return confirm('Удалить товар из корзины?');">
-                                                    @Html.AntiForgeryToken()
-                                                    <input type="hidden" name="productId" value="@item.ProductId">
-                                                    <button type="submit" class="btn btn-link text-danger" title="Удалить">
-                                                        <i class="fas fa-trash"></i>
-                                                    </button>
-                                                </form>
-                                            </td>
+                                            <th style="width: 40%;">Товар</th>
+                                            <th style="width: 15%;">Цена</th>
+                                            <th style="width: 20%;" class="text-center">Количество</th>
+                                            <th style="width: 15%;">Сумма</th>
+                                            <th style="width: 10%;"></th>
                                         </tr>
-                                    }
-                                </tbody>
-                            </table>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var item in Model.Items)
+                                        {
+                                            <tr>
+                                                <td>
+                                                    <div class="d-flex align-items-center">
+                                                        <img src="@item.ImageUrl"
+                                                             class="img-thumbnail me-3"
+                                                             style="width: 60px; height: 60px; object-fit: cover;"
+                                                             alt="@item.ProductName">
+                                                        <div>
+                                                            <a asp-controller="Products"
+                                                               asp-action="Details"
+                                                               asp-route-id="@item.ProductId"
+                                                               class="text-decoration-none text-dark fw-semibold">
+                                                                @item.ProductName
+                                                            </a>
+                                                            @if (!string.IsNullOrEmpty(item.SelectedAttributes))
+                                                            {
+                                                                <small class="d-block text-muted mt-1">
+                                                                    <i class="fas fa-cog"></i> @item.SelectedAttributes
+                                                                </small>
+                                                            }
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                                <td class="align-middle">
+                                                    <span class="fw-semibold">@item.Price.ToString("C0")</span>
+                                                </td>
+                                                <td class="align-middle">
+                                                    <div class="d-flex justify-content-center align-items-center">
+                                                        <form asp-action="UpdateQuantity" method="post" class="d-flex align-items-center">
+                                                            @Html.AntiForgeryToken()
+                                                            <input type="hidden" name="productId" value="@item.ProductId">
+                                                            <button type="submit"
+                                                                    name="quantity"
+                                                                    value="@(item.Quantity - 1)"
+                                                                    class="btn btn-outline-secondary btn-sm @(!item.CanDecrease ? "disabled" : "")"
+                                                                    @(!item.CanDecrease ? "disabled" : "")>
+                                                                <i class="fas fa-minus"></i>
+                                                            </button>
+                                                            <input type="number"
+                                                                   value="@item.Quantity"
+                                                                   min="1"
+                                                                   max="@item.MaxQuantity"
+                                                                   class="form-control form-control-sm text-center mx-2"
+                                                                   style="width: 60px;"
+                                                                   readonly>
+                                                            <button type="submit"
+                                                                    name="quantity"
+                                                                    value="@(item.Quantity + 1)"
+                                                                    class="btn btn-outline-secondary btn-sm @(!item.CanIncrease ? "disabled" : "")"
+                                                                    @(!item.CanIncrease ? "disabled" : "")>
+                                                                <i class="fas fa-plus"></i>
+                                                            </button>
+                                                        </form>
+                                                    </div>
+                                                    @if (!item.IsAvailable)
+                                                    {
+                                                        <small class="text-danger d-block text-center mt-1">
+                                                            <i class="fas fa-exclamation-circle"></i> Нет в наличии
+                                                        </small>
+                                                    }
+                                                </td>
+                                                <td class="align-middle fw-bold">@item.TotalPrice.ToString("C0")</td>
+                                                <td class="align-middle">
+                                                    <form asp-action="RemoveFromCart" method="post"
+                                                          onsubmit="return confirm('Удалить товар из корзины?');">
+                                                        @Html.AntiForgeryToken()
+                                                        <input type="hidden" name="productId" value="@item.ProductId">
+                                                        <button type="submit" class="btn btn-link text-danger" title="Удалить">
+                                                            <i class="fas fa-trash"></i>
+                                                        </button>
+                                                    </form>
+                                                </td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <div class="card-footer bg-white">
+                            <div class="d-flex justify-content-between">
+                                <a asp-controller="Products" asp-action="Index" class="btn btn-outline-primary">
+                                    <i class="fas fa-arrow-left"></i> Продолжить покупки
+                                </a>
+                                <form asp-action="ClearCart" method="post"
+                                      onsubmit="return confirm('Вы действительно хотите очистить всю корзину?');">
+                                    @Html.AntiForgeryToken()
+                                    <button type="submit" class="btn btn-outline-danger">
+                                        <i class="fas fa-trash-alt"></i> Очистить корзину
+                                    </button>
+                                </form>
+                            </div>
                         </div>
                     </div>
-                    <div class="card-footer bg-white">
-                        <div class="d-flex justify-content-between">
-                            <a asp-controller="Products" asp-action="Index" class="btn btn-outline-primary">
-                                <i class="fas fa-arrow-left"></i> Продолжить покупки
-                            </a>
-                            <form asp-action="ClearCart" method="post"
-                                  onsubmit="return confirm('Очистить всю корзину?');">
-                                @Html.AntiForgeryToken()
-                                <button type="submit" class="btn btn-outline-danger">
-                                    <i class="fas fa-trash-alt"></i> Очистить корзину
+
+                    <div class="card shadow-sm mb-4">
+                        <div class="card-header bg-white">
+                            <h5 class="mb-0"><i class="fas fa-truck me-2"></i>Доставка</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="shippingMethod" id="courier" checked>
+                                    <label class="form-check-label" for="courier">
+                                        <strong>Курьерская доставка</strong>
+                                        <span class="text-muted d-block">Доставка курьером по Минску</span>
+                                        <span class="text-success">@(Model.ShippingCost == 0 ? "Бесплатно" : Model.ShippingCost.ToString("C0"))</span>
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="shippingMethod" id="pickup">
+                                    <label class="form-check-label" for="pickup">
+                                        <strong>Самовывоз</strong>
+                                        <span class="text-muted d-block">г. Минск, ул. Примерная, 123</span>
+                                        <span class="text-success">Бесплатно</span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-lg-4">
+                    <div class="card shadow-sm sticky-top" style="top: 20px;">
+                        <div class="card-header bg-white">
+                            <h5 class="mb-0">Итого</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between mb-2">
+                                <span>Товары (@Model.Items.Sum(i => i.Quantity) шт.)</span>
+                                <span class="fw-semibold">@Model.Subtotal.ToString("C0")</span>
+                            </div>
+                            <div class="d-flex justify-content-between mb-2">
+                                <span>Доставка</span>
+                                <span class="fw-semibold @(Model.ShippingCost == 0 ? "text-success" : "")">
+                                    @(Model.ShippingCost == 0 ? "Бесплатно" : Model.ShippingCost.ToString("C0"))
+                                </span>
+                            </div>
+                            <div class="d-flex justify-content-between mb-3">
+                                <span>НДС</span>
+                                <span class="fw-semibold">@Model.TaxAmount.ToString("C0")</span>
+                            </div>
+
+                            <div class="alert alert-info mb-3">
+                                <small>
+                                    <i class="fas fa-info-circle"></i>
+                                    @if (Model.Subtotal < 500)
+                                    {
+                                        <span>Добавьте товаров на @((500 - Model.Subtotal).ToString("C0")) для бесплатной доставки!</span>
+                                    }
+                                    else
+                                    {
+                                        <span>Ваш заказ оформлен с бесплатной доставкой!</span>
+                                    }
+                                </small>
+                            </div>
+
+                            <hr>
+
+                            <div class="d-flex justify-content-between mb-4">
+                                <span class="h5 mb-0">Всего к оплате</span>
+                                <span class="h4 text-primary fw-bold">@Model.Total.ToString("C0")</span>
+                            </div>
+
+                            <div class="d-grid gap-2 mb-3">
+                                <button type="button" class="btn btn-primary btn-lg" data-bs-toggle="modal" data-bs-target="#checkoutModal">
+                                    <i class="fas fa-lock"></i> Перейти к оформлению
                                 </button>
+                            </div>
+
+                            <div class="text-center">
+                                <small class="text-muted">
+                                    <i class="fas fa-shield-alt me-1"></i> Безопасная оплата
+                                </small>
+                                <div class="d-flex justify-content-center gap-2 mt-2">
+                                    <i class="fab fa-cc-visa fa-2x text-primary"></i>
+                                    <i class="fab fa-cc-mastercard fa-2x text-warning"></i>
+                                    <i class="fas fa-money-bill-wave fa-2x text-success"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card shadow-sm mt-4">
+                        <div class="card-header bg-white">
+                            <h6 class="mb-0"><i class="fas fa-percentage me-2"></i>Промокод</h6>
+                        </div>
+                        <div class="card-body">
+                            <form id="promoForm">
+                                <div class="input-group mb-3">
+                                    <input type="text" class="form-control" placeholder="Введите промокод">
+                                    <button class="btn btn-outline-secondary" type="button">Применить</button>
+                                </div>
                             </form>
+                            <small class="text-muted">
+                                <i class="fas fa-gift me-1"></i> У вас есть промокод? Введите его здесь
+                            </small>
                         </div>
                     </div>
                 </div>
             </div>
+        }
+    </div>
+}
 
-            <div class="col-lg-4">
-                <div class="card shadow-sm">
-                    <div class="card-header bg-white">
-                        <h5 class="mb-0">Итого</h5>
-                    </div>
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between mb-2">
-                            <span>Товары (@Model.Items.Sum(i => i.Quantity) шт.)</span>
-                            <span class="fw-semibold">@Model.Subtotal.ToString("C0")</span>
-                        </div>
-
-                        <div class="d-flex justify-content-between mb-2">
-                            <span>Доставка</span>
-                            <span class="fw-semibold @(Model.ShippingCost == 0 ? "text-success" : "")">
-                                @(Model.ShippingCost == 0 ? "Бесплатно" : Model.ShippingCost.ToString("C0"))
-                            </span>
-                        </div>
-
-                        <div class="d-flex justify-content-between mb-3">
-                            <span>НДС</span>
-                            <span class="fw-semibold">@Model.TaxAmount.ToString("C0")</span>
-                        </div>
-
-                        <hr>
-
-                        <div class="d-flex justify-content-between mb-4">
-                            <span class="h5 mb-0">Всего к оплате</span>
-                            <span class="h4 text-primary fw-bold">@Model.Total.ToString("C0")</span>
-                        </div>
-
-                        <div class="d-grid gap-2">
-                            <a href="#" class="btn btn-primary btn-lg">
-                                <i class="fas fa-lock"></i> Перейти к оформлению
-                            </a>
-                        </div>
-                    </div>
+<!-- Модальное окно оформления заказа -->
+<div class="modal fade" id="checkoutModal" tabindex="-1" aria-labelledby="checkoutModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="checkoutModalLabel">Оформление заказа</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="text-center mb-4">
+                    <i class="fas fa-shopping-bag fa-3x text-primary mb-3"></i>
+                    <h5>Подтверждение заказа</h5>
+                    <p class="text-muted">Всего к оплате: <span class="h4 text-primary fw-bold">@Model.Total.ToString("C0")</span></p>
                 </div>
+
+                <form id="checkoutForm">
+                    <div class="mb-3">
+                        <label for="paymentMethod" class="form-label">Способ оплаты</label>
+                        <select class="form-select" id="paymentMethod">
+                            <option value="card" selected>Банковская карта</option>
+                            <option value="cash">Наличными при получении</option>
+                            <option value="erip">ЕРИП</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="deliveryAddress" class="form-label">Адрес доставки</label>
+                        <textarea class="form-control" id="deliveryAddress" rows="2"
+                                  placeholder="Введите адрес доставки"></textarea>
+                    </div>
+
+                    <div class="form-check mb-4">
+                        <input class="form-check-input" type="checkbox" id="termsCheck" required>
+                        <label class="form-check-label" for="termsCheck">
+                            Я согласен с <a href="#" class="text-decoration-none">условиями использования</a>
+                        </label>
+                    </div>
+
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-success btn-lg">
+                            <i class="fas fa-check-circle"></i> Подтвердить заказ
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                            Отмена
+                        </button>
+                    </div>
+                </form>
             </div>
         </div>
-    }
+    </div>
 </div>
 
 @if (TempData["Success"] != null)
@@ -177,4 +364,85 @@
             </div>
         </div>
     </div>
+}
+
+@section Scripts {
+    <script>
+        // Обновление количества товаров
+        document.querySelectorAll('form[action*="UpdateQuantity"]').forEach(form => {
+            const minusBtn = form.querySelector('button[name="quantity"][value*="-1"]');
+            const plusBtn = form.querySelector('button[name="quantity"][value*="+1"]');
+            const quantityInput = form.querySelector('input[type="number"]');
+
+            if (minusBtn) {
+                minusBtn.addEventListener('click', function(e) {
+                    if (this.classList.contains('disabled')) {
+                        e.preventDefault();
+                    }
+                });
+            }
+
+            if (plusBtn) {
+                plusBtn.addEventListener('click', function(e) {
+                    if (this.classList.contains('disabled')) {
+                        e.preventDefault();
+                    }
+                });
+            }
+        });
+
+        // Форма оформления заказа
+        document.getElementById('checkoutForm')?.addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            if (!document.getElementById('termsCheck').checked) {
+                alert('Пожалуйста, согласитесь с условиями использования');
+                return;
+            }
+
+            // Здесь будет отправка заказа на сервер
+            const orderData = {
+                paymentMethod: document.getElementById('paymentMethod').value,
+                deliveryAddress: document.getElementById('deliveryAddress').value,
+                total: '@Model.Total'
+            };
+
+            // Пока просто показываем сообщение
+            alert('Заказ оформлен! Спасибо за покупку!');
+
+            // Закрываем модальное окно
+            const modal = bootstrap.Modal.getInstance(document.getElementById('checkoutModal'));
+            modal.hide();
+        });
+
+        // Автоматическое скрытие уведомлений
+        setTimeout(() => {
+            document.querySelectorAll('.toast').forEach(toast => {
+                const bsToast = new bootstrap.Toast(toast);
+                bsToast.hide();
+            });
+        }, 5000);
+
+        // Обновление суммы доставки при выборе способа
+        document.querySelectorAll('input[name="shippingMethod"]').forEach(radio => {
+            radio.addEventListener('change', function() {
+                if (this.id === 'pickup') {
+                    // Обновляем отображение для самовывоза
+                    document.querySelector('.shipping-cost').textContent = 'Бесплатно';
+                } else {
+                    // Возвращаем стандартную стоимость доставки
+                    document.querySelector('.shipping-cost').textContent = '@Model.ShippingCost.ToString("C0")';
+                }
+            });
+        });
+
+        // Подсветка неактивных товаров
+        document.querySelectorAll('tr').forEach(row => {
+            const isAvailable = row.querySelector('.text-danger') === null;
+            if (!isAvailable) {
+                row.style.opacity = '0.7';
+                row.style.backgroundColor = '#f8f9fa';
+            }
+        });
+    </script>
 }

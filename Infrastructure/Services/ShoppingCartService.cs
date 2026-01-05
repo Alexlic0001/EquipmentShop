@@ -88,6 +88,12 @@ namespace EquipmentShop.Infrastructure.Services
 
         public async Task<ShoppingCart> GetUserCartAsync(string userId)
         {
+            if (string.IsNullOrEmpty(userId))
+            {
+                throw new ArgumentException("UserId не может быть пустым", nameof(userId));
+            }
+
+            // Ищем корзину пользователя
             var cart = await _context.ShoppingCarts
                 .Include(c => c.Items)
                 .ThenInclude(i => i.Product)
@@ -96,7 +102,19 @@ namespace EquipmentShop.Infrastructure.Services
             if (cart == null)
             {
                 // Создаем новую корзину для пользователя
-                return await CreateCartWithIdAsync(Guid.NewGuid().ToString(), userId);
+                cart = new ShoppingCart
+                {
+                    Id = $"cart_{userId}",
+                    UserId = userId,
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow,
+                    ExpiresAt = DateTime.UtcNow.AddDays(30)
+                };
+
+                _context.ShoppingCarts.Add(cart);
+                await _context.SaveChangesAsync();
+
+                _logger.LogInformation("Создана новая корзина для пользователя {UserId}", userId);
             }
 
             return cart;

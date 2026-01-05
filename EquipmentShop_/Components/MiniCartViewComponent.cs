@@ -2,6 +2,7 @@
 using EquipmentShop.Core.Interfaces;
 using EquipmentShop.Core.ViewModels;
 using Microsoft.AspNetCore.Http;
+using System.Security.Claims;
 
 namespace EquipmentShop.Components
 {
@@ -20,15 +21,17 @@ namespace EquipmentShop.Components
 
         public async Task<IViewComponentResult> InvokeAsync()
         {
+            var userId = _httpContextAccessor.HttpContext?.User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            // Если пользователь не авторизован - показываем пустую корзину
+            if (string.IsNullOrEmpty(userId))
+            {
+                return View(new MiniCartViewModel());
+            }
+
             try
             {
-                var cartId = _httpContextAccessor.HttpContext?.Session.GetString("CartId");
-                if (string.IsNullOrEmpty(cartId))
-                {
-                    return View(new MiniCartViewModel());
-                }
-
-                var cart = await _cartService.GetOrCreateCartAsync(cartId, null);
+                var cart = await _cartService.GetUserCartAsync(userId);
 
                 var viewModel = new MiniCartViewModel
                 {

@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Http;
 
 namespace EquipmentShop.Controllers
 {
+    [Authorize] // ТОЛЬКО авторизованные пользователи
     public class CartController : Controller
     {
         private readonly IShoppingCartService _cartService;
@@ -28,16 +29,28 @@ namespace EquipmentShop.Controllers
             _logger = logger;
         }
 
-        private string GetOrCreateCartId()
+        // Получаем ID корзины пользователя (основано на UserId)
+        private string GetUserCartId()
         {
-            var cartId = HttpContext.Session.GetString("CartId");
-            if (string.IsNullOrEmpty(cartId))
+            var userId = GetUserId();
+            if (string.IsNullOrEmpty(userId))
             {
-                cartId = Guid.NewGuid().ToString();
-                HttpContext.Session.SetString("CartId", cartId);
-                _logger.LogInformation("Создан новый ID корзины: {CartId}", cartId);
+                throw new UnauthorizedAccessException("Пользователь не авторизован");
             }
-            return cartId;
+
+            // Используем userId как основу для ID корзины
+            return $"cart_{userId}";
+        }
+
+        // Получаем ID текущего пользователя
+        private string GetUserId()
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(userId))
+            {
+                throw new UnauthorizedAccessException("Пользователь не авторизован");
+            }
+            return userId;
         }
 
         [HttpGet]
@@ -45,8 +58,11 @@ namespace EquipmentShop.Controllers
         {
             try
             {
-                var cartId = GetOrCreateCartId();
-                var cart = await _cartService.GetOrCreateCartAsync(cartId, GetUserId());
+                var userId = GetUserId();
+                var cartId = GetUserCartId();
+
+                // Получаем корзину пользователя (или создаем новую)
+                var cart = await _cartService.GetUserCartAsync(userId);
 
                 var viewModel = new CartViewModel
                 {
@@ -72,10 +88,15 @@ namespace EquipmentShop.Controllers
 
                 return View(viewModel);
             }
+            catch (UnauthorizedAccessException)
+            {
+                // Редирект на страницу входа если не авторизован
+                return RedirectToAction("Login", "Account", new { returnUrl = Url.Action("Index", "Cart") });
+            }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Ошибка при загрузке корзины");
-                return View(new CartViewModel { CartId = GetOrCreateCartId() });
+                return RedirectToAction("Error", "Home");
             }
         }
 
@@ -85,6 +106,9 @@ namespace EquipmentShop.Controllers
         {
             try
             {
+                // Проверяем авторизацию
+                var userId = GetUserId();
+
                 if (quantity <= 0)
                 {
                     TempData["Error"] = "Количество должно быть больше 0";
@@ -98,12 +122,24 @@ namespace EquipmentShop.Controllers
                     return RedirectToAction("Index", "Products");
                 }
 
-                var cartId = GetOrCreateCartId();
+                // Получаем корзину пользователя
+                var cart = await _cartService.GetUserCartAsync(userId);
 
-                await _cartService.AddItemAsync(cartId, productId, quantity);
+                await _cartService.AddItemAsync(cart.Id, productId, quantity);
                 TempData["Success"] = $"«{product.Name}» добавлен в корзину";
 
                 return RedirectToAction("Details", "Products", new { id = productId });
+            }
+            catch (UnauthorizedAccessException)
+            {
+                // Сохраняем информацию о товаре для добавления после входа
+                HttpContext.Session.SetString("PendingAddToCart", $"{productId},{quantity}");
+
+                // Редирект на страницу входа
+                return RedirectToAction("Login", "Account", new
+                {
+                    returnUrl = Url.Action("Details", "Products", new { id = productId })
+                });
             }
             catch (Exception ex)
             {
@@ -119,11 +155,17 @@ namespace EquipmentShop.Controllers
         {
             try
             {
-                var cartId = GetOrCreateCartId();
-                await _cartService.RemoveItemAsync(cartId, productId);
+                var userId = GetUserId();
+                var cart = await _cartService.GetUserCartAsync(userId);
+
+                await _cartService.RemoveItemAsync(cart.Id, productId);
                 TempData["Success"] = "Товар удален из корзины";
 
                 return RedirectToAction("Index");
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return RedirectToAction("Login", "Account", new { returnUrl = Url.Action("Index", "Cart") });
             }
             catch (Exception ex)
             {
@@ -139,11 +181,17 @@ namespace EquipmentShop.Controllers
         {
             try
             {
-                var cartId = GetOrCreateCartId();
-                await _cartService.ClearCartAsync(cartId);
+                var userId = GetUserId();
+                var cart = await _cartService.GetUserCartAsync(userId);
+
+                await _cartService.ClearCartAsync(cart.Id);
                 TempData["Success"] = "Корзина очищена";
 
                 return RedirectToAction("Index");
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return RedirectToAction("Login", "Account", new { returnUrl = Url.Action("Index", "Cart") });
             }
             catch (Exception ex)
             {
@@ -158,8 +206,8 @@ namespace EquipmentShop.Controllers
         {
             try
             {
-                var cartId = GetOrCreateCartId();
-                var cart = await _cartService.GetOrCreateCartAsync(cartId, GetUserId());
+                var userId = GetUserId();
+                var cart = await _cartService.GetUserCartAsync(userId);
 
                 var summary = new CartSummaryViewModel
                 {
@@ -168,6 +216,10 @@ namespace EquipmentShop.Controllers
                 };
 
                 return Json(summary);
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return Json(new CartSummaryViewModel()); // Пустая корзина для неавторизованных
             }
             catch
             {
@@ -180,8 +232,8 @@ namespace EquipmentShop.Controllers
         {
             try
             {
-                var cartId = GetOrCreateCartId();
-                var cart = await _cartService.GetOrCreateCartAsync(cartId, GetUserId());
+                var userId = GetUserId();
+                var cart = await _cartService.GetUserCartAsync(userId);
 
                 var miniCartViewModel = new MiniCartViewModel
                 {
@@ -200,6 +252,11 @@ namespace EquipmentShop.Controllers
 
                 return PartialView("_MiniCartPartial", miniCartViewModel);
             }
+            catch (UnauthorizedAccessException)
+            {
+                // Для неавторизованных показываем пустую корзину
+                return PartialView("_MiniCartPartial", new MiniCartViewModel());
+            }
             catch
             {
                 return PartialView("_MiniCartPartial", new MiniCartViewModel());
@@ -207,20 +264,13 @@ namespace EquipmentShop.Controllers
         }
 
         // Вспомогательные методы
-        private string? GetUserId()
-        {
-            return User.FindFirstValue(ClaimTypes.NameIdentifier);
-        }
-
         private decimal CalculateShippingCost(decimal subtotal)
         {
-            // Бесплатная доставка от 500 BYN
             return subtotal >= 500 ? 0 : 10m;
         }
 
         private decimal CalculateTax(decimal subtotal)
         {
-            // НДС 20%
             return subtotal * 0.20m;
         }
     }

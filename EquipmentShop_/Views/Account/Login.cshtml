@@ -1,4 +1,5 @@
-﻿@{
+﻿@model EquipmentShop.Controllers.AccountController.LoginViewModel
+@{
     ViewData["Title"] = "Вход";
     Layout = "_Layout";
 }
@@ -14,25 +15,36 @@
                     <form asp-action="Login" method="post">
                         @Html.AntiForgeryToken()
 
+                        <input type="hidden" name="ReturnUrl" value="@ViewData["ReturnUrl"]" />
+
                         <div class="mb-3">
-                            <label for="username" class="form-label">Email</label>
-                            <input type="email" class="form-control" id="username" name="username" required>
+                            <label asp-for="Email" class="form-label"></label>
+                            <input asp-for="Email" class="form-control" value="admin@shop.com" />
+                            <span asp-validation-for="Email" class="text-danger"></span>
                         </div>
 
                         <div class="mb-3">
-                            <label for="password" class="form-label">Пароль</label>
-                            <input type="password" class="form-control" id="password" name="password" required>
+                            <label asp-for="Password" class="form-label"></label>
+                            <input asp-for="Password" class="form-control" value="Admin123!" />
+                            <span asp-validation-for="Password" class="text-danger"></span>
                         </div>
 
                         <div class="mb-3 form-check">
-                            <input type="checkbox" class="form-check-input" id="rememberMe" name="rememberMe">
-                            <label class="form-check-label" for="rememberMe">Запомнить меня</label>
+                            <input asp-for="RememberMe" class="form-check-input" />
+                            <label asp-for="RememberMe" class="form-check-label"></label>
                         </div>
 
                         <div class="d-grid gap-2">
                             <button type="submit" class="btn btn-primary">Войти</button>
                         </div>
                     </form>
+
+                    @if (TempData["Success"] != null)
+                    {
+                        <div class="alert alert-success mt-3">
+                            @TempData["Success"]
+                        </div>
+                    }
 
                     @if (ViewContext.ModelState.ErrorCount > 0)
                     {

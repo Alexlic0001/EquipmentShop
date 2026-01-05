@@ -19,5 +19,6 @@ namespace EquipmentShop.Core.Interfaces
         Task<bool> ValidateCartAsync(string cartId);
         Task<ShoppingCart> ConvertToOrderAsync(string cartId, Order order);
         Task CreateCartWithIdAsync(string cartId, string? v);
+        Task RenewCartExpirationAsync(string cartId);
     }
 }

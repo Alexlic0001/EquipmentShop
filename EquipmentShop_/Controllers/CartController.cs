@@ -1,36 +1,35 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿// EquipmentShop/Controllers/CartController.cs
+using Microsoft.AspNetCore.Mvc;
 using EquipmentShop.Core.Interfaces;
 using EquipmentShop.Core.ViewModels;
 using EquipmentShop.Core.Entities;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using System.Security.Claims;
-using EquipmentShop.Infrastructure.Data;
-using Microsoft.EntityFrameworkCore;
+using EquipmentShop.Core.Enums;
 
 namespace EquipmentShop.Controllers
 {
-    // Убран глобальный [Authorize]
     public class CartController : Controller
     {
         private readonly IShoppingCartService _cartService;
         private readonly IProductRepository _productRepository;
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly ILogger<CartController> _logger;
-        private readonly AppDbContext _context;
+        private readonly IOrderRepository _orderRepository;
 
         public CartController(
-            IShoppingCartService cartService,
-            IProductRepository productRepository,
-            UserManager<ApplicationUser> userManager,
-            ILogger<CartController> logger,
-            AppDbContext context)
+        IShoppingCartService cartService,
+        IProductRepository productRepository,
+        UserManager<ApplicationUser> userManager,
+        ILogger<CartController> logger,
+        IOrderRepository orderRepository)
         {
             _cartService = cartService;
             _productRepository = productRepository;
             _userManager = userManager;
             _logger = logger;
-            _context = context;
+            _orderRepository = orderRepository;
         }
 
         private string GetUserId()
@@ -87,6 +86,113 @@ namespace EquipmentShop.Controllers
         }
 
         [Authorize]
+        [HttpPost("checkout")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Checkout()
+        {
+            try
+            {
+                var userId = GetUserId();
+                var user = await _userManager.FindByIdAsync(userId);
+                if (user == null)
+                    return RedirectToAction("Login", "Account");
+
+                var cart = await _cartService.GetUserCartAsync(userId);
+                _logger.LogInformation("Оформление заказа. UserId: {UserId}, Items.Count: {ItemCount}", userId, cart?.Items?.Count ?? 0);
+
+                if (cart?.Items == null || !cart.Items.Any())
+                {
+                    TempData["Error"] = "Ваша корзина пуста";
+                    return RedirectToAction("Index");
+                }
+
+                // Создаём заказ
+                var order = new Order
+                {
+                    OrderNumber = Order.GenerateOrderNumber(),
+                    UserId = userId,
+                    CustomerName = user.FullName,
+                    CustomerEmail = user.Email,
+                    CustomerPhone = user.PhoneNumber ?? string.Empty,
+                    Status = OrderStatus.Pending,
+                    OrderDate = DateTime.UtcNow,
+                    Subtotal = cart.Subtotal,
+                    ShippingCost = 0m,
+                    TaxAmount = 0m,
+                    DiscountAmount = 0m
+                };
+
+                // Адрес доставки
+                if (user.HasDefaultAddress)
+                {
+                    order.ShippingAddress = user.Address!;
+                    order.ShippingCity = user.City!;
+                    order.ShippingRegion = user.Region;
+                    order.ShippingCountry = user.Country;
+                    order.ShippingPostalCode = user.PostalCode;
+                }
+                else
+                {
+                    order.ShippingAddress = "Адрес не указан";
+                    order.ShippingCity = "—";
+                }
+
+                // Добавляем позиции заказа
+                foreach (var item in cart.Items)
+                {
+                    order.OrderItems.Add(new OrderItem
+                    {
+                        ProductId = item.ProductId,
+                        ProductName = item.Product?.Name ?? "Товар",
+                        UnitPrice = item.Price,
+                        OriginalPrice = item.Product?.OldPrice,
+                        Quantity = item.Quantity
+                        // Id НЕ УКАЗЫВАЕМ!
+                    });
+                }
+
+                // Сохраняем заказ И позиции за один вызов
+                await _orderRepository.AddAsync(order);
+
+                // Очищаем корзину и обновляем статистику
+                await _cartService.ClearCartAsync(cart.Id);
+                user.AddOrderStats(order.Total);
+                await _userManager.UpdateAsync(user);
+
+                TempData["Success"] = $"Ваш заказ #{order.OrderNumber} принят в обработку!";
+                return RedirectToAction("OrderConfirmation", new { orderNumber = order.OrderNumber });
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return RedirectToAction("Login", "Account", new { returnUrl = Url.Action("Index") });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Критическая ошибка при оформлении заказа");
+                TempData["Error"] = "Не удалось оформить заказ. Попробуйте позже.";
+                return RedirectToAction("Index");
+            }
+        }
+
+        [Authorize]
+        [HttpGet("order-confirmation")]
+        public async Task<IActionResult> OrderConfirmation(string orderNumber)
+        {
+            if (string.IsNullOrWhiteSpace(orderNumber))
+                return NotFound();
+
+            var userId = GetUserId();
+            var order = await _orderRepository.GetByOrderNumberAsync(orderNumber);
+
+            if (order == null || order.UserId != userId)
+                return NotFound();
+
+            ViewBag.OrderNumber = order.OrderNumber;
+            ViewBag.OrderDate = order.OrderDate.ToString("dd.MM.yyyy HH:mm");
+            return View(); // ← Ищет Views/Cart/OrderConfirmation.cshtml
+        }
+
+        [Authorize]
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> AddToCart(int productId, int quantity = 1)
@@ -100,10 +206,7 @@ namespace EquipmentShop.Controllers
                     return RedirectToAction("Details", "Products", new { id = productId });
                 }
 
-                var product = await _context.Products
-                    .AsNoTracking()
-                    .FirstOrDefaultAsync(p => p.Id == productId);
-
+                var product = await _productRepository.GetByIdAsync(productId);
                 if (product == null)
                 {
                     TempData["Error"] = "Товар не найден";
@@ -127,7 +230,9 @@ namespace EquipmentShop.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Ошибка при добавлении товара в корзину");
-                TempData["Error"] = ex.Message.Contains("недостаточно") ? ex.Message : "Ошибка при добавлении в корзину";
+                TempData["Error"] = ex.Message.Contains("недоступно") || ex.Message.Contains("недостаточно")
+                    ? ex.Message
+                    : "Ошибка при добавлении в корзину";
                 return RedirectToAction("Details", "Products", new { id = productId });
             }
         }
@@ -149,10 +254,7 @@ namespace EquipmentShop.Controllers
                 }
                 else
                 {
-                    var product = await _context.Products
-                        .AsNoTracking()
-                        .FirstOrDefaultAsync(p => p.Id == productId);
-
+                    var product = await _productRepository.GetByIdAsync(productId);
                     if (product != null && quantity > product.StockQuantity)
                     {
                         TempData["Error"] = $"Доступно только {product.StockQuantity} шт.";
@@ -171,7 +273,7 @@ namespace EquipmentShop.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Ошибка при обновлении количества товара");
-                TempData["Error"] = "Ошибка при обновлении количества товара";
+                TempData["Error"] = $"Ошибка: {ex.Message}";
                 return RedirectToAction("Index");
             }
         }
@@ -226,7 +328,6 @@ namespace EquipmentShop.Controllers
             }
         }
 
-        // ✅ Доступен всем
         [HttpGet]
         [AllowAnonymous]
         public async Task<IActionResult> GetCartSummary()
@@ -250,7 +351,6 @@ namespace EquipmentShop.Controllers
             }
         }
 
-        // ✅ Доступен всем — ключевой метод
         [HttpGet]
         [AllowAnonymous]
         public async Task<IActionResult> MiniCart()

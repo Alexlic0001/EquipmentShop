@@ -441,10 +441,25 @@ namespace EquipmentShop.Infrastructure.Data
             });
         }
 
+        protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+        {
+            base.OnConfiguring(optionsBuilder);
+
+            // Включаем поддержку внешних ключей в SQLite
+            if (!optionsBuilder.IsConfigured)
+            {
+                // Ничего не делаем — конфигурация задана через DI
+            }
+        }
+
+
         public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
         {
             var entries = ChangeTracker.Entries()
                 .Where(e => e.Entity is Product || e.Entity is Order || e.Entity is Review);
+
+            // Включаем внешние ключи перед каждой транзакцией
+            await Database.ExecuteSqlRawAsync("PRAGMA foreign_keys = ON;");
 
             foreach (var entry in entries)
             {

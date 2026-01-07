@@ -1,0 +1,28 @@
+﻿@{
+    ViewData["Title"] = "Заказ оформлен";
+    Layout = "_Layout";
+}
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card border-success">
+                <div class="card-header bg-success text-white">
+                    <h3 class="mb-0"><i class="fas fa-check-circle"></i> Заказ принят!</h3>
+                </div>
+                <div class="card-body text-center">
+                    <h4>Ваш заказ находится в обработке</h4>
+                    <p class="lead mt-3">
+                        <strong>Номер заказа:</strong> @ViewBag.OrderNumber<br>
+                        <strong>Дата оформления:</strong> @ViewBag.OrderDate
+                    </p>
+                    <p class="text-muted">
+                        Менеджер свяжется с вами в ближайшее время для подтверждения деталей доставки.
+                    </p>
+                    <a asp-controller="Home" asp-action="Index" class="btn btn-primary">Продолжить покупки</a>
+                    <a asp-controller="Account" asp-action="Profile" class="btn btn-outline-secondary">Личный кабинет</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

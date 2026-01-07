@@ -28,19 +28,7 @@ namespace EquipmentShop.Infrastructure.Services
             services.AddScoped<IEmailService, EmailService>();
             services.AddScoped<IFileStorageService, FileStorageService>();
 
-            // ApplicationService - ЗАКОММЕНТИРУЙТЕ, если не используете
-            // services.AddScoped<IApplicationService, ApplicationService>();
-
-            // OrderService как декоратор над IOrderRepository
-            services.AddScoped<IOrderRepository>(sp =>
-            {
-                var orderRepository = sp.GetRequiredService<OrderRepository>();
-                var productRepository = sp.GetRequiredService<IProductRepository>();
-                var cartService = sp.GetRequiredService<IShoppingCartService>();
-                var logger = sp.GetRequiredService<ILogger<OrderService>>();
-
-                return new OrderService(orderRepository, productRepository, cartService, logger);
-            });
+            services.AddScoped<OrderService>();
 
             return services;
         }

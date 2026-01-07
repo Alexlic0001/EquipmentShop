@@ -57,6 +57,8 @@ else
         {
             <div class="row">
                 <div class="col-lg-8">
+                    <!-- ... существующий код списка товаров ... -->
+                    <!-- (оставьте как есть до блока "Итого") -->
                     <div class="card shadow-sm mb-4">
                         <div class="card-header bg-white">
                             <div class="d-flex justify-content-between align-items-center">
@@ -172,34 +174,6 @@ else
                             </div>
                         </div>
                     </div>
-
-                    <div class="card shadow-sm mb-4">
-                        <div class="card-header bg-white">
-                            <h5 class="mb-0"><i class="fas fa-truck me-2"></i>Доставка</h5>
-                        </div>
-                        <div class="card-body">
-                            <div class="mb-3">
-                                <div class="form-check">
-                                    <input class="form-check-input" type="radio" name="shippingMethod" id="courier" checked>
-                                    <label class="form-check-label" for="courier">
-                                        <strong>Курьерская доставка</strong>
-                                        <span class="text-muted d-block">Доставка курьером по Минску</span>
-                                        <span class="text-success">@(Model.ShippingCost == 0 ? "Бесплатно" : $"{Model.ShippingCost:N0} р.")</span>
-                                    </label>
-                                </div>
-                            </div>
-                            <div class="mb-3">
-                                <div class="form-check">
-                                    <input class="form-check-input" type="radio" name="shippingMethod" id="pickup">
-                                    <label class="form-check-label" for="pickup">
-                                        <strong>Самовывоз</strong>
-                                        <span class="text-muted d-block">г. Минск, ул. Примерная, 123</span>
-                                        <span class="text-success">Бесплатно</span>
-                                    </label>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
                 </div>
 
                 <div class="col-lg-4">
@@ -242,13 +216,15 @@ else
                                 <span class="h4 text-primary fw-bold">@($"{Model.Total:N0} р.")</span>
                             </div>
 
-                            <div class="d-grid gap-2 mb-3">
-                                <button type="button" class="btn btn-primary btn-lg" data-bs-toggle="modal" data-bs-target="#checkoutModal">
-                                    <i class="fas fa-lock"></i> Перейти к оформлению
+                            <!-- ✅ ИСПРАВЛЕНО: НАСТОЯЩАЯ ФОРМА ОФОРМЛЕНИЯ -->
+                            <form asp-controller="Cart" asp-action="Checkout" method="post">
+                                @Html.AntiForgeryToken()
+                                <button type="submit" class="btn btn-success btn-lg w-100">
+                                    <i class="fas fa-check-circle"></i> Подтвердить заказ
                                 </button>
-                            </div>
+                            </form>
 
-                            <div class="text-center">
+                            <div class="text-center mt-3">
                                 <small class="text-muted">
                                     <i class="fas fa-shield-alt me-1"></i> Безопасная оплата
                                 </small>
@@ -260,188 +236,22 @@ else
                             </div>
                         </div>
                     </div>
-
-                    <div class="card shadow-sm mt-4">
-                        <div class="card-header bg-white">
-                            <h6 class="mb-0"><i class="fas fa-percentage me-2"></i>Промокод</h6>
-                        </div>
-                        <div class="card-body">
-                            <form id="promoForm">
-                                <div class="input-group mb-3">
-                                    <input type="text" class="form-control" placeholder="Введите промокод">
-                                    <button class="btn btn-outline-secondary" type="button">Применить</button>
-                                </div>
-                            </form>
-                            <small class="text-muted">
-                                <i class="fas fa-gift me-1"></i> У вас есть промокод? Введите его здесь
-                            </small>
-                        </div>
-                    </div>
                 </div>
             </div>
         }
     </div>
 }
 
-<!-- Модальное окно оформления заказа -->
-<div class="modal fade" id="checkoutModal" tabindex="-1" aria-labelledby="checkoutModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="checkoutModalLabel">Оформление заказа</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <div class="text-center mb-4">
-                    <i class="fas fa-shopping-bag fa-3x text-primary mb-3"></i>
-                    <h5>Подтверждение заказа</h5>
-                    <p class="text-muted">Всего к оплате: <span class="h4 text-primary fw-bold">@($"{Model.Total:N0} р.")</span></p>
-                </div>
-
-                <form id="checkoutForm">
-                    <div class="mb-3">
-                        <label for="paymentMethod" class="form-label">Способ оплаты</label>
-                        <select class="form-select" id="paymentMethod">
-                            <option value="card" selected>Банковская карта</option>
-                            <option value="cash">Наличными при получении</option>
-                            <option value="erip">ЕРИП</option>
-                        </select>
-                    </div>
-
-                    <div class="mb-3">
-                        <label for="deliveryAddress" class="form-label">Адрес доставки</label>
-                        <textarea class="form-control" id="deliveryAddress" rows="2"
-                                  placeholder="Введите адрес доставки"></textarea>
-                    </div>
-
-                    <div class="form-check mb-4">
-                        <input class="form-check-input" type="checkbox" id="termsCheck" required>
-                        <label class="form-check-label" for="termsCheck">
-                            Я согласен с <a href="#" class="text-decoration-none">условиями использования</a>
-                        </label>
-                    </div>
-
-                    <div class="d-grid gap-2">
-                        <button type="submit" class="btn btn-success btn-lg">
-                            <i class="fas fa-check-circle"></i> Подтвердить заказ
-                        </button>
-                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
-                            Отмена
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-</div>
-
 @if (TempData["Success"] != null)
 {
     <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
-        <div class="toast show" role="alert">
-            <div class="toast-header bg-success text-white">
-                <strong class="me-auto"><i class="fas fa-check-circle"></i> Успех</strong>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast"></button>
-            </div>
-            <div class="toast-body">
-                @TempData["Success"]
-            </div>
-        </div>
+        <div class="alert alert-success">@TempData["Success"]</div>
     </div>
 }
 
 @if (TempData["Error"] != null)
 {
     <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
-        <div class="toast show" role="alert">
-            <div class="toast-header bg-danger text-white">
-                <strong class="me-auto"><i class="fas fa-exclamation-circle"></i> Ошибка</strong>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast"></button>
-            </div>
-            <div class="toast-body">
-                @TempData["Error"]
-            </div>
-        </div>
+        <div class="alert alert-danger">@TempData["Error"]</div>
     </div>
-}
-
-@section Scripts {
-    <script>
-        // Обновление количества товаров
-        document.querySelectorAll('form[action*="UpdateQuantity"]').forEach(form => {
-            const minusBtn = form.querySelector('button[name="quantity"][value*="-1"]');
-            const plusBtn = form.querySelector('button[name="quantity"][value*="+1"]');
-            const quantityInput = form.querySelector('input[type="number"]');
-
-            if (minusBtn) {
-                minusBtn.addEventListener('click', function(e) {
-                    if (this.classList.contains('disabled')) {
-                        e.preventDefault();
-                    }
-                });
-            }
-
-            if (plusBtn) {
-                plusBtn.addEventListener('click', function(e) {
-                    if (this.classList.contains('disabled')) {
-                        e.preventDefault();
-                    }
-                });
-            }
-        });
-
-        // Форма оформления заказа
-        document.getElementById('checkoutForm')?.addEventListener('submit', function(e) {
-            e.preventDefault();
-
-            if (!document.getElementById('termsCheck').checked) {
-                alert('Пожалуйста, согласитесь с условиями использования');
-                return;
-            }
-
-            // Здесь будет отправка заказа на сервер
-            const orderData = {
-                paymentMethod: document.getElementById('paymentMethod').value,
-                deliveryAddress: document.getElementById('deliveryAddress').value,
-                total: '@($"{Model.Total:N0} р.")'
-            };
-
-            // Пока просто показываем сообщение
-            alert('Заказ оформлен! Спасибо за покупку!');
-
-            // Закрываем модальное окно
-            const modal = bootstrap.Modal.getInstance(document.getElementById('checkoutModal'));
-            modal.hide();
-        });
-
-        // Автоматическое скрытие уведомлений
-        setTimeout(() => {
-            document.querySelectorAll('.toast').forEach(toast => {
-                const bsToast = new bootstrap.Toast(toast);
-                bsToast.hide();
-            });
-        }, 5000);
-
-        // Обновление суммы доставки при выборе способа
-        document.querySelectorAll('input[name="shippingMethod"]').forEach(radio => {
-            radio.addEventListener('change', function() {
-                if (this.id === 'pickup') {
-                    // Обновляем отображение для самовывоза
-                    document.querySelector('.shipping-cost').textContent = 'Бесплатно';
-                } else {
-                    // Возвращаем стандартную стоимость доставки
-                    document.querySelector('.shipping-cost').textContent = '@($"{Model.ShippingCost:N0} р.")';
-                }
-            });
-        });
-
-        // Подсветка неактивных товаров
-        document.querySelectorAll('tr').forEach(row => {
-            const isAvailable = row.querySelector('.text-danger') === null;
-            if (!isAvailable) {
-                row.style.opacity = '0.7';
-                row.style.backgroundColor = '#f8f9fa';
-            }
-        });
-    </script>
 }

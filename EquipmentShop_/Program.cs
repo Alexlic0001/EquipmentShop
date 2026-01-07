@@ -61,7 +61,7 @@ builder.Services.AddScoped<IReviewService, ReviewRepository>();
 builder.Services.AddScoped<IShoppingCartService, ShoppingCartService>();
 builder.Services.AddScoped<IFileStorageService, FileStorageService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
-builder.Services.AddScoped<OrderService>();
+//builder.Services.AddScoped<OrderService>();
 builder.Services.AddHttpContextAccessor();
 builder.Logging.AddConsole();
 builder.Logging.AddDebug();

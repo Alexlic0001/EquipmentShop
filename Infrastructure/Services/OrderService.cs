@@ -7,7 +7,7 @@ using System.Linq.Expressions;
 
 namespace EquipmentShop.Infrastructure.Services
 {
-    public class OrderService : IOrderRepository
+    public class OrderService
     {
         private readonly IOrderRepository _orderRepository;
         private readonly IProductRepository _productRepository;

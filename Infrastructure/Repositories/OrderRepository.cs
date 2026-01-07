@@ -80,13 +80,40 @@ namespace EquipmentShop.Infrastructure.Repositories
                 .ToListAsync();
         }
 
+        public async Task<Order> AddOrderWithItemsAsync(Order order)
+        {
+            if (string.IsNullOrEmpty(order.OrderNumber))
+            {
+                order.OrderNumber = Order.GenerateOrderNumber();
+            }
+
+            // Добавляем заказ — получаем Id
+            _context.Orders.Add(order);
+            await _context.SaveChangesAsync(); // ← order.Id теперь известен
+
+            // Устанавливаем OrderId для всех OrderItems
+            foreach (var item in order.OrderItems)
+            {
+                item.OrderId = order.Id;
+            }
+
+            // Добавляем OrderItems
+            _context.OrderItems.AddRange(order.OrderItems);
+            await _context.SaveChangesAsync();
+
+            return order;
+        }
+
+
+
+
+
         public async Task<IEnumerable<Order>> GetRecentOrdersAsync(int count = 10)
         {
             return await _context.Orders
-                .Include(o => o.OrderItems)
                 .OrderByDescending(o => o.OrderDate)
                 .Take(count)
-                .ToListAsync();
+                .ToListAsync(); // ← Без Include!
         }
 
         public async Task<IEnumerable<Order>> GetOrdersByStatusAsync(OrderStatus status)
@@ -183,24 +210,18 @@ namespace EquipmentShop.Infrastructure.Repositories
 
         public async Task<Order> AddAsync(Order order)
         {
-            try
+            if (string.IsNullOrEmpty(order.OrderNumber))
             {
-                // Генерируем номер заказа если не установлен
-                if (string.IsNullOrEmpty(order.OrderNumber))
-                {
-                    order.OrderNumber = Order.GenerateOrderNumber();
-                }
-
-                _context.Orders.Add(order);
-                await _context.SaveChangesAsync();
-
-                return order;
+                order.OrderNumber = Order.GenerateOrderNumber();
             }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Ошибка при создании заказа");
-                throw;
-            }
+
+            // Добавляем заказ — EF автоматически обработает OrderItems
+            _context.Orders.Add(order);
+
+            // ОДИН вызов SaveChanges — всё сохранится за раз
+            await _context.SaveChangesAsync();
+
+            return order;
         }
 
         public async Task UpdateAsync(Order order)

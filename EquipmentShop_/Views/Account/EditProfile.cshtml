@@ -1,0 +1,18 @@
+﻿@model EquipmentShop.Core.Entities.ApplicationUser
+
+<form asp-action="EditProfile" method="post" enctype="multipart/form-data">
+    <div class="mb-3">
+        <label>Имя</label>
+        <input asp-for="FirstName" class="form-control" />
+    </div>
+    <div class="mb-3">
+        <label>Фамилия</label>
+        <input asp-for="LastName" class="form-control" />
+    </div>
+    <div class="mb-3">
+        <label>Аватар</label>
+        <input type="file" name="avatarFile" accept="image/*" class="form-control" />
+    </div>
+    <button type="submit" class="btn btn-success">Сохранить</button>
+    <a asp-action="Profile" class="btn btn-secondary">Отмена</a>
+</form>

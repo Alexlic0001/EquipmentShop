@@ -1,0 +1,18 @@
+﻿@model EquipmentShop.Controllers.AccountController.UserProfileViewModel
+
+<h2>Личный кабинет</h2>
+<div class="row">
+    <div class="col-md-3">
+        <img src="@(string.IsNullOrEmpty(Model.AvatarUrl) ? "/images/default-avatar.png" : Model.AvatarUrl)"
+             class="img-fluid rounded" style="max-height:150px;" />
+    </div>
+    <div class="col-md-9">
+        <p><strong>Имя:</strong> @Model.FirstName</p>
+        <p><strong>Фамилия:</strong> @Model.LastName</p>
+        <p><strong>Email:</strong> @Model.Email</p>
+        <p><strong>Дата регистрации:</strong> @Model.RegisteredAt.ToString("dd.MM.yyyy")</p>
+        <p><strong>Всего заказов:</strong> @Model.OrderCount</p>
+        <a asp-action="EditProfile" class="btn btn-primary">Редактировать профиль</a>
+        <a asp-action="ChangePassword" class="btn btn-secondary">Сменить пароль</a>
+    </div>
+</div>

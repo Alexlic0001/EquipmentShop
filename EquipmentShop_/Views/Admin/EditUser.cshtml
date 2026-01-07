@@ -1,0 +1,21 @@
+﻿@model EquipmentShop.Core.Entities.ApplicationUser
+
+<h2>Назначение ролей: @Model.Email</h2>
+
+<form asp-action="EditUser" method="post">
+    <input type="hidden" name="id" value="@Model.Id" />
+    <div class="mb-3">
+        <label>Выберите роль</label>
+        <select name="selectedRole" class="form-select">
+            <option value="">Без роли (обычный пользователь)</option>
+            @foreach (var role in ViewBag.Roles as List<IdentityRole>)
+            {
+                <option value="@role.Name" selected="@(ViewBag.UserRoles.Contains(role.Name))">
+                    @role.Name
+                </option>
+            }
+        </select>
+    </div>
+    <button type="submit" class="btn btn-success">Сохранить роль</button>
+    <a asp-action="Users" class="btn btn-secondary">Назад</a>
+</form>

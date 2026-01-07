@@ -7,17 +7,17 @@
     <h1>Панель администратора</h1>
 
     <div class="row mt-4">
-        <div class="col-md-4">
+        <div class="col-md-3">
             <div class="card text-white bg-primary mb-3">
                 <div class="card-header">Товары</div>
                 <div class="card-body">
                     <h5 class="card-title">@ViewBag.TotalProducts</h5>
-                    <p class="card-text">Всего товаров в магазине</p>
+                    <p class="card-text">Всего товаров</p>
                 </div>
             </div>
         </div>
 
-        <div class="col-md-4">
+        <div class="col-md-3">
             <div class="card text-white bg-success mb-3">
                 <div class="card-header">Заказы</div>
                 <div class="card-body">
@@ -27,12 +27,23 @@
             </div>
         </div>
 
-        <div class="col-md-4">
+        <div class="col-md-3">
             <div class="card text-white bg-info mb-3">
                 <div class="card-header">Категории</div>
                 <div class="card-body">
                     <h5 class="card-title">@ViewBag.TotalCategories</h5>
-                    <p class="card-text">Категорий товаров</p>
+                    <p class="card-text">Категорий</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- НОВАЯ КАРТОЧКА: ПОЛЬЗОВАТЕЛИ -->
+        <div class="col-md-3">
+            <div class="card text-white bg-warning mb-3">
+                <div class="card-header">Пользователи</div>
+                <div class="card-body">
+                    <h5 class="card-title">@ViewBag.TotalUsers</h5>
+                    <p class="card-text">Зарегистрировано</p>
                 </div>
             </div>
         </div>
@@ -41,9 +52,10 @@
     <div class="mt-4">
         <h3>Быстрые действия</h3>
         <div class="btn-group" role="group">
-            <a asp-action="Products" class="btn btn-outline-primary">Управление товарами</a>
-            <a asp-action="Orders" class="btn btn-outline-success">Управление заказами</a>
-            <a asp-action="Categories" class="btn btn-outline-info">Управление категориями</a>
+            <a asp-action="Products" class="btn btn-outline-primary">Товары</a>
+            <a asp-action="Orders" class="btn btn-outline-success">Заказы</a>
+            <a asp-action="Categories" class="btn btn-outline-info">Категории</a>
+            <a asp-action="Users" class="btn btn-outline-warning">Пользователи</a>
         </div>
     </div>
 </div>

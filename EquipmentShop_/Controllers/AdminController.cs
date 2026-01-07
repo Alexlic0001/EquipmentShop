@@ -1,9 +1,11 @@
-﻿using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc;
-using EquipmentShop.Core.Interfaces;
+﻿using EquipmentShop.Core.Constants;
 using EquipmentShop.Core.Entities;
-using EquipmentShop.Core.Constants;
+using EquipmentShop.Core.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace EquipmentShop.Controllers
 {
@@ -11,6 +13,8 @@ namespace EquipmentShop.Controllers
     [Route("admin")]
     public class AdminController : Controller
     {
+        private readonly UserManager<ApplicationUser> _userManager;
+        private readonly RoleManager<IdentityRole> _roleManager;
         private readonly IProductRepository _productRepository;
         private readonly ICategoryRepository _categoryRepository;
         private readonly IOrderRepository _orderRepository;
@@ -22,13 +26,17 @@ namespace EquipmentShop.Controllers
             ICategoryRepository categoryRepository,
             IOrderRepository orderRepository,
             IFileStorageService fileStorageService,
-            ILogger<AdminController> logger)
+            ILogger<AdminController> logger,
+            UserManager<ApplicationUser> userManager,      // ← новое
+            RoleManager<IdentityRole> roleManager)         // ← новое
         {
             _productRepository = productRepository;
             _categoryRepository = categoryRepository;
             _orderRepository = orderRepository;
             _fileStorageService = fileStorageService;
             _logger = logger;
+            _userManager = userManager;                    // ← новое
+            _roleManager = roleManager;                    // ← новое
         }
 
         [HttpGet("")]
@@ -37,10 +45,12 @@ namespace EquipmentShop.Controllers
             var totalProducts = await _productRepository.CountAsync();
             var totalOrders = await _orderRepository.CountAsync();
             var totalCategories = await _categoryRepository.CountAsync();
+            var totalUsers = await _userManager.Users.CountAsync(); // ← НОВАЯ СТРОКА
 
             ViewBag.TotalProducts = totalProducts;
             ViewBag.TotalOrders = totalOrders;
             ViewBag.TotalCategories = totalCategories;
+            ViewBag.TotalUsers = totalUsers; // ← НОВАЯ СТРОКА
 
             return View();
         }
@@ -723,6 +733,71 @@ namespace EquipmentShop.Controllers
             }
 
             return RedirectToAction("Categories");
+        }
+
+
+
+        [HttpGet("users")]
+        public async Task<IActionResult> Users()
+        {
+            var users = await _userManager.Users
+                .OrderBy(u => u.FirstName)
+                .ToListAsync(); // ← Теперь работает, т.к. подключён using Microsoft.EntityFrameworkCore
+
+            return View(users);
+        }
+
+        [HttpGet("users/edit/{id}")]
+        public async Task<IActionResult> EditUser(string id)
+        {
+            var user = await _userManager.FindByIdAsync(id);
+            if (user == null) return NotFound();
+
+            var roles = await _roleManager.Roles.ToListAsync();
+            ViewBag.Roles = roles;
+
+            var userRoles = await _userManager.GetRolesAsync(user);
+            ViewBag.UserRoles = userRoles;
+
+            return View(user);
+        }
+
+        [HttpPost("users/edit/{id}")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> EditUser(string id, string selectedRole)
+        {
+            var user = await _userManager.FindByIdAsync(id);
+            if (user == null) return NotFound();
+
+            var currentRoles = await _userManager.GetRolesAsync(user);
+            await _userManager.RemoveFromRolesAsync(user, currentRoles);
+
+            if (!string.IsNullOrEmpty(selectedRole))
+            {
+                await _userManager.AddToRoleAsync(user, selectedRole);
+            }
+
+            TempData["Success"] = "Роли пользователя обновлены";
+            return RedirectToAction("Users");
+        }
+
+        [HttpPost("users/delete/{id}")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> DeleteUser(string id)
+        {
+            var user = await _userManager.FindByIdAsync(id);
+            if (user == null) return NotFound();
+
+            // Нельзя удалить самого себя
+            if (user.Id == _userManager.GetUserId(User))
+            {
+                TempData["Error"] = "Нельзя удалить собственную учётную запись";
+                return RedirectToAction("Users");
+            }
+
+            await _userManager.DeleteAsync(user);
+            TempData["Success"] = "Пользователь удалён";
+            return RedirectToAction("Users");
         }
 
     }

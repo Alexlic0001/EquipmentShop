@@ -310,10 +310,10 @@ namespace EquipmentShop.Infrastructure.Data
                     .HasMaxLength(1000);
 
                 // Отношения
-                entity.HasOne(oi => oi.Product)
-                    .WithMany()
-                    .HasForeignKey(oi => oi.ProductId)
-                    .OnDelete(DeleteBehavior.Restrict);
+                //entity.HasOne(oi => oi.Product)
+                //    .WithMany()
+                //    .HasForeignKey(oi => oi.ProductId)
+                //    .OnDelete(DeleteBehavior.Restrict);
             });
 
             // Конфигурация ShoppingCart

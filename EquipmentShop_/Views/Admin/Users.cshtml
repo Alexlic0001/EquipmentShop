@@ -1,0 +1,70 @@
+﻿@model List<EquipmentShop.Core.Entities.ApplicationUser>
+@using EquipmentShop.Core.Entities
+@inject UserManager<ApplicationUser> UserManager
+
+@{
+    ViewData["Title"] = "Пользователи";
+    Layout = "_Layout";
+}
+
+<div class="container mt-4">
+    <h1>Пользователи</h1>
+
+    @if (!Model.Any())
+    {
+        <div class="alert alert-info mt-4">Пользователи не найдены</div>
+    }
+    else
+    {
+        <div class="table-responsive mt-3">
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>ФИО</th>
+                        <th>Email</th>
+                        <th>Телефон</th>
+                        <th>Дата регистрации</th>
+                        <th>Роли</th>
+                        <th>Действия</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var user in Model)
+                    {
+                        <tr>
+                            <td>@user.FullName</td>
+                            <td>@user.Email</td>
+                            <td>@user.PhoneNumber</td>
+                            <td>@user.RegisteredAt.ToString("dd.MM.yyyy")</td>
+                            <td>
+                                @{
+                                    var roles = await UserManager.GetRolesAsync(user);
+                                }
+                                @string.Join(", ", roles)
+                            </td>
+                            <td>
+                                <a asp-action="EditUser" asp-route-id="@user.Id" class="btn btn-sm btn-primary">Роли</a>
+                                @if (user.Id != UserManager.GetUserId(User))
+                                {
+                                    <form asp-action="DeleteUser" asp-route-id="@user.Id" method="post" class="d-inline" onsubmit="return confirm('Удалить пользователя?')">
+                                        @Html.AntiForgeryToken()
+                                        <button type="submit" class="btn btn-sm btn-danger">Удалить</button>
+                                    </form>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>
+
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success mt-3">@TempData["Success"]</div>
+}
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger mt-3">@TempData["Error"]</div>
+}

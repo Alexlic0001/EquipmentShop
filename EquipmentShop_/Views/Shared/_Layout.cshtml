@@ -50,7 +50,7 @@
                     <i class="fas fa-laptop"></i> EquipmentShop
                 </a>
 
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <button class="navbar-toggler" type="	button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                     <span class="navbar-toggler-icon"></span>
                 </button>
 
@@ -83,33 +83,16 @@
                         </button>
                     </form>
 
-                    <!-- Блок входа/админки -->
+                    <!-- Блок авторизации / профиля -->
                     <div class="navbar-nav">
                         @if (User.Identity?.IsAuthenticated == true)
                         {
-                            <!-- Мини-корзина для авторизованных пользователей -->
-                            <li class="nav-item dropdown">
-                                <a class="nav-link dropdown-toggle" href="#" id="cartDropdown" role="button"
-                                   data-bs-toggle="dropdown" aria-expanded="false">
+                            <!-- Только одна иконка корзины (без дублирования) -->
+                            <li class="nav-item">
+                                <a class="nav-link" asp-controller="Cart" asp-action="Index">
                                     <i class="fas fa-shopping-cart"></i>
-                                    <span id="cartItemCount" class="badge bg-danger cart-count"
-                                          style="display: none;">
-                                        0
-                                    </span>
+                                    <span id="cartItemCount" class="badge bg-danger cart-count" style="display: none;">0</span>
                                 </a>
-                                <div class="dropdown-menu dropdown-menu-end dropdown-menu-cart" aria-labelledby="cartDropdown">
-                                    <div class="px-3 py-2 border-bottom">
-                                        <h6 class="mb-0">Корзина</h6>
-                                    </div>
-                                    <div id="miniCartContent">
-                                        <div class="p-3 text-center">
-                                            <div class="spinner-border spinner-border-sm text-primary" role="status">
-                                                <span class="visually-hidden">Загрузка...</span>
-                                            </div>
-                                            <p class="text-muted mt-2">Загрузка корзины...</p>
-                                        </div>
-                                    </div>
-                                </div>
                             </li>
 
                             @if (User.IsInRole("Admin"))
@@ -140,6 +123,11 @@
                                                 <i class="fas fa-shopping-bag"></i> Заказы
                                             </a>
                                         </li>
+                                        <li>
+                                            <a class="dropdown-item" asp-controller="Admin" asp-action="Users">
+                                                <i class="fas fa-users"></i> Пользователи
+                                            </a>
+                                        </li>
                                         <li><hr class="dropdown-divider"></li>
                                         <li>
                                             <a class="dropdown-item" asp-controller="Admin" asp-action="CreateProduct">
@@ -162,7 +150,7 @@
                                 </a>
                                 <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
                                     <li>
-                                        <a class="dropdown-item" href="#">
+                                        <a class="dropdown-item" asp-controller="Account" asp-action="Profile">
                                             <i class="fas fa-user-circle"></i> Мой профиль
                                         </a>
                                     </li>
@@ -191,12 +179,12 @@
                         else
                         {
                             <li class="nav-item">
-                                <a class="nav-link" href="@Url.Action("Login", "Account")">
+                                <a class="nav-link" asp-controller="Account" asp-action="Login">
                                     <i class="fas fa-sign-in-alt"></i> Войти
                                 </a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link" href="@Url.Action("Register", "Account")">
+                                <a class="nav-link" asp-controller="Account" asp-action="Register">
                                     <i class="fas fa-user-plus"></i> Регистрация
                                 </a>
                             </li>
@@ -209,7 +197,6 @@
 
     <main role="main" class="pb-3">
         <div class="container mt-4">
-            <!-- Уведомления -->
             @if (TempData["Success"] != null)
             {
                 <div class="alert alert-success alert-dismissible fade show" role="alert">
@@ -235,7 +222,7 @@
                 <div class="col-md-6">
                     <h5>EquipmentShop</h5>
                     <p>Интернет-магазин компьютерной техники и комплектующих</p>
-                    <p>&copy; 2026 - EquipmentShop</p>
+                    <p>&copy; @DateTime.Now.Year - EquipmentShop</p>
                 </div>
                 <div class="col-md-3">
                     <h5>Контакты</h5>
@@ -258,202 +245,67 @@
         </div>
     </footer>
 
-    <!-- Bootstrap 5 JS Bundle with Popper -->
+    <!-- JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <!-- jQuery -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 
     <script>
-        // Функция для обновления счетчика корзины
+        // Обновление количества товаров в корзине
         async function updateCartCount() {
+            if (!@Html.Raw(User.Identity?.IsAuthenticated == true ? "true" : "false")) return;
+
             try {
-                const response = await fetch('@Url.Action("GetCartSummary", "Cart")');
-                if (!response.ok) {
-                    console.error('Ошибка получения данных корзины');
-                    return;
-                }
-
-                const data = await response.json();
-                const cartCountElement = document.getElementById('cartItemCount');
-
-                if (cartCountElement) {
+                const res = await fetch('@Url.Action("GetCartSummary", "Cart")');
+                const data = await res.json();
+                const el = document.getElementById('cartItemCount');
+                if (el) {
                     if (data.itemCount > 0) {
-                        cartCountElement.textContent = data.itemCount;
-                        cartCountElement.style.display = 'inline';
+                        el.textContent = data.itemCount;
+                        el.style.display = 'inline';
                     } else {
-                        cartCountElement.style.display = 'none';
+                        el.style.display = 'none';
                     }
                 }
-            } catch (error) {
-                console.error('Ошибка обновления корзины:', error);
+            } catch (e) {
+                console.error('Не удалось обновить корзину', e);
             }
         }
 
-        // Функция для загрузки мини-корзины
-        async function loadMiniCart() {
-            try {
-                const response = await fetch('@Url.Action("MiniCart", "Cart")');
-                if (!response.ok) {
-                    console.error('Ошибка загрузки мини-корзины');
-                    return;
-                }
-
-                const html = await response.text();
-                const miniCartContent = document.getElementById('miniCartContent');
-
-                if (miniCartContent) {
-                    miniCartContent.innerHTML = html;
-                }
-            } catch (error) {
-                console.error('Ошибка загрузки мини-корзины:', error);
-            }
-        }
-
-        // Функция добавления товара в корзину
-        async function addToCart(productId, quantity = 1) {
-            try {
-                // Проверяем авторизацию
-                const isAuthenticated = @(User.Identity?.IsAuthenticated == true ? "true" : "false");
-
-                if (!isAuthenticated) {
-                    // Показываем сообщение о необходимости авторизации
-                    showAlert('Для добавления товара в корзину необходимо войти в систему', 'warning');
-
-                    // Сохраняем информацию о товаре для добавления после входа
-                    sessionStorage.setItem('pendingProductId', productId);
-                    sessionStorage.setItem('pendingQuantity', quantity);
-
-                    // Перенаправляем на страницу входа
-                    window.location.href = '@Url.Action("Login", "Account")?returnUrl=' + encodeURIComponent(window.location.href);
-                    return false;
-                }
-
-                // Создаем форму для отправки данных
-                const formData = new FormData();
-                formData.append('productId', productId);
-                formData.append('quantity', quantity);
-
-                // Добавляем токен защиты от CSRF
-                const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value;
-                if (token) {
-                    formData.append('__RequestVerificationToken', token);
-                }
-
-                const response = await fetch('@Url.Action("AddToCart", "Cart")', {
-                    method: 'POST',
-                    body: formData
-                });
-
-                if (response.ok) {
-                    // Обновляем счетчик корзины
-                    await updateCartCount();
-
-                    // Обновляем содержимое мини-корзины
-                    await loadMiniCart();
-
-                    // Показываем уведомление
-                    showAlert('Товар добавлен в корзину!', 'success');
-
-                    return true;
-                } else {
-                    const errorText = await response.text();
-                    showAlert('Ошибка при добавлении в корзину', 'danger');
-                    return false;
-                }
-            } catch (error) {
-                console.error('Ошибка добавления в корзину:', error);
-                showAlert('Ошибка при добавлении в корзину', 'danger');
-                return false;
-            }
-        }
-
-        // Функция для показа уведомлений
-        function showAlert(message, type = 'info') {
-            // Создаем элемент уведомления
-            const alertDiv = document.createElement('div');
-            alertDiv.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
-            alertDiv.style.cssText = `
-                top: 20px;
-                right: 20px;
-                z-index: 9999;
-                min-width: 300px;
-                max-width: 500px;
-            `;
-
-            alertDiv.innerHTML = `
-                <i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-circle'} me-2"></i>
-                ${message}
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-            `;
-
-            // Добавляем уведомление на страницу
-            document.body.appendChild(alertDiv);
-
-            // Автоматическое удаление через 5 секунд
-            setTimeout(() => {
-                if (alertDiv.parentNode) {
-                    alertDiv.remove();
-                }
-            }, 5000);
-        }
-
-        // Функция проверки отложенного добавления товара после входа
-        function checkPendingCartItems() {
-            const pendingProductId = sessionStorage.getItem('pendingProductId');
-            const pendingQuantity = sessionStorage.getItem('pendingQuantity');
-
-            if (pendingProductId && pendingQuantity) {
-                // Добавляем товар после входа
-                addToCart(parseInt(pendingProductId), parseInt(pendingQuantity));
-
-                // Очищаем отложенные данные
-                sessionStorage.removeItem('pendingProductId');
-                sessionStorage.removeItem('pendingQuantity');
-            }
-        }
-
-        // Инициализация при загрузке страницы
-        document.addEventListener('DOMContentLoaded', function() {
-            // Обновляем счетчик корзины
+        document.addEventListener('DOMContentLoaded', function () {
             updateCartCount();
 
-            // Загружаем мини-корзину если пользователь авторизован
-            const isAuthenticated = @(User.Identity?.IsAuthenticated == true ? "true" : "false");
-            if (isAuthenticated) {
-                loadMiniCart();
-                checkPendingCartItems();
-            }
-
-            // Назначаем обработчики для всех кнопок "Добавить в корзину"
-            document.querySelectorAll('.add-to-cart-btn').forEach(button => {
-                button.addEventListener('click', function(e) {
+            // Обработчик кнопок "Добавить в корзину"
+            document.querySelectorAll('.add-to-cart-btn').forEach(btn => {
+                btn.addEventListener('click', async (e) => {
                     e.preventDefault();
-                    const productId = this.dataset.productId;
-                    const quantity = document.getElementById(`quantity-${productId}`)?.value || 1;
-                    addToCart(productId, quantity);
+                    const id = btn.dataset.productId;
+                    const qty = document.getElementById(`quantity-${id}`)?.value || 1;
+
+                    const isAuthenticated = @Html.Raw(User.Identity?.IsAuthenticated == true ? "true" : "false");
+                    if (!isAuthenticated) {
+                        if (confirm('Для добавления в корзину нужно войти. Перейти на страницу входа?')) {
+                            sessionStorage.setItem('pendingProductId', id);
+                            sessionStorage.setItem('pendingQuantity', qty);
+                            window.location.href = '@Url.Action("Login", "Account")?returnUrl=' + encodeURIComponent(location.href);
+                        }
+                        return;
+                    }
+
+                    const formData = new FormData();
+                    formData.append('productId', id);
+                    formData.append('quantity', qty);
+                    const token = document.querySelector('[name="__RequestVerificationToken"]')?.value;
+                    if (token) formData.append('__RequestVerificationToken', token);
+
+                    const res = await fetch('@Url.Action("AddToCart", "Cart")', { method: 'POST', body: formData });
+                    if (res.ok) {
+                        updateCartCount();
+                        alert('Товар добавлен в корзину!');
+                    } else {
+                        alert('Ошибка при добавлении в корзину');
+                    }
                 });
             });
-
-            // Обновляем мини-корзину при наведении на иконку корзины
-            const cartDropdown = document.getElementById('cartDropdown');
-            if (cartDropdown) {
-                cartDropdown.addEventListener('mouseenter', function() {
-                    loadMiniCart();
-                });
-            }
-        });
-
-        // Обработчик для форм добавления в корзину
-        document.addEventListener('submit', function(e) {
-            if (e.target.classList.contains('add-to-cart-form')) {
-                e.preventDefault();
-                const form = e.target;
-                const formData = new FormData(form);
-                const productId = formData.get('productId');
-                const quantity = formData.get('quantity') || 1;
-
-                addToCart(productId, quantity);
-            }
         });
     </script>
 

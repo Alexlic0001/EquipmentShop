@@ -137,6 +137,14 @@ namespace EquipmentShop.Controllers
 
             if (ModelState.IsValid)
             {
+                // Проверяем, существует ли уже пользователь с таким email
+                var existingUser = await _userManager.FindByEmailAsync(model.Email);
+                if (existingUser != null)
+                {
+                    ModelState.AddModelError("", "Пользователь с таким email уже зарегистрирован.");
+                    return View(model);
+                }
+
                 var user = new ApplicationUser
                 {
                     UserName = model.Email,
@@ -146,40 +154,48 @@ namespace EquipmentShop.Controllers
                     PhoneNumber = model.Phone,
                     SubscribeToNewsletter = model.SubscribeToNewsletter,
                     EmailNotifications = true,
-                    RegisteredAt = DateTime.UtcNow
+                    RegisteredAt = DateTime.UtcNow,
+                    EmailConfirmed = true // ← ВАЖНО! Иначе могут быть проблемы с входом
                 };
 
                 var result = await _userManager.CreateAsync(user, model.Password);
 
                 if (result.Succeeded)
                 {
-                    _logger.LogInformation("Создан новый пользователь {Email}", model.Email);
+                    _logger.LogInformation("Создан новый пользователь: {Email}", model.Email);
 
-                    // Добавляем пользователя в роль Customer
-                    await _userManager.AddToRoleAsync(user, "Customer");
+                    // Добавляем роль Customer
+                    var addToRoleResult = await _userManager.AddToRoleAsync(user, "Customer");
+                    if (!addToRoleResult.Succeeded)
+                    {
+                        _logger.LogWarning("Не удалось назначить роль 'Customer' пользователю {Email}: {Errors}",
+                            model.Email,
+                            string.Join(", ", addToRoleResult.Errors.Select(e => e.Description)));
+                    }
 
-                    // Отправляем письмо приветствия
+                    // Отправка email (по желанию)
                     try
                     {
                         await _emailService.SendWelcomeEmailAsync(user.Email, user.FullName);
                     }
                     catch (Exception ex)
                     {
-                        _logger.LogError(ex, "Ошибка при отправке приветственного письма");
+                        _logger.LogError(ex, "Ошибка отправки приветственного письма для {Email}", model.Email);
                     }
 
-                    // Автоматический вход после регистрации
+                    // Автоматический вход
                     await _signInManager.SignInAsync(user, isPersistent: false);
 
-                    TempData["Success"] = "Регистрация прошла успешно! Добро пожаловать в EquipmentShop";
+                    TempData["Success"] = $"Регистрация прошла успешно! Добро пожаловать, {user.FirstName}!";
 
                     return RedirectToLocal(returnUrl);
                 }
 
+                // Обработка ошибок Identity (например: email уже существует, пароль слабый и т.д.)
                 foreach (var error in result.Errors)
                 {
                     ModelState.AddModelError("", error.Description);
-                    _logger.LogWarning("Ошибка регистрации пользователя {Email}: {Error}", model.Email, error.Description);
+                    _logger.LogWarning("Ошибка регистрации {Email}: {Error}", model.Email, error.Description);
                 }
             }
 

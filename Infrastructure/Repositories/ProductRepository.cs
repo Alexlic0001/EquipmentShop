@@ -1,7 +1,9 @@
-﻿using EquipmentShop.Core.Entities;
+﻿// Infrastructure/Repositories/ProductRepository.cs
+using EquipmentShop.Core.Entities;
 using EquipmentShop.Core.Interfaces;
 using EquipmentShop.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using System.Linq.Expressions;
 
 namespace EquipmentShop.Infrastructure.Repositories
@@ -9,10 +11,12 @@ namespace EquipmentShop.Infrastructure.Repositories
     public class ProductRepository : IProductRepository
     {
         private readonly AppDbContext _context;
+        private readonly ILogger<ProductRepository> _logger;
 
-        public ProductRepository(AppDbContext context)
+        public ProductRepository(AppDbContext context, ILogger<ProductRepository> logger)
         {
             _context = context;
+            _logger = logger;
         }
 
         // --- Реализация IProductRepository ---
@@ -91,7 +95,7 @@ namespace EquipmentShop.Infrastructure.Repositories
         public async Task<IEnumerable<Product>> SearchAsync(string query, int page = 1, int pageSize = 12)
         {
             if (string.IsNullOrWhiteSpace(query))
-                return await GetByCategoryAsync(0, page, pageSize); // или вызвать GetAll с пагинацией
+                return await GetByCategoryAsync(0, page, pageSize);
 
             var term = query.ToLower();
             return await _context.Products
@@ -261,24 +265,162 @@ namespace EquipmentShop.Infrastructure.Repositories
 
         public async Task<Product> AddAsync(Product product)
         {
-            product.CreatedAt = DateTime.UtcNow;
-            product.UpdatedAt = DateTime.UtcNow;
-            _context.Products.Add(product);
-            await _context.SaveChangesAsync();
-            return product;
+            try
+            {
+                product.CreatedAt = DateTime.UtcNow;
+                product.UpdatedAt = DateTime.UtcNow;
+                _context.Products.Add(product);
+                await _context.SaveChangesAsync();
+                return product;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Ошибка при добавлении товара {ProductName}", product.Name);
+                throw;
+            }
         }
 
         public async Task UpdateAsync(Product product)
         {
-            product.UpdatedAt = DateTime.UtcNow;
-            _context.Products.Update(product);
-            await _context.SaveChangesAsync();
+            try
+            {
+                Console.WriteLine($"=== UPDATE ASYNC НАЧАЛО ===");
+                Console.WriteLine($"Товар ID: {product.Id}");
+                Console.WriteLine($"Название: '{product.Name}'");
+                Console.WriteLine($"Цена: {product.Price}");
+                Console.WriteLine($"Дата обновления: {product.UpdatedAt}");
+
+                // Находим товар в контексте с отслеживанием изменений
+                var existingProduct = await _context.Products
+                    .FirstOrDefaultAsync(p => p.Id == product.Id);
+
+                if (existingProduct == null)
+                {
+                    Console.WriteLine("ОШИБКА: Товар не найден в БД");
+                    throw new Exception($"Товар с ID {product.Id} не найден");
+                }
+
+                Console.WriteLine($"Найден существующий товар: '{existingProduct.Name}'");
+                Console.WriteLine($"Старая цена: {existingProduct.Price}");
+
+                // Проверяем состояние сущности
+                var entry = _context.Entry(existingProduct);
+                Console.WriteLine($"Состояние сущности: {entry.State}");
+
+                // Обновляем ВСЕ поля вручную
+                existingProduct.Name = product.Name;
+                existingProduct.Slug = product.Slug ?? existingProduct.Slug;
+                existingProduct.Description = product.Description;
+                existingProduct.ShortDescription = product.ShortDescription;
+                existingProduct.Price = product.Price;
+                existingProduct.OldPrice = product.OldPrice;
+                existingProduct.ImageUrl = product.ImageUrl ?? existingProduct.ImageUrl;
+                existingProduct.CategoryId = product.CategoryId;
+                existingProduct.Brand = product.Brand;
+                existingProduct.StockQuantity = product.StockQuantity;
+                existingProduct.MinStockThreshold = product.MinStockThreshold;
+                existingProduct.IsFeatured = product.IsFeatured;
+                existingProduct.IsNew = product.IsNew;
+                existingProduct.IsAvailable = product.StockQuantity > 0;
+
+                // Сохраняем статистику если не передана
+                if (product.Rating == 0 && existingProduct.Rating > 0)
+                    product.Rating = existingProduct.Rating;
+
+                if (product.ReviewsCount == 0 && existingProduct.ReviewsCount > 0)
+                    product.ReviewsCount = existingProduct.ReviewsCount;
+
+                if (product.SoldCount == 0 && existingProduct.SoldCount > 0)
+                    product.SoldCount = existingProduct.SoldCount;
+
+                existingProduct.Rating = product.Rating;
+                existingProduct.ReviewsCount = product.ReviewsCount;
+                existingProduct.SoldCount = product.SoldCount;
+
+                existingProduct.MetaTitle = product.MetaTitle;
+                existingProduct.MetaDescription = product.MetaDescription;
+                existingProduct.MetaKeywords = product.MetaKeywords;
+
+                // Коллекции
+                if (product.Tags != null && product.Tags.Any())
+                {
+                    existingProduct.Tags = product.Tags;
+                }
+
+                if (product.Specifications != null && product.Specifications.Any())
+                {
+                    existingProduct.Specifications = product.Specifications;
+                }
+
+                existingProduct.UpdatedAt = DateTime.UtcNow;
+
+                Console.WriteLine($"После обновления: '{existingProduct.Name}'");
+                Console.WriteLine($"Новая цена: {existingProduct.Price}");
+                Console.WriteLine($"Новое состояние сущности: {_context.Entry(existingProduct).State}");
+
+                // Показываем все измененные сущности
+                var changedEntries = _context.ChangeTracker.Entries()
+                    .Where(e => e.State == EntityState.Modified)
+                    .ToList();
+
+                Console.WriteLine($"Измененных сущностей: {changedEntries.Count}");
+                foreach (var changedEntry in changedEntries)
+                {
+                    Console.WriteLine($"  - {changedEntry.Entity.GetType().Name}: {changedEntry.State}");
+                }
+
+                // Сохраняем изменения
+                Console.WriteLine("Вызываем SaveChangesAsync...");
+                var result = await _context.SaveChangesAsync();
+                Console.WriteLine($"SaveChangesAsync вернул: {result} (количество измененных записей)");
+
+                if (result > 0)
+                {
+                    Console.WriteLine("=== UPDATE УСПЕШНО ЗАВЕРШЕН ===");
+                }
+                else
+                {
+                    Console.WriteLine("=== ПРЕДУПРЕЖДЕНИЕ: SaveChangesAsync вернул 0 ===");
+                    Console.WriteLine("Это означает, что Entity Framework не увидел изменений");
+
+                    // Принудительно помечаем как измененный
+                    _context.Entry(existingProduct).State = EntityState.Modified;
+                    Console.WriteLine("Пометили сущность как Modified вручную");
+
+                    var result2 = await _context.SaveChangesAsync();
+                    Console.WriteLine($"Вторая попытка SaveChangesAsync: {result2}");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"=== ОШИБКА В UPDATE ASYNC ===");
+                Console.WriteLine($"Сообщение: {ex.Message}");
+                Console.WriteLine($"Тип: {ex.GetType().Name}");
+
+                if (ex.InnerException != null)
+                {
+                    Console.WriteLine($"InnerException: {ex.InnerException.Message}");
+                }
+
+                Console.WriteLine($"StackTrace: {ex.StackTrace}");
+
+                _logger.LogError(ex, "Ошибка при обновлении товара {ProductId}", product.Id);
+                throw;
+            }
         }
 
         public async Task DeleteAsync(Product product)
         {
-            _context.Products.Remove(product);
-            await _context.SaveChangesAsync();
+            try
+            {
+                _context.Products.Remove(product);
+                await _context.SaveChangesAsync();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Ошибка при удалении товара {ProductId}", product.Id);
+                throw;
+            }
         }
 
         public async Task<int> CountAsync(Expression<Func<Product, bool>>? predicate = null)
@@ -294,7 +436,7 @@ namespace EquipmentShop.Infrastructure.Repositories
             return await _context.Products.AnyAsync(predicate);
         }
 
-        // --- Вспомогательные методы (не в интерфейсе, но используются в коде) ---
+        // --- Вспомогательные методы ---
 
         public async Task<bool> SlugExistsAsync(string slug, int? excludeId = null)
         {

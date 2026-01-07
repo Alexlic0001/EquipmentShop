@@ -184,114 +184,216 @@ namespace EquipmentShop.Controllers
                 return NotFound();
             }
 
-            // Преобразуем теги в строку для отображения в форме
+            // Преобразуем теги и характеристики в строки для отображения в форме (если нужно)
             if (product.Tags != null && product.Tags.Any())
             {
                 product.TagsString = string.Join(", ", product.Tags);
             }
 
-            var categoriesForEditView = await _categoryRepository.GetAllAsync();
-            ViewBag.Categories = categoriesForEditView;
+            ViewBag.Categories = await _categoryRepository.GetAllAsync();
             return View(product);
         }
 
+
         [HttpPost("products/edit/{id}")]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> EditProduct(int id, Product product, IFormFile imageFile)
+        public async Task<IActionResult> EditProduct(int id, IFormFile imageFile)
         {
-            if (id != product.Id)
+            var existingProduct = await _productRepository.GetByIdAsync(id);
+            if (existingProduct == null)
             {
                 return NotFound();
             }
 
-            // Получаем категории один раз в начале
-            var categoriesForEdit = await _categoryRepository.GetAllAsync();
-            ViewBag.Categories = categoriesForEdit;
+            ViewBag.Categories = await _categoryRepository.GetAllAsync();
 
-            if (ModelState.IsValid)
+            // Получаем данные из формы
+            var form = Request.Form;
+            var name = form["Name"].ToString().Trim();
+            var description = form["Description"].ToString().Trim();
+            var shortDescription = form["ShortDescription"].ToString().Trim();
+            var slug = form["Slug"].ToString().Trim();
+            var brand = form["Brand"].ToString().Trim();
+            var metaTitle = form["MetaTitle"].ToString().Trim();
+            var metaDescription = form["MetaDescription"].ToString().Trim();
+            var metaKeywords = form["MetaKeywords"].ToString().Trim();
+            var tagsString = form["TagsString"].ToString().Trim();
+
+            // Попытка парсинга числовых значений
+            if (!decimal.TryParse(form["Price"], out var price) || price <= 0)
             {
-                var existingProduct = await _productRepository.GetByIdAsync(id);
-                if (existingProduct == null)
-                {
-                    return NotFound();
-                }
-
-                // Обновляем изображение если загружено новое
-                if (imageFile != null && imageFile.Length > 0)
-                {
-                    try
-                    {
-                        // Удаляем старое изображение если это не дефолтное
-                        if (!string.IsNullOrEmpty(existingProduct.ImageUrl) &&
-                            !existingProduct.ImageUrl.Contains("default"))
-                        {
-                            await _fileStorageService.DeleteFileAsync(existingProduct.ImageUrl);
-                        }
-
-                        // Сохраняем новое изображение
-                        var fileName = await _fileStorageService.GenerateUniqueFileName(imageFile.FileName);
-                        var filePath = await _fileStorageService.SaveProductImageAsync(
-                            imageFile.OpenReadStream(),
-                            fileName);
-
-                        product.ImageUrl = filePath;
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogError(ex, "Ошибка при загрузке изображения");
-                        ModelState.AddModelError("", "Ошибка при загрузке изображения");
-                        return View(product);
-                    }
-                }
-                else
-                {
-                    // Сохраняем старое изображение
-                    product.ImageUrl = existingProduct.ImageUrl;
-                }
-
-                // Убедимся, что Slug не пустой
-                if (string.IsNullOrEmpty(product.Slug))
-                {
-                    product.Slug = GenerateSlug(product.Name);
-                }
-
-                // Сохраняем даты и статистику
-                product.CreatedAt = existingProduct.CreatedAt;
-                product.UpdatedAt = DateTime.UtcNow;
-                product.IsAvailable = product.StockQuantity > 0;
-                product.Rating = existingProduct.Rating;
-                product.ReviewsCount = existingProduct.ReviewsCount;
-                product.SoldCount = existingProduct.SoldCount;
-
-                // Обработка тегов
-                if (!string.IsNullOrEmpty(product.TagsString))
-                {
-                    product.Tags = product.TagsString
-                        .Split(',', StringSplitOptions.RemoveEmptyEntries)
-                        .Select(t => t.Trim())
-                        .Where(t => !string.IsNullOrEmpty(t))
-                        .ToList();
-                }
-                else
-                {
-                    product.Tags = existingProduct.Tags;
-                }
-
-                try
-                {
-                    await _productRepository.UpdateAsync(product);
-                    TempData["Success"] = "Товар успешно обновлен";
-                    return RedirectToAction("ProductDetails", new { id = product.Id });
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Ошибка при обновлении товара");
-                    ModelState.AddModelError("", "Ошибка при обновлении товара");
-                }
+                ModelState.AddModelError("Price", "Цена обязательна и должна быть больше 0");
+                return View(existingProduct);
             }
 
-            return View(product);
+            decimal? oldPrice = null;
+            if (decimal.TryParse(Request.Form["OldPrice"], out var parsedOldPrice))
+            {
+                oldPrice = parsedOldPrice;
+            }
+
+            if (!int.TryParse(form["StockQuantity"], out var stockQuantity) || stockQuantity < 0)
+            {
+                ModelState.AddModelError("StockQuantity", "Количество не может быть отрицательным");
+                return View(existingProduct);
+            }
+
+            if (!int.TryParse(form["MinStockThreshold"], out var minStockThreshold))
+                minStockThreshold = 5;
+
+            if (!int.TryParse(form["CategoryId"], out var categoryId) || categoryId <= 0)
+            {
+                ModelState.AddModelError("CategoryId", "Выберите категорию");
+                return View(existingProduct);
+            }
+
+            // Чекбоксы
+            var isFeatured = form.ContainsKey("IsFeatured");
+            var isNew = form.ContainsKey("IsNew");
+            var isAvailable = form.ContainsKey("IsAvailable");
+
+            // Валидация
+            if (string.IsNullOrWhiteSpace(name))
+            {
+                ModelState.AddModelError("Name", "Название обязательно");
+                return View(existingProduct);
+            }
+            if (string.IsNullOrWhiteSpace(description))
+            {
+                ModelState.AddModelError("Description", "Описание обязательно");
+                return View(existingProduct);
+            }
+
+            try
+            {
+                // Обработка изображения
+                if (imageFile?.Length > 0)
+                {
+                    if (!string.IsNullOrEmpty(existingProduct.ImageUrl) &&
+                        !existingProduct.ImageUrl.Contains("default"))
+                    {
+                        await _fileStorageService.DeleteFileAsync(existingProduct.ImageUrl);
+                    }
+                    var fileName = await _fileStorageService.GenerateUniqueFileName(imageFile.FileName);
+                    var filePath = await _fileStorageService.SaveProductImageAsync(imageFile.OpenReadStream(), fileName);
+                    existingProduct.ImageUrl = filePath;
+                }
+
+                // Обновляем только нужные поля
+                existingProduct.Name = name;
+                existingProduct.Slug = string.IsNullOrEmpty(slug) ? GenerateSlug(name) : slug;
+                existingProduct.Description = description;
+                existingProduct.ShortDescription = shortDescription;
+                existingProduct.Price = price;
+                existingProduct.OldPrice = oldPrice;
+                existingProduct.Brand = brand;
+                existingProduct.StockQuantity = stockQuantity;
+                existingProduct.MinStockThreshold = minStockThreshold;
+                existingProduct.CategoryId = categoryId;
+                existingProduct.IsFeatured = isFeatured;
+                existingProduct.IsNew = isNew;
+                existingProduct.IsAvailable = isAvailable;
+                existingProduct.MetaTitle = metaTitle;
+                existingProduct.MetaDescription = metaDescription;
+                existingProduct.MetaKeywords = metaKeywords;
+                existingProduct.UpdatedAt = DateTime.UtcNow;
+
+                // Теги
+                existingProduct.Tags = string.IsNullOrEmpty(tagsString)
+                    ? new List<string>()
+                    : tagsString.Split(',', StringSplitOptions.RemoveEmptyEntries)
+                                .Select(t => t.Trim())
+                                .Where(t => !string.IsNullOrEmpty(t))
+                                .ToList();
+
+                // Характеристики — если в вашей форме есть поле SpecificationsString, раскомментируйте:
+                /*
+                var specsString = form["SpecificationsString"].ToString();
+                existingProduct.Specifications = string.IsNullOrEmpty(specsString)
+                    ? new Dictionary<string, string>()
+                    : ParseSpecifications(specsString); // Реализуйте этот метод, если нужно
+                */
+
+                await _productRepository.UpdateAsync(existingProduct);
+                TempData["Success"] = "Товар успешно обновлён";
+                return RedirectToAction("ProductDetails", new { id = existingProduct.Id });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Ошибка при обновлении товара ID={Id}", id);
+                ModelState.AddModelError("", "Произошла ошибка при сохранении товара");
+                return View(existingProduct);
+            }
         }
+
+
+
+
+
+        [HttpPost("products/simple-edit/{id}")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> SimpleEdit(int id, string name, decimal price, int stockQuantity)
+        {
+            Console.WriteLine($"=== ПРОСТОЕ РЕДАКТИРОВАНИЕ ТОВАРА ID: {id} ===");
+            Console.WriteLine($"Полученные данные: name='{name}', price={price}, stock={stockQuantity}");
+
+            try
+            {
+                // Получаем товар
+                var product = await _productRepository.GetByIdAsync(id);
+                if (product == null)
+                {
+                    Console.WriteLine("Товар не найден в БД");
+                    return Json(new { success = false, message = "Товар не найден" });
+                }
+
+                Console.WriteLine($"Найден товар: ID={product.Id}, Name='{product.Name}', Price={product.Price}");
+
+                // Обновляем поля
+                product.Name = name;
+                product.Price = price;
+                product.StockQuantity = stockQuantity;
+                product.UpdatedAt = DateTime.UtcNow;
+                product.IsAvailable = stockQuantity > 0;
+
+                Console.WriteLine("Пытаемся сохранить через UpdateAsync...");
+
+                // Сохраняем изменения
+                await _productRepository.UpdateAsync(product);
+
+                Console.WriteLine("UpdateAsync выполнен успешно!");
+
+                // Проверяем, обновился ли товар
+                var updatedProduct = await _productRepository.GetByIdAsync(id);
+                Console.WriteLine($"Проверка после обновления: Name='{updatedProduct.Name}', Price={updatedProduct.Price}");
+
+                return Json(new { success = true, message = "Товар успешно обновлен" });
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"ОШИБКА: {ex.Message}");
+                Console.WriteLine($"StackTrace: {ex.StackTrace}");
+                if (ex.InnerException != null)
+                {
+                    Console.WriteLine($"InnerException: {ex.InnerException.Message}");
+                }
+
+                return Json(new { success = false, message = $"Ошибка: {ex.Message}" });
+            }
+        }
+
+
+
+
+
+
+
+
+
+
+
+
+
 
         [HttpPost("products/delete/{id}")]
         [ValidateAntiForgeryToken]

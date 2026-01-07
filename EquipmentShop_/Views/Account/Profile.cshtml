@@ -10,9 +10,14 @@
         <p><strong>Имя:</strong> @Model.FirstName</p>
         <p><strong>Фамилия:</strong> @Model.LastName</p>
         <p><strong>Email:</strong> @Model.Email</p>
+        <p><strong>Телефон:</strong> @Model.Phone</p>
         <p><strong>Дата регистрации:</strong> @Model.RegisteredAt.ToString("dd.MM.yyyy")</p>
         <p><strong>Всего заказов:</strong> @Model.OrderCount</p>
-        <a asp-action="EditProfile" class="btn btn-primary">Редактировать профиль</a>
-        <a asp-action="ChangePassword" class="btn btn-secondary">Сменить пароль</a>
+
+        <div class="mt-3">
+            <a asp-action="EditProfile" class="btn btn-primary">Редактировать профиль</a>
+            <a asp-action="ChangePassword" class="btn btn-secondary">Сменить пароль</a>
+            <a asp-action="Orders" class="btn btn-info">Мои заказы</a>
+        </div>
     </div>
 </div>

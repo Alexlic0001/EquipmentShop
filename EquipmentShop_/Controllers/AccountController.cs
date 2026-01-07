@@ -1,10 +1,13 @@
 ﻿using EquipmentShop.Core.Entities;
+using EquipmentShop.Core.Enums;
 using EquipmentShop.Core.Interfaces;
+using EquipmentShop.Infrastructure.Repositories;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using System.ComponentModel.DataAnnotations;
 using System.Security.Claims;
+using EquipmentShop.Core.Interfaces;
 
 namespace EquipmentShop.Controllers
 {
@@ -14,17 +17,21 @@ namespace EquipmentShop.Controllers
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly ILogger<AccountController> _logger;
         private readonly IEmailService _emailService;
+        private readonly IOrderRepository _orderRepository; // ← НОВОЕ ПОЛЕ
+
 
         public AccountController(
-            SignInManager<ApplicationUser> signInManager,
-            UserManager<ApplicationUser> userManager,
-            ILogger<AccountController> logger,
-            IEmailService emailService)
+        SignInManager<ApplicationUser> signInManager,
+        UserManager<ApplicationUser> userManager,
+        ILogger<AccountController> logger,
+        IEmailService emailService,
+        IOrderRepository orderRepository) // ← НОВАЯ ЗАВИСИМОСТЬ
         {
             _signInManager = signInManager;
             _userManager = userManager;
             _logger = logger;
             _emailService = emailService;
+            _orderRepository = orderRepository; // ← ПРИСВОЕНИЕ
         }
 
         [HttpGet]
@@ -202,6 +209,93 @@ namespace EquipmentShop.Controllers
             return View(model);
         }
 
+
+
+        [HttpGet]
+        [Authorize]
+        public async Task<IActionResult> OrderDetails(string orderNumber)
+        {
+            if (string.IsNullOrWhiteSpace(orderNumber))
+                return NotFound();
+
+            var user = await _userManager.GetUserAsync(User);
+            var order = await _orderRepository.GetByOrderNumberAsync(orderNumber);
+
+            if (order == null || order.UserId != user.Id)
+                return NotFound();
+
+            var viewModel = new UserOrderDetailsViewModel
+            {
+                OrderNumber = order.OrderNumber,
+                OrderDate = order.OrderDate,
+                Status = order.Status,
+                Total = order.Total,
+                ShippingAddress = $"{order.ShippingCity}, {order.ShippingAddress}",
+                Items = order.OrderItems.Select(oi => new UserOrderItemViewModel
+                {
+                    ProductName = oi.ProductName,
+                    Quantity = oi.Quantity,
+                    Price = oi.UnitPrice,
+                    Total = oi.TotalPrice
+                }).ToList()
+            };
+
+            return View(viewModel);
+        }
+
+        public class UserOrderDetailsViewModel
+        {
+            public string OrderNumber { get; set; } = string.Empty;
+            public DateTime OrderDate { get; set; }
+            public OrderStatus Status { get; set; }
+            public decimal Total { get; set; }
+            public string ShippingAddress { get; set; } = string.Empty;
+            public List<UserOrderItemViewModel> Items { get; set; } = new();
+        }
+
+        public class UserOrderItemViewModel
+        {
+            public string ProductName { get; set; } = string.Empty;
+            public int Quantity { get; set; }
+            public decimal Price { get; set; }
+            public decimal Total { get; set; }
+        }
+
+
+
+
+        [HttpGet]
+        [Authorize]
+        public async Task<IActionResult> Orders()
+        {
+            var user = await _userManager.GetUserAsync(User);
+            if (user == null)
+                return NotFound();
+
+            var orders = await _orderRepository.GetByUserIdAsync(user.Id);
+            var viewModel = orders.Select(order => new UserOrderViewModel
+            {
+                OrderNumber = order.OrderNumber,
+                OrderDate = order.OrderDate,
+                Total = order.Total,
+                Status = order.Status,
+                ItemCount = order.OrderItems.Count
+            }).ToList();
+
+            return View(viewModel);
+        }
+
+        // ViewModel для заказов в личном кабинете
+        public class UserOrderViewModel
+        {
+            public string OrderNumber { get; set; } = string.Empty;
+            public DateTime OrderDate { get; set; }
+            public decimal Total { get; set; }
+            public OrderStatus Status { get; set; }
+            public int ItemCount { get; set; }
+        }
+
+
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Logout()
@@ -232,6 +326,10 @@ namespace EquipmentShop.Controllers
                 return NotFound();
             }
 
+            // Получаем количество заказов пользователя
+            var orderCount = await _orderRepository.GetByUserIdAsync(user.Id);
+            var totalOrders = orderCount.Count();
+
             var model = new UserProfileViewModel
             {
                 Id = user.Id,
@@ -241,7 +339,7 @@ namespace EquipmentShop.Controllers
                 Phone = user.PhoneNumber,
                 AvatarUrl = user.AvatarUrl,
                 RegisteredAt = user.RegisteredAt,
-                OrderCount = user.TotalOrders,
+                OrderCount = totalOrders, // ← УСТАНАВЛИВАЕМ КОЛИЧЕСТВО ЗАКАЗОВ
                 Addresses = user.AdditionalAddresses?.Select(a => new AddressViewModel
                 {
                     Title = a.Title,

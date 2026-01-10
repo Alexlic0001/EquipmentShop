@@ -506,8 +506,30 @@ namespace EquipmentShop.Controllers
 
 
 
+        [HttpPost("orders/delete/{id}")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> DeleteOrder(int id)
+        {
+            var order = await _orderRepository.GetByIdAsync(id);
+            if (order == null)
+            {
+                TempData["Error"] = "Заказ не найден.";
+                return RedirectToAction("Orders");
+            }
 
+            try
+            {
+                await _orderRepository.DeleteAsync(order);
+                TempData["Success"] = $"Заказ {order.OrderNumber} успешно удалён.";
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Ошибка при удалении заказа ID={OrderId}", id);
+                TempData["Error"] = "Не удалось удалить заказ.";
+            }
 
+            return RedirectToAction("Orders");
+        }
 
 
 

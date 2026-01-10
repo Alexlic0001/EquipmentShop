@@ -1,6 +1,7 @@
 ﻿using EquipmentShop.Core.Constants;
 using EquipmentShop.Core.Entities;
 using EquipmentShop.Core.Enums;
+using EquipmentShop.Core.Helpers;
 using EquipmentShop.Core.Interfaces;
 using EquipmentShop.Core.Interfaces;
 using EquipmentShop.Infrastructure.Repositories;
@@ -298,6 +299,8 @@ namespace EquipmentShop.Controllers
             public decimal Total { get; set; }
             public OrderStatus Status { get; set; }
             public int ItemCount { get; set; }
+
+            public string StatusDisplay => EnumHelper<OrderStatus>.GetDisplayName(Status);
         }
 
         [HttpGet]

@@ -1,4 +1,5 @@
-﻿using EquipmentShop.Core.Interfaces;
+﻿using EquipmentShop.Core.Exceptions;
+using EquipmentShop.Core.Interfaces;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 
@@ -38,10 +39,17 @@ namespace EquipmentShop.Middleware
                 {
                     context.Session.SetString("CartId", cartIdFromCookie);
 
-                    // Продлеваем срок действия корзины
-                    await cartService.RenewCartExpirationAsync(cartIdFromCookie);
-
-                    _logger.LogInformation("Восстановлена корзина из куки: {CartId}", cartIdFromCookie);
+                    // Безопасное обновление срока действия — игнорируем, если корзины нет
+                    try
+                    {
+                        await cartService.RenewCartExpirationAsync(cartIdFromCookie);
+                        _logger.LogInformation("Восстановлена корзина из куки: {CartId}", cartIdFromCookie);
+                    }
+                    catch (CartNotFoundException)
+                    {
+                        // Игнорируем — старая/несуществующая корзина
+                        _logger.LogWarning("Корзина из куки не найдена в БД: {CartId}", cartIdFromCookie);
+                    }
                 }
                 // Если есть сессия но нет куки - устанавливаем куку
                 else if (!string.IsNullOrEmpty(cartIdFromSession) &&

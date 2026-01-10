@@ -30,7 +30,7 @@ namespace EquipmentShop.Controllers.Admin
             { OrderStatus.Delivered, new[] { OrderStatus.Refunded } },
             { OrderStatus.Cancelled, Array.Empty<OrderStatus>() },
             { OrderStatus.Refunded, Array.Empty<OrderStatus>() },
-            { OrderStatus.OnHold, new[] { OrderStatus.Pending, OrderStatus.Processing, OrderStatus.Cancelled } }
+            { OrderStatus.OnHold, new[] { OrderStatus.Pending, OrderStatus.Processing, OrderStatus.AwaitingPayment, OrderStatus.Paid, OrderStatus.Cancelled } }
         };
 
         [HttpGet]
@@ -40,7 +40,8 @@ namespace EquipmentShop.Controllers.Admin
             if (order == null) return NotFound();
 
             var current = order.Status;
-            var allowed = AllowedTransitions.GetValueOrDefault(current, Array.Empty<OrderStatus>());
+            //var allowed = AllowedTransitions.GetValueOrDefault(current, Array.Empty<OrderStatus>());
+            var allowed = Enum.GetValues<OrderStatus>();
 
             ViewBag.OrderNumber = orderNumber;
             ViewBag.CurrentStatusName = GetDisplayName(current);

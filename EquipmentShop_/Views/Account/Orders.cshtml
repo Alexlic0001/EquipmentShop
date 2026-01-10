@@ -39,24 +39,18 @@
                             <td>@order.ItemCount</td>
                             <td>@($"{order.Total:N0} р.")</td>
                             <td>
-                                @switch (order.Status)
-                                {
-                                    case OrderStatus.Pending:
-                                        <span class="badge bg-warning">В обработке</span>
-                                        break;
-                                    case OrderStatus.Processing:
-                                        <span class="badge bg-info">В работе</span>
-                                        break;
-                                    case OrderStatus.Shipped:
-                                        <span class="badge bg-primary">Отправлен</span>
-                                        break;
-                                    case OrderStatus.Delivered:
-                                        <span class="badge bg-success">Доставлен</span>
-                                        break;
-                                    case OrderStatus.Cancelled:
-                                        <span class="badge bg-danger">Отменён</span>
-                                        break;
+                                @{
+                                    var badgeClass = order.Status switch
+                                    {
+                                        OrderStatus.Delivered => "bg-success",
+                                        OrderStatus.Cancelled or OrderStatus.Refunded => "bg-danger",
+                                        OrderStatus.Pending or OrderStatus.AwaitingPayment => "bg-secondary",
+                                        OrderStatus.Processing or OrderStatus.Paid or OrderStatus.Shipped => "bg-warning text-dark",
+                                        OrderStatus.OnHold => "bg-info",
+                                        _ => "bg-light text-dark"
+                                    };
                                 }
+                                <span class="badge @badgeClass">@order.StatusDisplay</span>
                             </td>
                             <td>
                                 <a asp-controller="Account" asp-action="OrderDetails" asp-route-orderNumber="@order.OrderNumber"

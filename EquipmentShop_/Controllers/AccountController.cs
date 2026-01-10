@@ -1,13 +1,15 @@
-﻿using EquipmentShop.Core.Entities;
+﻿using EquipmentShop.Core.Constants;
+using EquipmentShop.Core.Entities;
 using EquipmentShop.Core.Enums;
 using EquipmentShop.Core.Interfaces;
+using EquipmentShop.Core.Interfaces;
 using EquipmentShop.Infrastructure.Repositories;
+using EquipmentShop.Infrastructure.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using System.ComponentModel.DataAnnotations;
 using System.Security.Claims;
-using EquipmentShop.Core.Interfaces;
 
 namespace EquipmentShop.Controllers
 {
@@ -18,6 +20,7 @@ namespace EquipmentShop.Controllers
         private readonly ILogger<AccountController> _logger;
         private readonly IEmailService _emailService;
         private readonly IOrderRepository _orderRepository; // ← НОВОЕ ПОЛЕ
+        private readonly IFileStorageService _fileStorageService;
 
 
         public AccountController(
@@ -25,13 +28,15 @@ namespace EquipmentShop.Controllers
         UserManager<ApplicationUser> userManager,
         ILogger<AccountController> logger,
         IEmailService emailService,
-        IOrderRepository orderRepository) // ← НОВАЯ ЗАВИСИМОСТЬ
+        IOrderRepository orderRepository,
+        IFileStorageService fileStorageService) // ← новая зависимость
         {
             _signInManager = signInManager;
             _userManager = userManager;
             _logger = logger;
             _emailService = emailService;
-            _orderRepository = orderRepository; // ← ПРИСВОЕНИЕ
+            _orderRepository = orderRepository;
+            _fileStorageService = fileStorageService; // ← присваивание
         }
 
         [HttpGet]
@@ -295,6 +300,92 @@ namespace EquipmentShop.Controllers
             public int ItemCount { get; set; }
         }
 
+        [HttpGet]
+        [Authorize]
+        public async Task<IActionResult> EditProfile()
+        {
+            var user = await _userManager.GetUserAsync(User);
+            if (user == null) return NotFound();
+
+            var model = new UserProfileViewModel
+            {
+                Id = user.Id,
+                FirstName = user.FirstName,
+                LastName = user.LastName,
+                Email = user.Email,
+                Phone = user.PhoneNumber ?? string.Empty,
+                AvatarUrl = user.AvatarUrl
+            };
+
+            return View(model);
+        }
+
+
+        [HttpPost]
+        [Authorize]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> UpdateProfile(UserProfileViewModel model, IFormFile? avatarFile)
+        {
+            if (!ModelState.IsValid)
+            {
+                return View("EditProfile", model);
+            }
+
+            var user = await _userManager.GetUserAsync(User);
+            if (user == null) return NotFound();
+
+            // Обновляем данные
+            user.FirstName = model.FirstName;
+            user.LastName = model.LastName;
+            user.PhoneNumber = model.Phone;
+
+            // Обработка аватара
+            if (avatarFile != null && avatarFile.Length > 0)
+            {
+                // Валидация
+                if (avatarFile.Length > 5 * 1024 * 1024)
+                {
+                    ModelState.AddModelError("avatarFile", "Файл слишком большой (макс. 5 МБ)");
+                    return View("EditProfile", model);
+                }
+
+                var ext = Path.GetExtension(avatarFile.FileName).ToLowerInvariant();
+                if (!AppConstants.AllowedImageExtensions.Contains(ext))
+                {
+                    ModelState.AddModelError("avatarFile", "Недопустимый формат файла");
+                    return View("EditProfile", model);
+                }
+
+                // Удаляем старый аватар, если не дефолтный
+                if (!string.IsNullOrEmpty(user.AvatarUrl) &&
+                    !user.AvatarUrl.Equals(AppConstants.DefaultUserAvatar, StringComparison.OrdinalIgnoreCase))
+                {
+                    await _fileStorageService.DeleteFileAsync(user.AvatarUrl);
+                }
+
+                // Сохраняем новый
+                var fileName = await _fileStorageService.GenerateUniqueFileName(avatarFile.FileName);
+                var filePath = await _fileStorageService.SaveUserAvatarAsync(avatarFile.OpenReadStream(), fileName);
+                user.AvatarUrl = filePath;
+            }
+
+            var result = await _userManager.UpdateAsync(user);
+            if (result.Succeeded)
+            {
+                TempData["Success"] = "Профиль успешно обновлён";
+                return RedirectToAction("Profile");
+            }
+
+            foreach (var error in result.Errors)
+                ModelState.AddModelError("", error.Description);
+
+            return View("EditProfile", model);
+        }
+
+
+
+
+
 
         [HttpPost]
         [ValidateAntiForgeryToken]
@@ -356,38 +447,7 @@ namespace EquipmentShop.Controllers
             return View(model);
         }
 
-        [HttpPost]
-        [Authorize]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> UpdateProfile(UserProfileViewModel model)
-        {
-            if (ModelState.IsValid)
-            {
-                var user = await _userManager.GetUserAsync(User);
-                if (user == null)
-                {
-                    return NotFound();
-                }
-
-                user.FirstName = model.FirstName;
-                user.LastName = model.LastName;
-                user.PhoneNumber = model.Phone;
-
-                var result = await _userManager.UpdateAsync(user);
-                if (result.Succeeded)
-                {
-                    TempData["Success"] = "Профиль успешно обновлен";
-                    return RedirectToAction("Profile");
-                }
-
-                foreach (var error in result.Errors)
-                {
-                    ModelState.AddModelError("", error.Description);
-                }
-            }
-
-            return View("Profile", model);
-        }
+        
 
         [HttpGet]
         [AllowAnonymous]

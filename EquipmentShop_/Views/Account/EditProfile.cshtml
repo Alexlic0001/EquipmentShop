@@ -1,17 +1,35 @@
-﻿@model EquipmentShop.Core.Entities.ApplicationUser
+﻿@model EquipmentShop.Controllers.AccountController.UserProfileViewModel
 
-<form asp-action="EditProfile" method="post" enctype="multipart/form-data">
+<form asp-action="UpdateProfile" method="post" enctype="multipart/form-data">
     <div class="mb-3">
-        <label>Имя</label>
+        <label asp-for="FirstName" class="form-label">Имя</label>
         <input asp-for="FirstName" class="form-control" />
+        <span asp-validation-for="FirstName" class="text-danger"></span>
     </div>
     <div class="mb-3">
-        <label>Фамилия</label>
+        <label asp-for="LastName" class="form-label">Фамилия</label>
         <input asp-for="LastName" class="form-control" />
+        <span asp-validation-for="LastName" class="text-danger"></span>
     </div>
     <div class="mb-3">
-        <label>Аватар</label>
+        <label asp-for="Email" class="form-label">Email</label>
+        <input asp-for="Email" class="form-control" readonly />
+    </div>
+    <div class="mb-3">
+        <label asp-for="Phone" class="form-label">Телефон</label>
+        <input asp-for="Phone" class="form-control" />
+        <span asp-validation-for="Phone" class="text-danger"></span>
+    </div>
+    <div class="mb-3">
+        <label class="form-label">Аватар</label>
+        @if (!string.IsNullOrEmpty(Model.AvatarUrl))
+        {
+            <div class="mb-2">
+                <img src="@Model.AvatarUrl" class="img-thumbnail" style="max-height: 100px;" alt="Аватар" />
+            </div>
+        }
         <input type="file" name="avatarFile" accept="image/*" class="form-control" />
+        <small class="form-text text-muted">Поддерживаются форматы: JPG, PNG, GIF (до 5 МБ)</small>
     </div>
     <button type="submit" class="btn btn-success">Сохранить</button>
     <a asp-action="Profile" class="btn btn-secondary">Отмена</a>

@@ -1,4 +1,5 @@
 ﻿@using EquipmentShop.Core.Constants
+@using EquipmentShop.Core.Enums
 @model IEnumerable<EquipmentShop.Core.Entities.Order>
 @{
     ViewData["Title"] = "Управление заказами";
@@ -17,8 +18,8 @@
     else
     {
         <div class="table-responsive mt-3">
-            <table class="table table-hover">
-                <thead>
+            <table class="table table-hover align-middle">
+                <thead class="table-light">
                     <tr>
                         <th>Номер</th>
                         <th>Клиент</th>
@@ -32,28 +33,54 @@
                     @foreach (var order in Model)
                     {
                         <tr>
-                            <td>@order.OrderNumber</td>
+                            <td><strong>@order.OrderNumber</strong></td>
                             <td>@order.CustomerName</td>
                             <td>@order.Total.ToString("N0")@AppConstants.CurrencySymbol</td>
                             <td>
-                                @if (order.Status == EquipmentShop.Core.Enums.OrderStatus.Delivered)
-                                {
-                                    <span class="badge bg-success">Доставлен</span>
+                                @{
+                                    var statusName = order.Status switch
+                                    {
+                                        OrderStatus.Pending => "Ожидает обработки",
+                                        OrderStatus.Processing => "В обработке",
+                                        OrderStatus.AwaitingPayment => "Ожидает оплаты",
+                                        OrderStatus.Paid => "Оплачен",
+                                        OrderStatus.Shipped => "Передан в доставку",
+                                        OrderStatus.Delivered => "Доставлен",
+                                        OrderStatus.Cancelled => "Отменен",
+                                        OrderStatus.Refunded => "Возврат",
+                                        OrderStatus.OnHold => "На удержании",
+                                        _ => order.Status.ToString()
+                                    };
+
+                                    var badgeClass = order.Status switch
+                                    {
+                                        OrderStatus.Delivered => "bg-success",
+                                        OrderStatus.Cancelled or OrderStatus.Refunded => "bg-danger",
+                                        OrderStatus.Pending or OrderStatus.AwaitingPayment => "bg-secondary",
+                                        OrderStatus.Processing or OrderStatus.Paid or OrderStatus.Shipped => "bg-warning text-dark",
+                                        OrderStatus.OnHold => "bg-info",
+                                        _ => "bg-light text-dark"
+                                    };
                                 }
-                                else if (order.Status == EquipmentShop.Core.Enums.OrderStatus.Cancelled)
-                                {
-                                    <span class="badge bg-danger">Отменен</span>
-                                }
-                                else
-                                {
-                                    <span class="badge bg-warning">@order.Status.ToString()</span>
-                                }
+                                <span class="badge @badgeClass">@statusName</span>
                             </td>
                             <td>@order.OrderDate.ToString("dd.MM.yyyy HH:mm")</td>
                             <td>
-                                <a asp-action="OrderDetails" asp-route-id="@order.Id"
-                                   class="btn btn-sm btn-info">
+                                <!-- Кнопка просмотра деталей -->
+                                <a asp-action="OrderDetails"
+                                   asp-route-id="@order.Id"
+                                   class="btn btn-sm btn-info me-1"
+                                   title="Просмотр">
                                     <i class="fas fa-eye"></i>
+                                </a>
+
+                                <!-- Кнопка изменения статуса -->
+                                <a asp-controller="Admin"
+                                   asp-action="ChangeOrderStatus"
+                                   asp-route-orderNumber="@order.OrderNumber"
+                                   class="btn btn-sm btn-warning"
+                                   title="Изменить статус">
+                                    <i class="fas fa-edit"></i>
                                 </a>
                             </td>
                         </tr>

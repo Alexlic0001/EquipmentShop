@@ -1,11 +1,19 @@
 ﻿using EquipmentShop.Core.Constants;
 using EquipmentShop.Core.Entities;
+using EquipmentShop.Core.Enums;
 using EquipmentShop.Core.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
+using System.ComponentModel.DataAnnotations;
+using System.Reflection;
+using System.ComponentModel.DataAnnotations;
+using EquipmentShop.Core.Enums;
+using EquipmentShop.Core.ViewModels.Admin;
+
 
 namespace EquipmentShop.Controllers
 {
@@ -38,6 +46,33 @@ namespace EquipmentShop.Controllers
             _userManager = userManager;                    // ← новое
             _roleManager = roleManager;                    // ← новое
         }
+
+
+        private static readonly Dictionary<OrderStatus, OrderStatus[]> AllowedTransitions = new()
+{
+    { OrderStatus.Pending, new[] { OrderStatus.Processing, OrderStatus.OnHold, OrderStatus.Cancelled } },
+    { OrderStatus.Processing, new[] { OrderStatus.AwaitingPayment, OrderStatus.Paid, OrderStatus.OnHold, OrderStatus.Cancelled } },
+    { OrderStatus.AwaitingPayment, new[] { OrderStatus.Paid, OrderStatus.Cancelled, OrderStatus.OnHold } },
+    { OrderStatus.Paid, new[] { OrderStatus.Shipped, OrderStatus.Cancelled, OrderStatus.OnHold } },
+    { OrderStatus.Shipped, new[] { OrderStatus.Delivered, OrderStatus.Refunded, OrderStatus.Cancelled } },
+    { OrderStatus.Delivered, new[] { OrderStatus.Refunded } },
+    { OrderStatus.Cancelled, Array.Empty<OrderStatus>() },
+    { OrderStatus.Refunded, Array.Empty<OrderStatus>() },
+    { OrderStatus.OnHold, new[] { OrderStatus.Pending, OrderStatus.Processing, OrderStatus.Cancelled } }
+};
+
+        private IEnumerable<OrderStatus> GetAllowedTransitions(OrderStatus current)
+        {
+            return AllowedTransitions.GetValueOrDefault(current, Array.Empty<OrderStatus>());
+        }
+
+        private string GetStatusDisplayName(OrderStatus status)
+        {
+            var field = typeof(OrderStatus).GetField(status.ToString());
+            var attribute = field?.GetCustomAttribute<DisplayAttribute>();
+            return attribute?.Name ?? status.ToString();
+        }
+
 
         [HttpGet("")]
         public async Task<IActionResult> Dashboard()
@@ -72,6 +107,82 @@ namespace EquipmentShop.Controllers
             }
             return View(product);
         }
+
+
+
+
+
+
+        [HttpGet("orders/{orderNumber}/change-status")]
+        public async Task<IActionResult> ChangeOrderStatus(string orderNumber)
+        {
+            var order = await _orderRepository.GetByOrderNumberAsync(orderNumber);
+            if (order == null) return NotFound();
+
+            var current = order.Status;
+            var allowed = GetAllowedTransitions(current);
+
+            ViewBag.OrderNumber = orderNumber;
+            ViewBag.CurrentStatusName = GetStatusDisplayName(current);
+            ViewBag.StatusOptions = allowed.Select(s => new SelectListItem
+            {
+                Value = ((int)s).ToString(),
+                Text = GetStatusDisplayName(s)
+            }).ToList();
+
+            return View(new ChangeOrderStatusViewModel { OrderNumber = orderNumber });
+        }
+
+        [HttpPost("orders/{orderNumber}/change-status")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ChangeOrderStatus(string orderNumber, ChangeOrderStatusViewModel model)
+        {
+            if (!ModelState.IsValid || model.OrderNumber != orderNumber)
+                return RedirectToAction("ChangeOrderStatus", new { orderNumber });
+
+            var order = await _orderRepository.GetByOrderNumberAsync(orderNumber);
+            if (order == null)
+            {
+                TempData["Error"] = "Заказ не найден.";
+                return RedirectToAction("Orders");
+            }
+
+            var newStatus = (OrderStatus)model.NewStatusId;
+            var allowed = GetAllowedTransitions(order.Status);
+
+            if (!allowed.Contains(newStatus))
+            {
+                TempData["Error"] = "Недопустимый переход статуса.";
+                return RedirectToAction("ChangeOrderStatus", new { orderNumber });
+            }
+
+            var success = await _orderRepository.UpdateOrderStatusAsync(orderNumber, newStatus);
+            if (success)
+            {
+                TempData["Success"] = $"Статус изменён на «{GetStatusDisplayName(newStatus)}»";
+            }
+            else
+            {
+                TempData["Error"] = "Не удалось обновить статус.";
+            }
+
+            return RedirectToAction("OrderDetails", new { id = order.Id });
+        }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

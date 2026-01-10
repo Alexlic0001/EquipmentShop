@@ -27,6 +27,17 @@ namespace EquipmentShop.Infrastructure.Repositories
                 .FirstOrDefaultAsync(o => o.Id == id);
         }
 
+        public async Task<bool> UpdateOrderStatusAsync(string orderNumber, OrderStatus newStatus)
+        {
+            var order = await _context.Orders.FirstOrDefaultAsync(o => o.OrderNumber == orderNumber);
+            if (order == null) return false;
+
+            order.Status = newStatus;
+            _context.Orders.Update(order);
+            await _context.SaveChangesAsync();
+            return true;
+        }
+
         public async Task<Order?> GetByOrderNumberAsync(string orderNumber)
         {
             return await _context.Orders

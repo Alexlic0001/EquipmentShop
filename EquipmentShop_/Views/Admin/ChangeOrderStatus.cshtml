@@ -1,0 +1,36 @@
+﻿@model EquipmentShop.Core.ViewModels.Admin.ChangeOrderStatusViewModel
+
+@{
+    ViewData["Title"] = "Изменить статус заказа";
+}
+
+<h2>Изменение статуса заказа @ViewBag.OrderNumber</h2>
+
+<div class="card">
+    <div class="card-header">
+        Текущий статус: <strong>@ViewBag.CurrentStatusName</strong>
+    </div>
+    <div class="card-body">
+        <form asp-action="ChangeOrderStatus"
+              asp-controller="Admin"
+              asp-route-orderNumber="@Model.OrderNumber"
+              method="post">
+            <input type="hidden" asp-for="OrderNumber" />
+
+            <div class="mb-3">
+                <label asp-for="NewStatusId" class="form-label">Новый статус</label>
+                <select asp-for="NewStatusId" class="form-select" asp-items="ViewBag.StatusOptions">
+                    <option value="">-- Выберите статус --</option>
+                </select>
+                <span asp-validation-for="NewStatusId" class="text-danger"></span>
+            </div>
+
+            <button type="submit" class="btn btn-primary">Сохранить</button>
+            <a asp-action="Orders" class="btn btn-secondary">Отмена</a>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

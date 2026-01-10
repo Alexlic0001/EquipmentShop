@@ -3,7 +3,7 @@
 <h2>Личный кабинет</h2>
 <div class="row">
     <div class="col-md-3">
-        <img src="@(string.IsNullOrEmpty(Model.AvatarUrl) ? "/images/default-avatar.png" : Model.AvatarUrl)"
+        <img src="@(string.IsNullOrEmpty(Model.AvatarUrl) ? AppConstants.DefaultUserAvatar : Model.AvatarUrl)"
              class="img-fluid rounded" style="max-height:150px;" />
     </div>
     <div class="col-md-9">

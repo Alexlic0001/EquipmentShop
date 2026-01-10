@@ -19,6 +19,8 @@ namespace EquipmentShop.Core.Interfaces
         Task<int> GetTotalOrdersCountAsync();
         Task<decimal> GetTotalRevenueAsync();
         Task<Order> AddOrderWithItemsAsync(Order order);
+
+        Task<bool> UpdateOrderStatusAsync(string orderNumber, OrderStatus newStatus);
     }
 
     public class OrderStats

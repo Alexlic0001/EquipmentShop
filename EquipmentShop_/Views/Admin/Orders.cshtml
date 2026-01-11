@@ -66,40 +66,25 @@
                             </td>
                             <td>@order.OrderDate.ToString("dd.MM.yyyy HH:mm")</td>
                             <td>
-                                @* <!-- Кнопка просмотра деталей -->
-                                <a asp-action="OrderDetails"
-                                   asp-route-id="@order.Id"
-                                   class="btn btn-sm btn-info me-1"
-                                   title="Просмотр">
-                                    <i class="fas fa-eye"></i>
-                                </a>
-
-                                <!-- Кнопка изменения статуса -->
-                                <a asp-controller="Admin"
-                                   asp-action="ChangeOrderStatus"
-                                   asp-route-orderNumber="@order.OrderNumber"
-                                   class="btn btn-sm btn-warning"
-                                   title="Изменить статус">
-                                    <i class="fas fa-edit"></i>
-                                </a> *@
-
-
                                 <a asp-action="OrderDetails" asp-route-id="@order.Id" class="btn btn-sm btn-info me-1" title="Просмотр">
                                     <i class="fas fa-eye"></i>
                                 </a>
-                                <a asp-controller="Admin" asp-action="ChangeOrderStatus" asp-route-orderNumber="@order.OrderNumber" class="btn btn-sm btn-warning me-1" title="Изменить статус">
+                                <a asp-controller="AdminOrder" asp-action="ChangeStatus" asp-route-orderNumber="@order.OrderNumber" class="btn btn-sm btn-warning me-1" title="Изменить статус">
                                     <i class="fas fa-edit"></i>
                                 </a>
-                                <!-- НОВАЯ КНОПКА УДАЛЕНИЯ -->
-                                <form asp-action="DeleteOrder" asp-controller="Admin" asp-route-id="@order.Id" method="post" class="d-inline">
-                                    @Html.AntiForgeryToken()
-                                    <button type="submit"
-                                            class="btn btn-sm btn-danger"
-                                            title="Удалить заказ"
-                                            onclick="return confirm('Вы уверены, что хотите удалить заказ @order.OrderNumber? Это действие нельзя отменить!');">
-                                        <i class="fas fa-trash"></i>
-                                    </button>
-                                </form>
+                                <!-- Удаление — только для админа -->
+                                @if (User.IsInRole(AppConstants.AdminRole))
+                                {
+                                    <form asp-action="DeleteOrder" asp-controller="Admin" asp-route-id="@order.Id" method="post" class="d-inline">
+                                        @Html.AntiForgeryToken()
+                                        <button type="submit"
+                                                class="btn btn-sm btn-danger"
+                                                title="Удалить заказ"
+                                                onclick="return confirm('Вы уверены, что хотите удалить заказ @order.OrderNumber? Это действие нельзя отменить!');">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </form>
+                                }
                             </td>
                         </tr>
                     }

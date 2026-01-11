@@ -40,13 +40,12 @@ namespace EquipmentShop.Controllers.Admin
             var order = await _orderRepository.GetByOrderNumberAsync(orderNumber);
             if (order == null) return NotFound();
 
-            var current = order.Status;
-            //var allowed = AllowedTransitions.GetValueOrDefault(current, Array.Empty<OrderStatus>());
-            var allowed = Enum.GetValues<OrderStatus>();
-
             ViewBag.OrderNumber = orderNumber;
-            ViewBag.CurrentStatusName = GetDisplayName(current);
-            ViewBag.StatusOptions = allowed.Select(s => new SelectListItem
+            ViewBag.CurrentStatusName = GetDisplayName(order.Status);
+
+            // Показываем ВСЕ статусы для удобства менеджера
+            var allStatuses = Enum.GetValues<OrderStatus>();
+            ViewBag.StatusOptions = allStatuses.Select(s => new SelectListItem
             {
                 Value = ((int)s).ToString(),
                 Text = GetDisplayName(s)
@@ -66,12 +65,13 @@ namespace EquipmentShop.Controllers.Admin
             if (order == null)
             {
                 TempData["Error"] = "Заказ не найден.";
-                return RedirectToAction("Index", "AdminDashboard"); // или другая страница
+                return RedirectToAction("Orders", "Admin");
             }
 
             var newStatus = (OrderStatus)model.NewStatusId;
-            var allowed = AllowedTransitions.GetValueOrDefault(order.Status, Array.Empty<OrderStatus>());
 
+            // Проверяем допустимость перехода
+            var allowed = AllowedTransitions.GetValueOrDefault(order.Status, Array.Empty<OrderStatus>());
             if (!allowed.Contains(newStatus))
             {
                 TempData["Error"] = "Недопустимый переход статуса.";
@@ -88,24 +88,15 @@ namespace EquipmentShop.Controllers.Admin
                 TempData["Error"] = "Не удалось обновить статус.";
             }
 
-            // Перенаправляем на детали заказа (если есть) или на список
-            return RedirectToAction("Details", "AdminOrder", new { orderNumber = model.OrderNumber });
+            // Перенаправляем на детали заказа в AdminController
+            return RedirectToAction("OrderDetails", "Admin", new { id = order.Id });
         }
 
-        // Вспомогательный метод для получения [Display(Name = "...")]
         private string GetDisplayName(OrderStatus status)
         {
             var field = typeof(OrderStatus).GetField(status.ToString());
             var attribute = field?.GetCustomAttribute<DisplayAttribute>();
             return attribute?.Name ?? status.ToString();
         }
-    }
-
-    public class ChangeOrderStatusViewModel
-    {
-        public string OrderNumber { get; set; } = string.Empty;
-
-        [Range(1, 9, ErrorMessage = "Выберите корректный статус")]
-        public int NewStatusId { get; set; }
     }
 }

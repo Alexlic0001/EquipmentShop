@@ -11,7 +11,7 @@
         Текущий статус: <strong>@ViewBag.CurrentStatusName</strong>
     </div>
     <div class="card-body">
-        <form asp-action="ChangeStatus" method="post">
+        <form asp-controller="AdminOrder" asp-action="ChangeStatus" method="post">
             <input type="hidden" asp-for="OrderNumber" />
 
             <div class="mb-3">

@@ -17,7 +17,7 @@ using EquipmentShop.Core.ViewModels.Admin;
 
 namespace EquipmentShop.Controllers
 {
-    [Authorize(Roles = AppConstants.AdminRole)]
+    [Authorize(Roles = $"{AppConstants.AdminRole},{AppConstants.ManagerRole}")]
     [Route("admin")]
     public class AdminController : Controller
     {
@@ -427,13 +427,7 @@ namespace EquipmentShop.Controllers
                                 .Where(t => !string.IsNullOrEmpty(t))
                                 .ToList();
 
-                // Характеристики — если в вашей форме есть поле SpecificationsString, раскомментируйте:
-                /*
-                var specsString = form["SpecificationsString"].ToString();
-                existingProduct.Specifications = string.IsNullOrEmpty(specsString)
-                    ? new Dictionary<string, string>()
-                    : ParseSpecifications(specsString); // Реализуйте этот метод, если нужно
-                */
+
 
                 await _productRepository.UpdateAsync(existingProduct);
                 TempData["Success"] = "Товар успешно обновлён";
@@ -510,6 +504,12 @@ namespace EquipmentShop.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteOrder(int id)
         {
+
+            if (!User.IsInRole(AppConstants.AdminRole))
+            {
+                TempData["Error"] = "У вас недостаточно прав для удаления заказов.";
+                return RedirectToAction("Orders");
+            }
             var order = await _orderRepository.GetByIdAsync(id);
             if (order == null)
             {
@@ -533,15 +533,16 @@ namespace EquipmentShop.Controllers
 
 
 
-
-
-
-
-
         [HttpPost("products/delete/{id}")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteProduct(int id)
         {
+            if (!User.IsInRole(AppConstants.AdminRole))
+            {
+                TempData["Error"] = "У вас недостаточно прав для удаления товаров.";
+                return RedirectToAction("Products");
+            }
+
             var product = await _productRepository.GetByIdAsync(id);
             if (product == null)
             {
@@ -825,6 +826,11 @@ namespace EquipmentShop.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteCategory(int id)
         {
+            if (!User.IsInRole(AppConstants.AdminRole))
+            {
+                TempData["Error"] = "У вас недостаточно прав для удаления категории.";
+                return RedirectToAction("Categories");
+            }
             var category = await _categoryRepository.GetByIdAsync(id);
             if (category == null)
             {
@@ -873,9 +879,14 @@ namespace EquipmentShop.Controllers
         [HttpGet("users")]
         public async Task<IActionResult> Users()
         {
+            if (!User.IsInRole(AppConstants.AdminRole))
+            {
+                TempData["Error"] = "У вас недостаточно прав для удаления пользователей.";
+                return RedirectToAction("users");
+            }
             var users = await _userManager.Users
                 .OrderBy(u => u.FirstName)
-                .ToListAsync(); // ← Теперь работает, т.к. подключён using Microsoft.EntityFrameworkCore
+                .ToListAsync(); 
 
             return View(users);
         }
@@ -883,6 +894,11 @@ namespace EquipmentShop.Controllers
         [HttpGet("users/edit/{id}")]
         public async Task<IActionResult> EditUser(string id)
         {
+            if (!User.IsInRole(AppConstants.AdminRole))
+            {
+                TempData["Error"] = "У вас недостаточно прав для изменения пользователей.";
+                return RedirectToAction("user");
+            }
             var user = await _userManager.FindByIdAsync(id);
             if (user == null) return NotFound();
 

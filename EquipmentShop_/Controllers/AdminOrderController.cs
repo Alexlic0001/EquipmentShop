@@ -1,15 +1,16 @@
-﻿using EquipmentShop.Core.Enums;
+﻿using EquipmentShop.Core.Constants;
+using EquipmentShop.Core.Enums;
 using EquipmentShop.Core.Interfaces;
+using EquipmentShop.Core.ViewModels.Admin;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using System.ComponentModel.DataAnnotations;
-using EquipmentShop.Core.ViewModels.Admin;
 using System.Reflection;
 
 namespace EquipmentShop.Controllers.Admin
 {
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = $"{AppConstants.AdminRole},{AppConstants.ManagerRole}")]
     public class AdminOrderController : Controller
     {
         private readonly IOrderRepository _orderRepository;

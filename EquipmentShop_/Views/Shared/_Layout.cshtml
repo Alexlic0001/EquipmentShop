@@ -95,50 +95,26 @@
                                 </a>
                             </li>
 
-                            @if (User.IsInRole("Admin"))
+                            @if (User.IsInRole(AppConstants.AdminRole) || User.IsInRole(AppConstants.ManagerRole))
                             {
                                 <li class="nav-item dropdown">
                                     <a class="nav-link dropdown-toggle" href="#" id="adminDropdown" role="button"
                                        data-bs-toggle="dropdown" aria-expanded="false">
-                                        <i class="fas fa-cog"></i> Админка
+                                        <i class="fas fa-cog"></i> Панель управления
                                     </a>
                                     <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="adminDropdown">
-                                        <li>
-                                            <a class="dropdown-item" asp-controller="Admin" asp-action="Dashboard">
-                                                <i class="fas fa-tachometer-alt"></i> Панель управления
-                                            </a>
-                                        </li>
-                                        <li>
-                                            <a class="dropdown-item" asp-controller="Admin" asp-action="Products">
-                                                <i class="fas fa-box"></i> Товары
-                                            </a>
-                                        </li>
-                                        <li>
-                                            <a class="dropdown-item" asp-controller="Admin" asp-action="Categories">
-                                                <i class="fas fa-folder"></i> Категории
-                                            </a>
-                                        </li>
-                                        <li>
-                                            <a class="dropdown-item" asp-controller="Admin" asp-action="Orders">
-                                                <i class="fas fa-shopping-bag"></i> Заказы
-                                            </a>
-                                        </li>
-                                        <li>
-                                            <a class="dropdown-item" asp-controller="Admin" asp-action="Users">
-                                                <i class="fas fa-users"></i> Пользователи
-                                            </a>
-                                        </li>
-                                        <li><hr class="dropdown-divider"></li>
-                                        <li>
-                                            <a class="dropdown-item" asp-controller="Admin" asp-action="CreateProduct">
-                                                <i class="fas fa-plus"></i> Добавить товар
-                                            </a>
-                                        </li>
-                                        <li>
-                                            <a class="dropdown-item" asp-controller="Admin" asp-action="CreateCategory">
-                                                <i class="fas fa-folder-plus"></i> Добавить категорию
-                                            </a>
-                                        </li>
+                                        <li><a class="dropdown-item" asp-controller="Admin" asp-action="Dashboard"><i class="fas fa-tachometer-alt"></i> Панель</a></li>
+                                        <li><a class="dropdown-item" asp-controller="Admin" asp-action="Products"><i class="fas fa-box"></i> Товары</a></li>
+                                        <li><a class="dropdown-item" asp-controller="Admin" asp-action="Categories"><i class="fas fa-folder"></i> Категории</a></li>
+                                        <li><a class="dropdown-item" asp-controller="Admin" asp-action="Orders"><i class="fas fa-shopping-bag"></i> Заказы</a></li>
+
+                                        @if (User.IsInRole(AppConstants.AdminRole))
+                                        {
+                                            <li><hr class="dropdown-divider"></li>
+                                            <li><a class="dropdown-item" asp-controller="Admin" asp-action="Users"><i class="fas fa-users"></i> Пользователи</a></li>
+                                            <li><a class="dropdown-item" asp-controller="Admin" asp-action="CreateProduct"><i class="fas fa-plus"></i> Добавить товар</a></li>
+                                            <li><a class="dropdown-item" asp-controller="Admin" asp-action="CreateCategory"><i class="fas fa-folder-plus"></i> Добавить категорию</a></li>
+                                        }
                                     </ul>
                                 </li>
                             }

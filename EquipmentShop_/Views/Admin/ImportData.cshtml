@@ -1,0 +1,75 @@
+﻿@{
+    ViewData["Title"] = "Импорт и экспорт данных";
+}
+
+<div class="container mt-4">
+    <h2>@ViewData["Title"]</h2>
+
+    <!-- Сообщения -->
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            @TempData["Success"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            @TempData["Error"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <!-- Форма импорта -->
+    <div class="card mb-4">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0">Импорт данных</h5>
+        </div>
+        <div class="card-body">
+            <form asp-action="ImportData" method="post" enctype="multipart/form-data">
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="categoriesFile" class="form-label">Файл категорий (CSV)</label>
+                        <input type="file" name="categoriesFile" id="categoriesFile" class="form-control" accept=".csv" />
+                        <small class="form-text text-muted">Столбцы: Name;Slug;Description;Parent;DisplayOrder;IsActive;ShowInMenu;ImageUrl</small>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label for="productsFile" class="form-label">Файл товаров (CSV)</label>
+                        <input type="file" name="productsFile" id="productsFile" class="form-control" accept=".csv" />
+                        <small class="form-text text-muted">Столбцы: Name;Slug;Price;Category;Brand;StockQuantity;IsAvailable;...</small>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-12 mb-3">
+                        <label for="usersAndOrdersFile" class="form-label">Пользователи и заказы (CSV)</label>
+                        <input type="file" name="usersAndOrdersFile" id="usersAndOrdersFile" class="form-control" accept=".csv" />
+                        <small class="form-text text-muted">Один файл содержит и пользователей, и их заказы. См. экспорт для примера.</small>
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-success">Импортировать</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Ссылки экспорта -->
+    <div class="card">
+        <div class="card-header bg-secondary text-white">
+            <h5 class="mb-0">Экспорт данных</h5>
+        </div>
+        <div class="card-body">
+            <div class="d-flex flex-wrap gap-2">
+                <a asp-action="ExportCategories" class="btn btn-outline-primary">Категории (CSV)</a>
+                <a asp-action="ExportProducts" class="btn btn-outline-primary">Товары (CSV)</a>
+                <a asp-action="ExportUsersAndOrders" class="btn btn-outline-primary">Пользователи и заказы (CSV)</a>
+                <a asp-action="ExportUsersWithOrders" class="btn btn-outline-info">Пользователи + заказы (расширенный)</a>
+            </div>
+            <p class="mt-3 text-muted">
+                <small>
+                    Все файлы используют разделитель <code>;</code> и кодировку UTF-8.<br>
+                    Для повторного импорта рекомендуется использовать файлы, созданные через экспорт.
+                </small>
+            </p>
+        </div>
+    </div>
+</div>

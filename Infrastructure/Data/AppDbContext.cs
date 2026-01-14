@@ -309,11 +309,8 @@ namespace EquipmentShop.Infrastructure.Data
                 entity.Property(oi => oi.ProductAttributes)
                     .HasMaxLength(1000);
 
-                // Отношения
-                //entity.HasOne(oi => oi.Product)
-                //    .WithMany()
-                //    .HasForeignKey(oi => oi.ProductId)
-                //    .OnDelete(DeleteBehavior.Restrict);
+                entity.Property(oi => oi.ProductId).IsRequired(false);
+               
             });
 
             // Конфигурация ShoppingCart

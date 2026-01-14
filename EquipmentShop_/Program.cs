@@ -15,7 +15,10 @@ builder.Services.AddControllersWithViews();
 
 // Database
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseSqlite("Data Source=EquipmentShop.db"));
+    options.UseSqlite(
+        "Data Source=EquipmentShop.db",
+        b => b.MigrationsAssembly("EquipmentShop_") // 
+    ));
 
 // Identity
 builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>

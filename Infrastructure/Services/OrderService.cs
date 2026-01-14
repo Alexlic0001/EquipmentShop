@@ -36,7 +36,11 @@ namespace EquipmentShop.Infrastructure.Services
                 // Резервируем товары (уменьшаем количество на складе)
                 foreach (var item in order.OrderItems)
                 {
-                    await _productRepository.UpdateStockAsync(item.ProductId, -item.Quantity);
+                    if (item.ProductId.HasValue)
+                    {
+                        await _productRepository.UpdateStockAsync(item.ProductId.Value, -item.Quantity);
+                    }
+                    // Для исторических заказов (ProductId = null) — пропускаем
                 }
 
                 // Сохраняем заказ
@@ -71,7 +75,10 @@ namespace EquipmentShop.Infrastructure.Services
             // Возвращаем товары на склад
             foreach (var item in order.OrderItems)
             {
-                await _productRepository.UpdateStockAsync(item.ProductId, item.Quantity);
+                if (item.ProductId.HasValue)
+                {
+                    await _productRepository.UpdateStockAsync(item.ProductId.Value, item.Quantity);
+                }
             }
 
             order.Status = OrderStatus.Cancelled;
@@ -86,6 +93,7 @@ namespace EquipmentShop.Infrastructure.Services
 
             _logger.LogInformation("Заказ {OrderNumber} отменен", order.OrderNumber);
         }
+
 
         public async Task ProcessOrderAsync(int orderId)
         {

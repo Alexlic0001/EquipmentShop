@@ -86,30 +86,4 @@ namespace EquipmentShop.Core.ViewModels
         public CreateReviewViewModel? NewReview { get; set; }
     }
 
-    // Перенесен из Interfaces/ для удобства
-    //public class ProductFilter
-    //{
-    //    public int? CategoryId { get; set; }
-    //    public decimal? MinPrice { get; set; }
-    //    public decimal? MaxPrice { get; set; }
-    //    public string? Brand { get; set; }
-    //    public List<string> Tags { get; set; } = new();
-    //    public bool? InStock { get; set; }
-    //    public bool? OnSale { get; set; }
-    //    public bool? IsFeatured { get; set; }
-    //    public string? SortBy { get; set; } // "price_asc", "price_desc", "newest", "popular", "rating"
-    //    public int Page { get; set; } = 1;
-    //    public int PageSize { get; set; } = 12;
-
-    //    // Вычисляемые свойства
-    //    public bool HasFilters =>
-    //        CategoryId.HasValue ||
-    //        MinPrice.HasValue ||
-    //        MaxPrice.HasValue ||
-    //        !string.IsNullOrEmpty(Brand) ||
-    //        Tags.Any() ||
-    //        InStock.HasValue ||
-    //        OnSale.HasValue ||
-    //        IsFeatured.HasValue;
-    //}
 }

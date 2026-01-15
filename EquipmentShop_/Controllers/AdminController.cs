@@ -156,22 +156,22 @@ namespace EquipmentShop.Controllers
 
         //    return GenerateCsv(records, "users_with_orders.csv");
         //}
-        [HttpGet("export/users")]
-        [Authorize(Roles = AppConstants.AdminRole)]
-        public async Task<IActionResult> ExportUsers()
-        {
-            var users = await _userManager.Users.ToListAsync();
-            var records = users.Select(async u => new UserImportModel
-            {
-                Email = u.Email,
-                FirstName = u.FirstName,
-                LastName = u.LastName,
-                Phone = u.PhoneNumber ?? "",
-                Role = (await _userManager.GetRolesAsync(u)).FirstOrDefault() ?? "Customer",
-                EmailConfirmed = u.EmailConfirmed
-            });
-            return GenerateCsv(records, "users_export.csv");
-        }
+        //[HttpGet("export/users")]
+        //[Authorize(Roles = AppConstants.AdminRole)]
+        //public async Task<IActionResult> ExportUsers()
+        //{
+        //    var users = await _userManager.Users.ToListAsync();
+        //    var records = users.Select(async u => new UserImportModel
+        //    {
+        //        Email = u.Email,
+        //        FirstName = u.FirstName,
+        //        LastName = u.LastName,
+        //        Phone = u.PhoneNumber ?? "",
+        //        Role = (await _userManager.GetRolesAsync(u)).FirstOrDefault() ?? "Customer",
+        //        EmailConfirmed = u.EmailConfirmed
+        //    });
+        //    return GenerateCsv(records, "users_export.csv");
+        //}
 
 
         [HttpGet("export/users-and-orders")]
@@ -561,50 +561,50 @@ namespace EquipmentShop.Controllers
         }
 
 
-        private async Task ImportUsersFromCsv(Stream stream)
-        {
-            using var reader = new StreamReader(stream, Encoding.UTF8, detectEncodingFromByteOrderMarks: true);
-            using var csv = new CsvReader(reader, new CsvConfiguration(CultureInfo.InvariantCulture)
-            {
-                Delimiter = ";",
-                HasHeaderRecord = true,
-                PrepareHeaderForMatch = args => args.Header.Trim(),
-                MissingFieldFound = null
-            });
+        //private async Task ImportUsersFromCsv(Stream stream)
+        //{
+        //    using var reader = new StreamReader(stream, Encoding.UTF8, detectEncodingFromByteOrderMarks: true);
+        //    using var csv = new CsvReader(reader, new CsvConfiguration(CultureInfo.InvariantCulture)
+        //    {
+        //        Delimiter = ";",
+        //        HasHeaderRecord = true,
+        //        PrepareHeaderForMatch = args => args.Header.Trim(),
+        //        MissingFieldFound = null
+        //    });
 
-            var records = csv.GetRecords<UserImportModel>().ToList();
+        //    var records = csv.GetRecords<UserImportModel>().ToList();
 
-            foreach (var rec in records)
-            {
-                if (string.IsNullOrWhiteSpace(rec.Email)) continue;
+        //    foreach (var rec in records)
+        //    {
+        //        if (string.IsNullOrWhiteSpace(rec.Email)) continue;
 
-                // Пропускаем, если пользователь уже существует
-                if (await _userManager.FindByEmailAsync(rec.Email) != null) continue;
+        //        // Пропускаем, если пользователь уже существует
+        //        if (await _userManager.FindByEmailAsync(rec.Email) != null) continue;
 
-                var user = new ApplicationUser
-                {
-                    UserName = rec.Email,
-                    Email = rec.Email,
-                    FirstName = rec.FirstName.Trim(),
-                    LastName = rec.LastName.Trim(),
-                    PhoneNumber = rec.Phone.Trim(),
-                    EmailConfirmed = rec.EmailConfirmed,
-                    RegisteredAt = DateTime.UtcNow
-                };
+        //        var user = new ApplicationUser
+        //        {
+        //            UserName = rec.Email,
+        //            Email = rec.Email,
+        //            FirstName = rec.FirstName.Trim(),
+        //            LastName = rec.LastName.Trim(),
+        //            PhoneNumber = rec.Phone.Trim(),
+        //            EmailConfirmed = rec.EmailConfirmed,
+        //            RegisteredAt = DateTime.UtcNow
+        //        };
 
-                var result = await _userManager.CreateAsync(user, "TempPass123!");
-                if (!result.Succeeded) continue;
+        //        var result = await _userManager.CreateAsync(user, "TempPass123!");
+        //        if (!result.Succeeded) continue;
 
-                // Назначаем роль
-                var role = rec.Role switch
-                {
-                    "Admin" => AppConstants.AdminRole,
-                    "Manager" => AppConstants.ManagerRole,
-                    _ => AppConstants.CustomerRole
-                };
-                await _userManager.AddToRoleAsync(user, role);
-            }
-        }
+        //        // Назначаем роль
+        //        var role = rec.Role switch
+        //        {
+        //            "Admin" => AppConstants.AdminRole,
+        //            "Manager" => AppConstants.ManagerRole,
+        //            _ => AppConstants.CustomerRole
+        //        };
+        //        await _userManager.AddToRoleAsync(user, role);
+        //    }
+        //}
 
 
         private async Task ImportOrdersFromCsv(Stream stream)

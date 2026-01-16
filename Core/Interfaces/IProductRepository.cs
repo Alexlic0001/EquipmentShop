@@ -18,6 +18,9 @@ namespace EquipmentShop.Core.Interfaces
         Task<int> GetTotalCountByCategoryAsync(int categoryId);
         Task<int> GetTotalSearchCountAsync(string query);
         Task<IEnumerable<Product>> FilterAsync(ProductFilter filter);
+        Task<IEnumerable<Product>> GetRecommendedForUserAsync(string userId, int count = 8);
+
+        Task<string> GenerateUniqueSlugAsync(string baseName, int? excludeId = null);
     }
 
     public class ProductFilter

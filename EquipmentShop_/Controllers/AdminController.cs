@@ -766,9 +766,13 @@ namespace EquipmentShop.Controllers
                     }
                 }
 
-                product.Slug ??= GenerateSlug(product.Name);
+                // ✅ Генерируем УНИКАЛЬНЫЙ slug
+                product.Slug = await _productRepository.GenerateUniqueSlugAsync(product.Name);
+
                 product.MetaTitle ??= product.Name;
-                product.MetaDescription ??= product.Description.Length > 160 ? product.Description[..160] + "..." : product.Description;
+                product.MetaDescription ??= product.Description.Length > 160
+                    ? product.Description[..160] + "..."
+                    : product.Description;
 
                 product.CreatedAt = DateTime.UtcNow;
                 product.UpdatedAt = DateTime.UtcNow;

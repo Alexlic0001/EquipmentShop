@@ -8,6 +8,27 @@
     <a asp-controller="Products" asp-action="Index" class="btn btn-primary btn-lg mt-3">
         <i class="fas fa-shopping-bag"></i> Перейти к покупкам
     </a>
+    @if (ViewBag.Personalized != null && ((IEnumerable<Product>)ViewBag.Personalized).Any())
+    {
+        <h2 class="mt-5">Рекомендуем лично вам</h2>
+        <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+            @foreach (var p in ViewBag.Personalized)
+            {
+                <div class="col">
+                    <div class="card h-100 shadow-sm">
+                        <img src="@p.ImageUrl" class="card-img-top p-3" alt="@p.Name" style="height: 200px; object-fit: contain;">
+                        <div class="card-body">
+                            <h5 class="card-title">@p.Name</h5>
+                            <p class="text-primary h5">@($"{p.Price:N0} р.")</p>
+                        </div>
+                        <div class="card-footer bg-transparent">
+                            <a asp-controller="Products" asp-action="Details" asp-route-id="@p.Id" class="btn btn-outline-primary">Подробнее</a>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
 </div>
 
 <div class="row mt-5">

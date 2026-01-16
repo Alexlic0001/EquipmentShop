@@ -504,5 +504,101 @@ namespace EquipmentShop.Infrastructure.Repositories
                 ["outOfStock"] = await _context.Products.CountAsync(p => p.IsOutOfStock)
             };
         }
+
+        // Infrastructure/Repositories/ProductRepository.cs
+
+        private static string GenerateSlug(string name)
+        {
+            if (string.IsNullOrEmpty(name)) return "product";
+            var slug = name.ToLowerInvariant()
+                .Replace(" ", "-")
+                .Replace("&", "and")
+                .Replace("+", "plus")
+                .Replace("%", "percent")
+                .Replace("$", "dollar")
+                .Replace("#", "sharp")
+                .Replace("@", "at");
+            slug = System.Text.RegularExpressions.Regex.Replace(slug, @"[^a-z0-9\-]", "");
+            while (slug.Contains("--")) slug = slug.Replace("--", "-");
+            slug = slug.Trim('-');
+            return string.IsNullOrEmpty(slug) ? $"product-{DateTime.UtcNow:yyyyMMddHHmmss}" : slug;
+        }
+
+        public async Task<string> GenerateUniqueSlugAsync(string baseName, int? excludeId = null)
+        {
+            var baseSlug = GenerateSlug(baseName);
+            var slug = baseSlug;
+            var counter = 1;
+
+            while (await SlugExistsAsync(slug, excludeId))
+            {
+                slug = $"{baseSlug}-{counter}";
+                counter++;
+            }
+
+            return slug;
+        }
+
+
+        // Infrastructure/Repositories/ProductRepository.cs
+        // _logger.LogInformation("User {UserId} purchased product IDs: {@Ids}", userId, purchasedProductIds);
+        public async Task<IEnumerable<Product>> GetRecommendedForUserAsync(string userId, int count = 1)
+        {
+            // 1. Получаем ID купленных товаров
+            var purchasedProductIds = await _context.OrderItems
+                .Where(oi => oi.Order.UserId == userId && oi.ProductId.HasValue)
+                .Select(oi => oi.ProductId.Value)
+                .Distinct()
+                .ToListAsync();
+
+            if (!purchasedProductIds.Any())
+            {
+                return (await GetFeaturedAsync(count)).Take(count);
+            }
+
+            // 2. Получаем категории и бренды купленных товаров
+            var purchasedCategories = await _context.Products
+                .Where(p => purchasedProductIds.Contains(p.Id))
+                .Select(p => p.CategoryId)
+                .Distinct()
+                .ToListAsync();
+
+            var purchasedBrands = await _context.Products
+                .Where(p => purchasedProductIds.Contains(p.Id))
+                .Select(p => p.Brand)
+                .Distinct()
+                .ToListAsync();
+
+            // 3. Загружаем кандидатов — только через простые .Contains() от списков значений
+            var candidates = await _context.Products
+                .AsNoTracking()
+                .Include(p => p.Category)
+                .Where(p => p.IsAvailable)
+                .Where(p => !purchasedProductIds.Contains(p.Id)) // исключаем купленные
+                .Where(p => purchasedCategories.Contains(p.CategoryId) || purchasedBrands.Contains(p.Brand))
+                .OrderByDescending(p => p.SoldCount)
+                .ThenByDescending(p => p.Rating)
+                .Take(count * 3) // берём с запасом
+                .ToListAsync();
+
+            // 4. Если не хватает — добавляем бестселлеры (только не купленные)
+            if (candidates.Count < count)
+            {
+                var bestsellers = await GetBestsellersAsync(count * 3);
+                foreach (var bs in bestsellers)
+                {
+                    if (!purchasedProductIds.Contains(bs.Id) && !candidates.Any(c => c.Id == bs.Id))
+                    {
+                        candidates.Add(bs);
+                        if (candidates.Count >= count) break;
+                    }
+                }
+            }
+
+            _logger.LogInformation("Рекомендации для {UserId}: куплено {@Purchased}, рекомендовано {@Recs}",
+                userId, purchasedProductIds, candidates.Take(count).Select(r => r.Id));
+
+            return candidates.Take(count);
+        }
     }
 }

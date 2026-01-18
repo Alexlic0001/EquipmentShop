@@ -15,9 +15,14 @@ builder.Services.AddControllersWithViews();
 
 // Database
 builder.Services.AddDbContext<AppDbContext>(options =>
+    //options.UseSqlite(
+    //    "Data Source=EquipmentShop.db",
+    //    b => b.MigrationsAssembly("EquipmentShop_") // 
     options.UseSqlite(
         "Data Source=EquipmentShop.db",
-        b => b.MigrationsAssembly("EquipmentShop_") // 
+        b => b.MigrationsAssembly("Infrastructure")
+
+
     ));
 
 // Identity
@@ -65,6 +70,7 @@ builder.Services.AddScoped<IShoppingCartService, ShoppingCartService>();
 builder.Services.AddScoped<IFileStorageService, FileStorageService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
 //builder.Services.AddScoped<OrderService>();
+builder.Services.AddScoped<IPricingService, PricingService>();
 builder.Services.AddHttpContextAccessor();
 builder.Logging.AddConsole();
 builder.Logging.AddDebug();

@@ -25,6 +25,7 @@ namespace EquipmentShop.Infrastructure.Data
         public DbSet<Review> Reviews => Set<Review>();
         public DbSet<Wishlist> Wishlists => Set<Wishlist>();
         public DbSet<WishlistItem> WishlistItems => Set<WishlistItem>();
+        public DbSet<PricingRule> PricingRules { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -419,6 +420,30 @@ namespace EquipmentShop.Infrastructure.Data
                     .IsRequired()
                     .HasMaxLength(450);
             });
+
+            // Конфигурация PricingRule
+            modelBuilder.Entity<PricingRule>(entity =>
+            {
+                entity.HasKey(r => r.Id);
+                entity.Property(r => r.Name).IsRequired().HasMaxLength(100);
+                entity.Property(r => r.AdjustmentValue).HasColumnType("decimal(18,2)").IsRequired();
+                entity.Property(r => r.Priority).IsRequired();
+                entity.Property(r => r.IsActive).IsRequired();
+
+                // Отношения
+                entity.HasOne(r => r.Category)
+                      .WithMany()
+                      .HasForeignKey(r => r.CategoryId)
+                      .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(r => r.Product)
+                      .WithMany()
+                      .HasForeignKey(r => r.ProductId)
+                      .OnDelete(DeleteBehavior.Restrict);
+            });
+
+
+
 
             // Конфигурация WishlistItem
             modelBuilder.Entity<WishlistItem>(entity =>

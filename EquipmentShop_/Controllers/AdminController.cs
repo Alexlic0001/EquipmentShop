@@ -5,9 +5,11 @@ using EquipmentShop.Core.Entities;
 using EquipmentShop.Core.Enums;
 using EquipmentShop.Core.Interfaces;
 using EquipmentShop.Core.ViewModels.Admin;
+using EquipmentShop.Infrastructure.Data;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using System.Globalization;
 using System.Text;
@@ -25,6 +27,7 @@ namespace EquipmentShop.Controllers
         private readonly IOrderRepository _orderRepository;
         private readonly IFileStorageService _fileStorageService;
         private readonly ILogger<AdminController> _logger;
+        private readonly AppDbContext _context;
 
         public AdminController(
             IProductRepository productRepository,
@@ -33,6 +36,7 @@ namespace EquipmentShop.Controllers
             IFileStorageService fileStorageService,
             ILogger<AdminController> logger,
             UserManager<ApplicationUser> userManager,
+            AppDbContext context,
             RoleManager<IdentityRole> roleManager)
         {
             _productRepository = productRepository;
@@ -41,6 +45,7 @@ namespace EquipmentShop.Controllers
             _fileStorageService = fileStorageService;
             _logger = logger;
             _userManager = userManager;
+            _context = context;
             _roleManager = roleManager;
         }
 
@@ -107,72 +112,6 @@ namespace EquipmentShop.Controllers
             });
             return GenerateCsv(records, "products_export.csv");
         }
-
-        //[HttpGet("export/users-with-orders")]
-        //[Authorize(Roles = AppConstants.AdminRole)]
-        //public async Task<IActionResult> ExportUsersWithOrders()
-        //{
-        //    var users = await _userManager.Users.ToListAsync();
-        //    var allOrders = await _orderRepository.GetAllAsync();
-
-        //    var records = new List<dynamic>();
-        //    foreach (var user in users)
-        //    {
-        //        var userOrders = allOrders.Where(o => o.UserId == user.Id).ToList();
-        //        if (!userOrders.Any())
-        //        {
-        //            records.Add(new
-        //            {
-        //                UserId = user.Id,
-        //                user.Email,
-        //                user.FirstName,
-        //                user.LastName,
-        //                user.PhoneNumber,
-        //                OrderNumber = (string?)null,
-        //                OrderDate = (DateTime?)null,
-        //                OrderTotal = (decimal?)null,
-        //                Status = (string?)null
-        //            });
-        //        }
-        //        else
-        //        {
-        //            foreach (var order in userOrders)
-        //            {
-        //                records.Add(new
-        //                {
-        //                    UserId = user.Id,
-        //                    user.Email,
-        //                    user.FirstName,
-        //                    user.LastName,
-        //                    user.PhoneNumber,
-        //                    order.OrderNumber,
-        //                    OrderDate = order.OrderDate,
-        //                    OrderTotal = order.Total,
-        //                    Status = order.Status.ToString()
-        //                });
-        //            }
-        //        }
-        //    }
-
-        //    return GenerateCsv(records, "users_with_orders.csv");
-        //}
-        //[HttpGet("export/users")]
-        //[Authorize(Roles = AppConstants.AdminRole)]
-        //public async Task<IActionResult> ExportUsers()
-        //{
-        //    var users = await _userManager.Users.ToListAsync();
-        //    var records = users.Select(async u => new UserImportModel
-        //    {
-        //        Email = u.Email,
-        //        FirstName = u.FirstName,
-        //        LastName = u.LastName,
-        //        Phone = u.PhoneNumber ?? "",
-        //        Role = (await _userManager.GetRolesAsync(u)).FirstOrDefault() ?? "Customer",
-        //        EmailConfirmed = u.EmailConfirmed
-        //    });
-        //    return GenerateCsv(records, "users_export.csv");
-        //}
-
 
         [HttpGet("export/users-and-orders")]
         [Authorize(Roles = AppConstants.AdminRole)]
@@ -561,52 +500,6 @@ namespace EquipmentShop.Controllers
         }
 
 
-        //private async Task ImportUsersFromCsv(Stream stream)
-        //{
-        //    using var reader = new StreamReader(stream, Encoding.UTF8, detectEncodingFromByteOrderMarks: true);
-        //    using var csv = new CsvReader(reader, new CsvConfiguration(CultureInfo.InvariantCulture)
-        //    {
-        //        Delimiter = ";",
-        //        HasHeaderRecord = true,
-        //        PrepareHeaderForMatch = args => args.Header.Trim(),
-        //        MissingFieldFound = null
-        //    });
-
-        //    var records = csv.GetRecords<UserImportModel>().ToList();
-
-        //    foreach (var rec in records)
-        //    {
-        //        if (string.IsNullOrWhiteSpace(rec.Email)) continue;
-
-        //        // Пропускаем, если пользователь уже существует
-        //        if (await _userManager.FindByEmailAsync(rec.Email) != null) continue;
-
-        //        var user = new ApplicationUser
-        //        {
-        //            UserName = rec.Email,
-        //            Email = rec.Email,
-        //            FirstName = rec.FirstName.Trim(),
-        //            LastName = rec.LastName.Trim(),
-        //            PhoneNumber = rec.Phone.Trim(),
-        //            EmailConfirmed = rec.EmailConfirmed,
-        //            RegisteredAt = DateTime.UtcNow
-        //        };
-
-        //        var result = await _userManager.CreateAsync(user, "TempPass123!");
-        //        if (!result.Succeeded) continue;
-
-        //        // Назначаем роль
-        //        var role = rec.Role switch
-        //        {
-        //            "Admin" => AppConstants.AdminRole,
-        //            "Manager" => AppConstants.ManagerRole,
-        //            _ => AppConstants.CustomerRole
-        //        };
-        //        await _userManager.AddToRoleAsync(user, role);
-        //    }
-        //}
-
-
         private async Task ImportOrdersFromCsv(Stream stream)
         {
             using var reader = new StreamReader(stream, Encoding.UTF8, detectEncodingFromByteOrderMarks: true);
@@ -676,10 +569,6 @@ namespace EquipmentShop.Controllers
                 existingOrderNumbers.Add(rec.OrderNumber);
             }
         }
-
-
-
-
 
 
 
@@ -1173,6 +1062,99 @@ namespace EquipmentShop.Controllers
 
             return RedirectToAction("Orders");
         }
+
+        // ========== Ценообразование ==========
+
+        // ========== ЦЕНООБРАЗОВАНИЕ ==========
+        [HttpGet("admin/pricing-rules")]
+        [Authorize(Roles = AppConstants.AdminRole)]
+        public async Task<IActionResult> PricingRules()
+        {
+            var rules = await _context.PricingRules
+                .Include(r => r.Category)
+                .Include(r => r.Product)
+                .OrderBy(r => r.Priority)
+                .ToListAsync();
+            return View(rules);
+        }
+
+        [HttpGet("admin/pricing-rules/create")]
+        [Authorize(Roles = AppConstants.AdminRole)]
+        public async Task<IActionResult> CreatePricingRule()
+        {
+            ViewBag.Categories = new SelectList(await _categoryRepository.GetAllAsync(), "Id", "Name");
+            ViewBag.Products = new SelectList(await _productRepository.GetAllAsync(), "Id", "Name");
+            return View(new PricingRule());
+        }
+
+        [HttpPost("admin/pricing-rules/create")]
+        [ValidateAntiForgeryToken]
+        [Authorize(Roles = AppConstants.AdminRole)]
+        public async Task<IActionResult> CreatePricingRule(PricingRule rule)
+        {
+            if (ModelState.IsValid)
+            {
+                rule.CreatedAt = DateTime.UtcNow;
+                rule.UpdatedAt = DateTime.UtcNow;
+                _context.PricingRules.Add(rule);
+                await _context.SaveChangesAsync();
+                TempData["Success"] = "Правило успешно создано";
+                return RedirectToAction(nameof(PricingRules));
+            }
+
+            ViewBag.Categories = new SelectList(await _categoryRepository.GetAllAsync(), "Id", "Name");
+            ViewBag.Products = new SelectList(await _productRepository.GetAllAsync(), "Id", "Name");
+            return View(rule);
+        }
+
+        [HttpGet("admin/pricing-rules/edit/{id}")]
+        [Authorize(Roles = AppConstants.AdminRole)]
+        public async Task<IActionResult> EditPricingRule(int id)
+        {
+            var rule = await _context.PricingRules.FindAsync(id);
+            if (rule == null) return NotFound();
+
+            ViewBag.Categories = new SelectList(await _categoryRepository.GetAllAsync(), "Id", "Name");
+            ViewBag.Products = new SelectList(await _productRepository.GetAllAsync(), "Id", "Name");
+            return View(rule);
+        }
+
+        [HttpPost("admin/pricing-rules/edit/{id}")]
+        [ValidateAntiForgeryToken]
+        [Authorize(Roles = AppConstants.AdminRole)]
+        public async Task<IActionResult> EditPricingRule(int id, PricingRule rule)
+        {
+            if (id != rule.Id) return NotFound();
+
+            if (ModelState.IsValid)
+            {
+                rule.UpdatedAt = DateTime.UtcNow;
+                _context.Update(rule);
+                await _context.SaveChangesAsync();
+                TempData["Success"] = "Правило успешно обновлено";
+                return RedirectToAction(nameof(PricingRules));
+            }
+
+            ViewBag.Categories = new SelectList(await _categoryRepository.GetAllAsync(), "Id", "Name");
+            ViewBag.Products = new SelectList(await _productRepository.GetAllAsync(), "Id", "Name");
+            return View(rule);
+        }
+
+        [HttpPost("admin/pricing-rules/delete/{id}")]
+        [ValidateAntiForgeryToken]
+        [Authorize(Roles = AppConstants.AdminRole)]
+        public async Task<IActionResult> DeletePricingRule(int id)
+        {
+            var rule = await _context.PricingRules.FindAsync(id);
+            if (rule != null)
+            {
+                _context.PricingRules.Remove(rule);
+                await _context.SaveChangesAsync();
+                TempData["Success"] = "Правило удалено";
+            }
+            return RedirectToAction(nameof(PricingRules));
+        }
+
 
         // ========== ПОЛЬЗОВАТЕЛИ ==========
 

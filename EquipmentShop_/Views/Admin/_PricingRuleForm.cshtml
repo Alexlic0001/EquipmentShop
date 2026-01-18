@@ -1,0 +1,125 @@
+﻿@model EquipmentShop.Core.Entities.PricingRule
+
+<form asp-action="@(Model.Id == 0 ? "CreatePricingRule" : "EditPricingRule")" method="post">
+    @Html.AntiForgeryToken()
+    @if (Model.Id != 0)
+    {
+        <input type="hidden" asp-for="Id" />
+    }
+
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card mb-3">
+                <div class="card-header">
+                    <h5 class="mb-0">Основная информация</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label asp-for="Name" class="form-label">Название правила *</label>
+                        <input asp-for="Name" class="form-control" required />
+                        <span asp-validation-for="Name" class="text-danger"></span>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="RuleType" class="form-label">Тип правила *</label>
+                        <select asp-for="RuleType" class="form-select" id="ruleTypeSelect">
+                            <option value="0">Глобальное</option>
+                            <option value="1">По категории</option>
+                            <option value="2">По бренду</option>
+                            <option value="3">По товару</option>
+                        </select>
+                    </div>
+
+                    <!-- Область применения -->
+                    <div id="categoryField" class="mb-3" style="display:none;">
+                        <label class="form-label">Категория</label>
+                        <select asp-for="CategoryId" class="form-select" asp-items="ViewBag.Categories">
+                            <option value="">Выберите категорию</option>
+                        </select>
+                    </div>
+
+                    <div id="brandField" class="mb-3" style="display:none;">
+                        <label class="form-label">Бренд</label>
+                        <input asp-for="Brand" class="form-control" placeholder="Например: Intel, NVIDIA" />
+                    </div>
+
+                    <div id="productField" class="mb-3" style="display:none;">
+                        <label class="form-label">Товар</label>
+                        <select asp-for="ProductId" class="form-select" asp-items="ViewBag.Products">
+                            <option value="">Выберите товар</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mb-3">
+                <div class="card-header">
+                    <h5 class="mb-0">Корректировка цены</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label asp-for="AdjustmentType" class="form-label">Тип корректировки</label>
+                            <select asp-for="AdjustmentType" class="form-select">
+                                <option value="0">Процент (%)</option>
+                                <option value="1">Фиксированная сумма (руб)</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label asp-for="AdjustmentValue" class="form-label">Значение *</label>
+                            <input asp-for="AdjustmentValue" type="number" step="0.01" class="form-control" required />
+                            <small class="form-text text-muted">Используйте отрицательное значение для скидки</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mb-3">
+                <div class="card-header">
+                    <h5 class="mb-0">Настройки</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label asp-for="Priority" class="form-label">Приоритет</label>
+                            <input asp-for="Priority" type="number" class="form-control" />
+                            <small class="form-text text-muted">Чем выше число, тем позже применяется правило</small>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <div class="form-check mt-4">
+                                <input asp-for="IsActive" class="form-check-input" />
+                                <label asp-for="IsActive" class="form-check-label">Активно</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-primary">
+                    @(Model.Id == 0 ? "Создать" : "Сохранить")
+                </button>
+                <a asp-action="PricingRules" class="btn btn-secondary">Отмена</a>
+            </div>
+        </div>
+    </div>
+</form>
+
+@section Scripts {
+    <script>
+        document.getElementById('ruleTypeSelect').addEventListener('change', function () {
+            const type = parseInt(this.value);
+            document.getElementById('categoryField').style.display = type === 1 ? 'block' : 'none';
+            document.getElementById('brandField').style.display = type === 2 ? 'block' : 'none';
+            document.getElementById('productField').style.display = type === 3 ? 'block' : 'none';
+        });
+
+        // Инициализация при загрузке
+        document.addEventListener('DOMContentLoaded', function () {
+            const select = document.getElementById('ruleTypeSelect');
+            if (select) {
+                select.dispatchEvent(new Event('change'));
+            }
+        });
+    </script>
+}

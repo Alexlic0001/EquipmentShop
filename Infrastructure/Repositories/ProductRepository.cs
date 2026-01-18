@@ -71,13 +71,15 @@ namespace EquipmentShop.Infrastructure.Repositories
 
         public async Task<IEnumerable<Product>> GetOnSaleAsync(int count = 8)
         {
-            return await _context.Products
+            var products = await _context.Products
                 .AsNoTracking()
                 .Include(p => p.Category)
                 .Where(p => p.OldPrice.HasValue && p.IsAvailable)
-                .OrderByDescending(p => p.GetDiscountPercentage())
-                .Take(count)
                 .ToListAsync();
+
+            return products
+                .OrderByDescending(p => 100 - (p.Price / p.OldPrice.Value * 100))
+                .Take(count);
         }
 
         public async Task<IEnumerable<Product>> GetByCategoryAsync(int categoryId, int page = 1, int pageSize = 12)

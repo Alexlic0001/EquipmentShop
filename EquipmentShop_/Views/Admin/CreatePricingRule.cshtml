@@ -1,0 +1,19 @@
+﻿@model EquipmentShop.Core.Entities.PricingRule
+@{
+    ViewData["Title"] = "Создать правило ценообразования";
+    Layout = "_Layout";
+}
+
+<div class="container mt-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a asp-action="Dashboard">Админ-панель</a></li>
+            <li class="breadcrumb-item"><a asp-action="PricingRules">Правила ценообразования</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Создать</li>
+        </ol>
+    </nav>
+
+    <h1>Создать правило ценообразования</h1>
+
+    <partial name="_PricingRuleForm" model="Model" />
+</div>

@@ -1,0 +1,114 @@
+﻿@model IEnumerable<EquipmentShop.Core.Entities.PricingRule>
+@{
+    ViewData["Title"] = "Правила ценообразования";
+    Layout = "_Layout";
+}
+
+<div class="container mt-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a asp-action="Dashboard">Админ-панель</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Правила ценообразования</li>
+        </ol>
+    </nav>
+
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h1>Правила ценообразования</h1>
+        <a asp-action="CreatePricingRule" class="btn btn-success">
+            <i class="fas fa-plus"></i> Добавить правило
+        </a>
+    </div>
+
+    @if (!Model.Any())
+    {
+        <div class="alert alert-info mt-4">Правила ценообразования не найдены.</div>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Название</th>
+                        <th>Тип</th>
+                        <th>Область</th>
+                        <th>Корректировка</th>
+                        <th>Приоритет</th>
+                        <th>Статус</th>
+                        <th>Действия</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var rule in Model)
+                    {
+                        <tr>
+                            <td>@rule.Name</td>
+                            <td>@GetRuleTypeName(rule.RuleType)</td>
+                            <td>@GetRuleScope(rule)</td>
+                            <td>@GetAdjustmentDisplay(rule)</td>
+                            <td>@rule.Priority</td>
+                            <td>
+                                @if (rule.IsActive)
+                                {
+                                    <span class="badge bg-success">Активно</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-secondary">Неактивно</span>
+                                }
+                            </td>
+                            <td>
+                                <a asp-action="EditPricingRule" asp-route-id="@rule.Id" class="btn btn-sm btn-outline-primary">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                <form asp-action="DeletePricingRule" asp-route-id="@rule.Id" method="post" style="display:inline;" onsubmit="return confirm('Удалить правило?')">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>
+
+@functions {
+    string GetRuleTypeName(EquipmentShop.Core.Enums.PricingRuleType type)
+    {
+        return type switch
+        {
+            EquipmentShop.Core.Enums.PricingRuleType.Global => "Глобальное",
+            EquipmentShop.Core.Enums.PricingRuleType.ByCategory => "По категории",
+            EquipmentShop.Core.Enums.PricingRuleType.ByBrand => "По бренду",
+            EquipmentShop.Core.Enums.PricingRuleType.ByProduct => "По товару",
+            _ => type.ToString()
+        };
+    }
+
+    string GetRuleScope(EquipmentShop.Core.Entities.PricingRule rule)
+    {
+        return rule.RuleType switch
+        {
+            EquipmentShop.Core.Enums.PricingRuleType.Global => "Все товары",
+            EquipmentShop.Core.Enums.PricingRuleType.ByCategory => $"Категория: {rule.Category?.Name ?? "—"}",
+            EquipmentShop.Core.Enums.PricingRuleType.ByBrand => $"Бренд: {rule.Brand ?? "—"}",
+            EquipmentShop.Core.Enums.PricingRuleType.ByProduct => $"Товар: {rule.Product?.Name ?? "—"}",
+            _ => "—"
+        };
+    }
+
+    string GetAdjustmentDisplay(EquipmentShop.Core.Entities.PricingRule rule)
+    {
+        if (rule.AdjustmentType == EquipmentShop.Core.Enums.PricingAdjustmentType.Percentage)
+        {
+            return $"{(rule.AdjustmentValue >= 0 ? "+" : "")}{rule.AdjustmentValue:F2}%";
+        }
+        else
+        {
+            return $"{(rule.AdjustmentValue >= 0 ? "+" : "")}{rule.AdjustmentValue:F2} р.";
+        }
+    }
+}

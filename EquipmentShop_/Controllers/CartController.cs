@@ -1,4 +1,4 @@
-﻿// EquipmentShop/Controllers/CartController.cs
+﻿
 using Microsoft.AspNetCore.Mvc;
 using EquipmentShop.Core.Interfaces;
 using EquipmentShop.Core.ViewModels;

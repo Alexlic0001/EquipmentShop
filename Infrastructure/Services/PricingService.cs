@@ -1,4 +1,4 @@
-﻿// Infrastructure/Services/PricingService.cs
+﻿
 using EquipmentShop.Core.Entities;
 using EquipmentShop.Core.Interfaces;
 using EquipmentShop.Infrastructure.Data;
@@ -23,7 +23,7 @@ namespace EquipmentShop.Infrastructure.Services
 
             if (product == null) return 0;
 
-            var basePrice = product.Price; // ← УЖЕ decimal!
+            var basePrice = product.Price; // ←  decimal!
             var currentPrice = basePrice;
 
             var rules = await _context.PricingRules

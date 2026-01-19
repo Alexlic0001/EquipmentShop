@@ -1,4 +1,4 @@
-﻿// EquipmentShop_/Controllers/HomeController.cs
+﻿
 using EquipmentShop.Core.Entities;
 using EquipmentShop.Core.Interfaces;
 using Microsoft.AspNetCore.Mvc;

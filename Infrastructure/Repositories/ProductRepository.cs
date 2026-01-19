@@ -1,4 +1,4 @@
-﻿// Infrastructure/Repositories/ProductRepository.cs
+﻿
 using EquipmentShop.Core.Entities;
 using EquipmentShop.Core.Interfaces;
 using EquipmentShop.Infrastructure.Data;

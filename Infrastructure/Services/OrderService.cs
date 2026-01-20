@@ -2,24 +2,28 @@
 using EquipmentShop.Core.Enums;
 using EquipmentShop.Core.Exceptions;
 using EquipmentShop.Core.Interfaces;
+using EquipmentShop.Infrastructure.Data;
 using Microsoft.Extensions.Logging;
 using System.Linq.Expressions;
 
 namespace EquipmentShop.Infrastructure.Services
 {
-    public class OrderService
+    public class OrderService : IOrderService
     {
+        private readonly AppDbContext _context;
         private readonly IOrderRepository _orderRepository;
         private readonly IProductRepository _productRepository;
         private readonly IShoppingCartService _cartService;
         private readonly ILogger<OrderService> _logger;
 
         public OrderService(
+            AppDbContext context,
             IOrderRepository orderRepository,
             IProductRepository productRepository,
             IShoppingCartService cartService,
             ILogger<OrderService> logger)
         {
+            _context = context;
             _orderRepository = orderRepository;
             _productRepository = productRepository;
             _cartService = cartService;
@@ -28,33 +32,41 @@ namespace EquipmentShop.Infrastructure.Services
 
         public async Task<Order> CreateOrderFromCartAsync(string cartId, Order order)
         {
+            using var transaction = await _context.Database.BeginTransactionAsync();
             try
             {
-                // Конвертируем корзину в заказ
-                var cart = await _cartService.ConvertToOrderAsync(cartId, order);
+                var cart = await _cartService.GetCartAsync(cartId);
+                if (cart.IsEmpty)
+                    throw new EmptyCartException(cartId);
 
-                // Резервируем товары (уменьшаем количество на складе)
-                foreach (var item in order.OrderItems)
+                // 🔒 ФИНАЛЬНАЯ проверка остатков
+                foreach (var item in cart.Items)
                 {
-                    if (item.ProductId.HasValue)
-                    {
-                        await _productRepository.UpdateStockAsync(item.ProductId.Value, -item.Quantity);
-                    }
-                    // Для исторических заказов (ProductId = null) — пропускаем
+                    var product = await _productRepository.GetByIdAsync(item.ProductId);
+                    if (product == null || !product.IsAvailable || item.Quantity > product.StockQuantity)
+                        throw new InsufficientStockException(item.ProductId, product?.Name ?? "Unknown", item.Quantity, product?.StockQuantity ?? 0);
                 }
 
-                // Сохраняем заказ
-                var createdOrder = await _orderRepository.AddAsync(order);
+                // 📉 Списываем остатки
+                foreach (var item in cart.Items)
+                {
+                    await _productRepository.UpdateStockAsync(item.ProductId, -item.Quantity);
+                }
 
-                _logger.LogInformation("Создан заказ {OrderNumber} на сумму {Total}",
-                    createdOrder.OrderNumber, createdOrder.Total);
+                // 📦 Сохраняем заказ
+                await _orderRepository.AddAsync(order);
 
-                return createdOrder;
+                // 🧹 Очищаем корзину
+                await _cartService.ClearCartAsync(cartId);
+
+                await transaction.CommitAsync();
+                _logger.LogInformation("Заказ {OrderNumber} создан успешно", order.OrderNumber);
+                return order;
             }
-            catch (Exception ex)
+            catch
             {
-                _logger.LogError(ex, "Ошибка при создании заказа из корзины {CartId}", cartId);
-                throw new OrderProcessingException(order.OrderNumber, order.Status, "Ошибка создания заказа", ex);
+                await transaction.RollbackAsync();
+                throw;
             }
         }
 
@@ -170,7 +182,7 @@ namespace EquipmentShop.Infrastructure.Services
         }
 
         // Реализация методов IOrderRepository через композицию
-        public async Task<Order?> GetByIdAsync(int id) => await _orderRepository.GetByIdAsync(id);
+        //public async Task<Order?> GetByIdAsync(int id) => await _orderRepository.GetByIdAsync(id);
         public async Task<Order?> GetByOrderNumberAsync(string orderNumber) => await _orderRepository.GetByOrderNumberAsync(orderNumber);
         public async Task<Order?> GetWithItemsAsync(int id) => await _orderRepository.GetWithItemsAsync(id);
         public async Task<IEnumerable<Order>> GetAllAsync() => await _orderRepository.GetAllAsync();

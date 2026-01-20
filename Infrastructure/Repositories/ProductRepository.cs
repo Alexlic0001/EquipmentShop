@@ -461,6 +461,9 @@ namespace EquipmentShop.Infrastructure.Repositories
 
         public async Task<bool> DecreaseStockAsync(int productId, int quantity)
         {
+            if (quantity <= 0)
+                return false;
+
             var product = await _context.Products.FindAsync(productId);
             if (product == null || product.StockQuantity < quantity)
                 return false;
@@ -468,6 +471,7 @@ namespace EquipmentShop.Infrastructure.Repositories
             product.StockQuantity -= quantity;
             product.SoldCount += quantity;
             product.UpdatedAt = DateTime.UtcNow;
+
             await _context.SaveChangesAsync();
             return true;
         }
@@ -507,7 +511,7 @@ namespace EquipmentShop.Infrastructure.Repositories
             };
         }
 
-        // Infrastructure/Repositories/ProductRepository.cs
+        
 
         private static string GenerateSlug(string name)
         {
@@ -542,8 +546,8 @@ namespace EquipmentShop.Infrastructure.Repositories
         }
 
 
-        // Infrastructure/Repositories/ProductRepository.cs
-        // _logger.LogInformation("User {UserId} purchased product IDs: {@Ids}", userId, purchasedProductIds);
+        
+
         public async Task<IEnumerable<Product>> GetRecommendedForUserAsync(string userId, int count = 1)
         {
             // 1. Получаем ID купленных товаров

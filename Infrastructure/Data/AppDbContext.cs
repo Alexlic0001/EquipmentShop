@@ -111,8 +111,8 @@ namespace EquipmentShop.Infrastructure.Data
                 entity.Property(p => p.StockQuantity)
                     .HasDefaultValue(0);
 
-                entity.Property(p => p.IsAvailable)
-                    .HasComputedColumnSql("[StockQuantity] > 0");
+                //entity.Property(p => p.IsAvailable)
+                //    .HasComputedColumnSql("[StockQuantity] > 0");
 
                 // Конвертация списков в JSON
                 entity.Property(p => p.GalleryImages)

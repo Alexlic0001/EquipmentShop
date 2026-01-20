@@ -70,6 +70,14 @@ builder.Services.AddScoped<IShoppingCartService, ShoppingCartService>();
 builder.Services.AddScoped<IFileStorageService, FileStorageService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
 //builder.Services.AddScoped<OrderService>();
+builder.Services.AddScoped<IOrderService>(sp =>
+    new OrderService(
+        sp.GetRequiredService<AppDbContext>(),
+        sp.GetRequiredService<IOrderRepository>(),
+        sp.GetRequiredService<IProductRepository>(),
+        sp.GetRequiredService<IShoppingCartService>(),
+        sp.GetRequiredService<ILogger<OrderService>>()
+    ));
 builder.Services.AddScoped<IPricingService, PricingService>();
 builder.Services.AddHttpContextAccessor();
 builder.Logging.AddConsole();

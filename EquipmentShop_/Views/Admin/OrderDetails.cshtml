@@ -4,6 +4,11 @@
 @{
     ViewData["Title"] = $"Заказ {Model.OrderNumber}";
     Layout = "_Layout";
+
+    // Определяем, можно ли отменить заказ
+    var canCancel = Model.Status != OrderStatus.Delivered &&
+                    Model.Status != OrderStatus.Refunded &&
+                    Model.Status != OrderStatus.Cancelled;
 }
 
 <div class="container mt-4">
@@ -79,17 +84,26 @@
                         <tr>
                             <td><strong>Статус:</strong></td>
                             <td>
-                                @if (Model.Status == EquipmentShop.Core.Enums.OrderStatus.Delivered)
+                                @switch (Model.Status)
                                 {
-                                    <span class="badge bg-success">Доставлен</span>
-                                }
-                                else if (Model.Status == EquipmentShop.Core.Enums.OrderStatus.Cancelled)
-                                {
-                                    <span class="badge bg-danger">Отменен</span>
-                                }
-                                else
-                                {
-                                    <span class="badge bg-warning">@Model.Status.ToString()</span>
+                                    case OrderStatus.Pending:
+                                        <span class="badge bg-info">Ожидает обработки</span>
+                                        break;
+                                    case OrderStatus.Processing:
+                                        <span class="badge bg-warning">В обработке</span>
+                                        break;
+                                    case OrderStatus.Delivered:
+                                        <span class="badge bg-success">Доставлен</span>
+                                        break;
+                                    case OrderStatus.Cancelled:
+                                        <span class="badge bg-danger">Отменён</span>
+                                        break;
+                                    case OrderStatus.Refunded:
+                                        <span class="badge bg-secondary">Возврат</span>
+                                        break;
+                                    default:
+                                        <span class="badge bg-light text-dark">@Model.Status.ToString()</span>
+                                        break;
                                 }
                             </td>
                         </tr>
@@ -116,7 +130,20 @@
         </div>
     </div>
 
+    <!-- Кнопки действий -->
     <div class="mt-3">
+        @if (canCancel)
+        {
+            <form asp-action="CancelOrder" asp-controller="Admin" asp-route-id="@Model.Id" method="post" class="d-inline">
+                @Html.AntiForgeryToken()
+                <button type="submit"
+                        class="btn btn-danger"
+                        onclick="return confirm('Вы уверены, что хотите отменить заказ?')">
+                    <i class="fas fa-times-circle"></i> Отменить заказ
+                </button>
+            </form>
+        }
+
         <a asp-action="Orders" class="btn btn-secondary">
             <i class="fas fa-arrow-left"></i> Назад к списку
         </a>

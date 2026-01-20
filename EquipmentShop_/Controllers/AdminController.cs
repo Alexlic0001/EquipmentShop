@@ -3,6 +3,7 @@ using CsvHelper.Configuration;
 using EquipmentShop.Core.Constants;
 using EquipmentShop.Core.Entities;
 using EquipmentShop.Core.Enums;
+using EquipmentShop.Core.Exceptions;
 using EquipmentShop.Core.Interfaces;
 using EquipmentShop.Core.ViewModels.Admin;
 using EquipmentShop.Infrastructure.Data;
@@ -28,6 +29,7 @@ namespace EquipmentShop.Controllers
         private readonly IFileStorageService _fileStorageService;
         private readonly ILogger<AdminController> _logger;
         private readonly AppDbContext _context;
+        private readonly IOrderService _orderService;
 
         public AdminController(
             IProductRepository productRepository,
@@ -37,7 +39,8 @@ namespace EquipmentShop.Controllers
             ILogger<AdminController> logger,
             UserManager<ApplicationUser> userManager,
             AppDbContext context,
-            RoleManager<IdentityRole> roleManager)
+            RoleManager<IdentityRole> roleManager,
+            IOrderService orderService)
         {
             _productRepository = productRepository;
             _categoryRepository = categoryRepository;
@@ -47,6 +50,7 @@ namespace EquipmentShop.Controllers
             _userManager = userManager;
             _context = context;
             _roleManager = roleManager;
+            _orderService = orderService;
         }
 
         // ========== DASHBOARD ==========
@@ -1063,7 +1067,36 @@ namespace EquipmentShop.Controllers
             return RedirectToAction("Orders");
         }
 
-        // ========== Ценообразование ==========
+        [HttpPost("orders/cancel/{id}")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> CancelOrder(int id, string reason = "Отменено администратором")
+        {
+            var order = await _orderRepository.GetByIdAsync(id);
+            if (order == null)
+            {
+                TempData["Error"] = "Заказ не найден.";
+                return RedirectToAction("Orders");
+            }
+
+            try
+            {
+                // Используем OrderService для корректной отмены (с возвратом остатков)
+                await _orderService.CancelOrderAsync(id, reason);
+                TempData["Success"] = $"Заказ #{order.OrderNumber} успешно отменён.";
+            }
+            catch (OrderProcessingException ex)
+            {
+                _logger.LogWarning(ex, "Невозможно отменить заказ {OrderNumber}", order.OrderNumber);
+                TempData["Error"] = ex.Message;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Ошибка при отмене заказа {OrderId}", id);
+                TempData["Error"] = "Не удалось отменить заказ.";
+            }
+
+            return RedirectToAction("OrderDetails", new { id });
+        }
 
         // ========== ЦЕНООБРАЗОВАНИЕ ==========
         [HttpGet("admin/pricing-rules")]

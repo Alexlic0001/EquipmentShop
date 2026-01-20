@@ -35,28 +35,22 @@ namespace EquipmentShop.Infrastructure.Services
             using var transaction = await _context.Database.BeginTransactionAsync();
             try
             {
-                var cart = await _cartService.GetCartAsync(cartId);
-                if (cart.IsEmpty)
-                    throw new EmptyCartException(cartId);
+                // 1. Конвертируем корзину в заказ (заполняет OrderItems)
+                var cart = await _cartService.ConvertToOrderAsync(cartId, order);
 
-                // 🔒 ФИНАЛЬНАЯ проверка остатков
-                foreach (var item in cart.Items)
+                // 2. Списываем остатки
+                foreach (var item in order.OrderItems)
                 {
-                    var product = await _productRepository.GetByIdAsync(item.ProductId);
-                    if (product == null || !product.IsAvailable || item.Quantity > product.StockQuantity)
-                        throw new InsufficientStockException(item.ProductId, product?.Name ?? "Unknown", item.Quantity, product?.StockQuantity ?? 0);
+                    if (item.ProductId.HasValue)
+                    {
+                        await _productRepository.UpdateStockAsync(item.ProductId.Value, -item.Quantity);
+                    }
                 }
 
-                // 📉 Списываем остатки
-                foreach (var item in cart.Items)
-                {
-                    await _productRepository.UpdateStockAsync(item.ProductId, -item.Quantity);
-                }
-
-                // 📦 Сохраняем заказ
+                // 3. Сохраняем заказ
                 await _orderRepository.AddAsync(order);
 
-                // 🧹 Очищаем корзину
+                // 4. Очищаем корзину
                 await _cartService.ClearCartAsync(cartId);
 
                 await transaction.CommitAsync();
@@ -78,11 +72,11 @@ namespace EquipmentShop.Infrastructure.Services
                 throw new Exception($"Заказ с ID {orderId} не найден");
             }
 
-            if (!order.CanBeCancelled())
-            {
-                throw new OrderProcessingException(order.OrderNumber, order.Status,
-                    "Заказ не может быть отменен в текущем статусе");
-            }
+            //if (!order.CanBeCancelled())
+            //{
+            //    throw new OrderProcessingException(order.OrderNumber, order.Status,
+            //        "Заказ не может быть отменен в текущем статусе");
+            //}
 
             // Возвращаем товары на склад
             foreach (var item in order.OrderItems)

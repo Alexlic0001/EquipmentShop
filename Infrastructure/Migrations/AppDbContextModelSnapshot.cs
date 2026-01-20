@@ -395,6 +395,9 @@ namespace Infrastructure.Migrations
                     b.Property<int>("OrderId")
                         .HasColumnType("INTEGER");
 
+                    b.Property<int>("OrderId1")
+                        .HasColumnType("INTEGER");
+
                     b.Property<decimal?>("OriginalPrice")
                         .HasPrecision(18, 2)
                         .HasColumnType("TEXT");
@@ -425,6 +428,8 @@ namespace Infrastructure.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("OrderId");
+
+                    b.HasIndex("OrderId1");
 
                     b.HasIndex("ProductId");
 
@@ -514,9 +519,7 @@ namespace Infrastructure.Migrations
                         .HasColumnType("TEXT");
 
                     b.Property<bool>("IsAvailable")
-                        .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("INTEGER")
-                        .HasComputedColumnSql("[StockQuantity] > 0");
+                        .HasColumnType("INTEGER");
 
                     b.Property<bool>("IsFeatured")
                         .HasColumnType("INTEGER");
@@ -957,9 +960,15 @@ namespace Infrastructure.Migrations
 
             modelBuilder.Entity("EquipmentShop.Core.Entities.OrderItem", b =>
                 {
-                    b.HasOne("EquipmentShop.Core.Entities.Order", "Order")
+                    b.HasOne("EquipmentShop.Core.Entities.Order", null)
                         .WithMany("OrderItems")
                         .HasForeignKey("OrderId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("EquipmentShop.Core.Entities.Order", "Order")
+                        .WithMany()
+                        .HasForeignKey("OrderId1")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 

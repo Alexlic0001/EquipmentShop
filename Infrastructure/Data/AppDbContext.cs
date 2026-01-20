@@ -311,7 +311,8 @@ namespace EquipmentShop.Infrastructure.Data
                     .HasMaxLength(1000);
 
                 entity.Property(oi => oi.ProductId).IsRequired(false);
-               
+
+                // Связь НЕ настраивается здесь — она уже настроена в Order
             });
 
             // Конфигурация ShoppingCart

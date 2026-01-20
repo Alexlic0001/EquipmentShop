@@ -108,7 +108,7 @@ namespace EquipmentShop.Controllers
                     return RedirectToAction("Index");
                 }
 
-                // ✅ Создаём заказ через OrderService
+                // Создаём заказ
                 var order = new Order
                 {
                     OrderNumber = Order.GenerateOrderNumber(),
@@ -139,11 +139,23 @@ namespace EquipmentShop.Controllers
                     order.ShippingCity = "—";
                 }
 
-                // ⚠️ ВСЁ! Больше не добавляем OrderItems вручную — это делает ConvertToOrderAsync внутри OrderService
+                // ✅ ЕДИНСТВЕННЫЙ ВЫЗОВ — ConvertToOrderAsync заполнит OrderItems
+                await _cartService.ConvertToOrderAsync(cart.Id, order);
 
-                // ✅ ЕДИНСТВЕННЫЙ ВЫЗОВ
-                await _orderService.CreateOrderFromCartAsync(cart.Id, order);
+                // Списываем остатки
+                foreach (var item in order.OrderItems)
+                {
+                    if (item.ProductId.HasValue)
+                    {
+                        await _productRepository.UpdateStockAsync(item.ProductId.Value, -item.Quantity);
+                    }
+                }
 
+                // Сохраняем заказ
+                await _orderRepository.AddAsync(order);
+
+                // Очищаем корзину и обновляем статистику
+                await _cartService.ClearCartAsync(cart.Id);
                 user.AddOrderStats(order.Total);
                 await _userManager.UpdateAsync(user);
 
@@ -153,12 +165,6 @@ namespace EquipmentShop.Controllers
             catch (UnauthorizedAccessException)
             {
                 return RedirectToAction("Login", "Account", new { returnUrl = Url.Action("Index") });
-            }
-            catch (InsufficientStockException ex)
-            {
-                _logger.LogWarning(ex, "Попытка оформить заказ с недостаточным остатком");
-                TempData["Error"] = ex.Message;
-                return RedirectToAction("Index");
             }
             catch (Exception ex)
             {

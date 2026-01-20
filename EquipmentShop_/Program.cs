@@ -78,6 +78,7 @@ builder.Services.AddScoped<IOrderService>(sp =>
         sp.GetRequiredService<IShoppingCartService>(),
         sp.GetRequiredService<ILogger<OrderService>>()
     ));
+builder.Services.AddScoped<IOrderService, OrderService>();
 builder.Services.AddScoped<IPricingService, PricingService>();
 builder.Services.AddHttpContextAccessor();
 builder.Logging.AddConsole();

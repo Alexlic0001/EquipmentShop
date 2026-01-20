@@ -362,13 +362,13 @@ namespace EquipmentShop.Infrastructure.Services
         public async Task<ShoppingCart> ConvertToOrderAsync(string cartId, Order order)
         {
             var cart = await GetCartAsync(cartId);
-
             if (cart.IsEmpty)
                 throw new EmptyCartException(cartId);
 
             if (!await ValidateCartAsync(cartId))
                 throw new CartException(cartId, "Корзина содержит недоступные или недостаточные товары");
 
+            // ✅ Только заполняем OrderItems — НЕ сохраняем в БД!
             order.OrderItems = cart.Items.Select(item => new OrderItem
             {
                 ProductId = item.ProductId,

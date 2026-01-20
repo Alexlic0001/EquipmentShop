@@ -53,9 +53,25 @@ namespace EquipmentShop.Core.Entities
             return $"DS{datePart}{randomPart}";
         }
 
-        public bool CanBeCancelled()
+        //public bool CanBeCancelled()
+        //{
+        //    return Status == OrderStatus.Pending || Status == OrderStatus.Processing;
+        //}
+        // Для обычного пользователя: только 30 мин + статусы Pending/Processing
+        public bool CanBeCancelledByUser()
         {
-            return Status == OrderStatus.Pending || Status == OrderStatus.Processing;
+            var isAllowedStatus = Status == OrderStatus.Pending || Status == OrderStatus.Processing;
+            var isWithinTimeWindow = OrderDate >= DateTime.UtcNow.AddMinutes(-30);
+            return isAllowedStatus && isWithinTimeWindow;
+        }
+
+        // Для администратора: можно отменить почти всегда (кроме доставленных)
+        public bool CanBeCancelledByAdmin()
+        {
+            // Нельзя отменить уже доставленный или возврат
+            return Status != OrderStatus.Delivered &&
+                   Status != OrderStatus.Refunded &&
+                   Status != OrderStatus.Cancelled;
         }
 
         public bool IsPaid => PaymentStatus == PaymentStatus.Paid;

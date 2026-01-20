@@ -4,6 +4,11 @@
 @{
     ViewData["Title"] = $"Заказ {Model.OrderNumber}";
     Layout = "_Layout";
+
+    // Проверка возможности отмены
+    var canCancel = Model.Status == OrderStatus.Pending || Model.Status == OrderStatus.Processing;
+    var within30Minutes = (DateTime.UtcNow - Model.OrderDate).TotalMinutes <= 30;
+    var showCancelButton = canCancel && within30Minutes;
 }
 
 <div class="container mt-4">
@@ -61,13 +66,19 @@
                         @switch (Model.Status)
                         {
                             case OrderStatus.Pending:
+                                <span class="badge bg-info">Ожидает обработки</span>
+                                break;
+                            case OrderStatus.Processing:
                                 <span class="badge bg-warning">В обработке</span>
                                 break;
                             case OrderStatus.Delivered:
                                 <span class="badge bg-success">Доставлен</span>
                                 break;
+                            case OrderStatus.Cancelled:
+                                <span class="badge bg-danger">Отменён</span>
+                                break;
                             default:
-                                @Model.Status.ToString()
+                                <span class="badge bg-secondary">@Model.Status.ToString()</span>
                                 break;
                         }
                     </p>
@@ -78,6 +89,22 @@
             </div>
         </div>
     </div>
+
+    <!-- Кнопка отмены -->
+    @if (showCancelButton)
+    {
+        <div class="mt-3">
+            <form asp-action="CancelOrder" asp-controller="Account" method="post" class="d-inline">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="orderNumber" value="@Model.OrderNumber" />
+                <button type="submit"
+                        class="btn btn-danger"
+                        onclick="return confirm('Вы уверены? Отмена возможна только в течение 30 минут после оформления.')">
+                    <i class="fas fa-times-circle"></i> Отменить заказ
+                </button>
+            </form>
+        </div>
+    }
 
     <div class="mt-3">
         <a asp-action="Orders" class="btn btn-secondary">

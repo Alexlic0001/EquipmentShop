@@ -268,7 +268,41 @@ namespace EquipmentShop.Controllers
         }
 
 
+        // отмена заказа
 
+        [HttpPost]
+        [Authorize]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> CancelOrder(string orderNumber)
+        {
+            if (string.IsNullOrWhiteSpace(orderNumber))
+                return NotFound();
+
+            var user = await _userManager.GetUserAsync(User);
+            var order = await _orderRepository.GetByOrderNumberAsync(orderNumber);
+
+            // Проверка: заказ существует и принадлежит пользователю
+            if (order == null || order.UserId != user.Id)
+                return NotFound();
+
+            // Проверка: можно ли отменить (30 мин + статус)
+            var isAllowedStatus = order.Status == OrderStatus.Pending || order.Status == OrderStatus.Processing;
+            var isWithinTimeWindow = order.OrderDate >= DateTime.UtcNow.AddMinutes(-30);
+
+            if (!isAllowedStatus || !isWithinTimeWindow)
+            {
+                TempData["Error"] = "Невозможно отменить заказ: прошло более 30 минут или заказ уже обрабатывается.";
+                return RedirectToAction("OrderDetails", new { orderNumber });
+            }
+
+            // Получаем IOrderService через DI (или создайте поле, если будете использовать часто)
+            var orderService = HttpContext.RequestServices.GetRequiredService<IOrderService>();
+
+            await orderService.CancelOrderAsync(order.Id, "Отменено пользователем");
+
+            TempData["Success"] = $"Заказ #{orderNumber} успешно отменён.";
+            return RedirectToAction("OrderDetails", new { orderNumber });
+        }
 
         [HttpGet]
         [Authorize]
@@ -601,6 +635,9 @@ namespace EquipmentShop.Controllers
                 return RedirectToAction("Index", "Home");
             }
         }
+        // отмена заказа
+
+
 
         // ViewModel для AccountController
         public class LoginViewModel

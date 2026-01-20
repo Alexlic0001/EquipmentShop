@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace Infrastructure.Migrations
 {
     /// <inheritdoc />
-    public partial class AddCartExpiration : Migration
+    public partial class InitialCreate : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -302,7 +302,7 @@ namespace Infrastructure.Migrations
                     Brand = table.Column<string>(type: "TEXT", maxLength: 100, nullable: false),
                     StockQuantity = table.Column<int>(type: "INTEGER", nullable: false, defaultValue: 0),
                     MinStockThreshold = table.Column<int>(type: "INTEGER", nullable: false),
-                    IsAvailable = table.Column<bool>(type: "INTEGER", nullable: false, computedColumnSql: "[StockQuantity] > 0"),
+                    IsAvailable = table.Column<bool>(type: "INTEGER", nullable: false),
                     IsFeatured = table.Column<bool>(type: "INTEGER", nullable: false),
                     IsNew = table.Column<bool>(type: "INTEGER", nullable: false),
                     Rating = table.Column<double>(type: "REAL", nullable: false, defaultValue: 0.0),
@@ -350,7 +350,7 @@ namespace Infrastructure.Migrations
                         column: x => x.ProductId,
                         principalTable: "Products",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
+                        onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_CartItems_ShoppingCarts_CartId",
                         column: x => x.CartId,
@@ -366,7 +366,8 @@ namespace Infrastructure.Migrations
                     Id = table.Column<int>(type: "INTEGER", nullable: false)
                         .Annotation("Sqlite:Autoincrement", true),
                     OrderId = table.Column<int>(type: "INTEGER", nullable: false),
-                    ProductId = table.Column<int>(type: "INTEGER", nullable: false),
+                    OrderId1 = table.Column<int>(type: "INTEGER", nullable: false),
+                    ProductId = table.Column<int>(type: "INTEGER", nullable: true),
                     ProductName = table.Column<string>(type: "TEXT", maxLength: 200, nullable: false),
                     ProductSku = table.Column<string>(type: "TEXT", maxLength: 100, nullable: true),
                     UnitPrice = table.Column<decimal>(type: "TEXT", precision: 18, scale: 2, nullable: false),
@@ -384,7 +385,48 @@ namespace Infrastructure.Migrations
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
+                        name: "FK_OrderItems_Orders_OrderId1",
+                        column: x => x.OrderId1,
+                        principalTable: "Orders",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
                         name: "FK_OrderItems_Products_ProductId",
+                        column: x => x.ProductId,
+                        principalTable: "Products",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "PricingRules",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "INTEGER", nullable: false)
+                        .Annotation("Sqlite:Autoincrement", true),
+                    Name = table.Column<string>(type: "TEXT", maxLength: 100, nullable: false),
+                    RuleType = table.Column<int>(type: "INTEGER", nullable: false),
+                    CategoryId = table.Column<int>(type: "INTEGER", nullable: true),
+                    Brand = table.Column<string>(type: "TEXT", maxLength: 100, nullable: true),
+                    ProductId = table.Column<int>(type: "INTEGER", nullable: true),
+                    AdjustmentType = table.Column<int>(type: "INTEGER", nullable: false),
+                    AdjustmentValue = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
+                    Priority = table.Column<int>(type: "INTEGER", nullable: false),
+                    IsActive = table.Column<bool>(type: "INTEGER", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "TEXT", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "TEXT", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_PricingRules", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_PricingRules_Categories_CategoryId",
+                        column: x => x.CategoryId,
+                        principalTable: "Categories",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_PricingRules_Products_ProductId",
                         column: x => x.ProductId,
                         principalTable: "Products",
                         principalColumn: "Id",
@@ -430,8 +472,7 @@ namespace Infrastructure.Migrations
                         name: "FK_Reviews_Products_ProductId",
                         column: x => x.ProductId,
                         principalTable: "Products",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
+                        principalColumn: "Id");
                 });
 
             migrationBuilder.CreateTable(
@@ -452,7 +493,7 @@ namespace Infrastructure.Migrations
                         column: x => x.ProductId,
                         principalTable: "Products",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
+                        onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_WishlistItems_Wishlists_WishlistId",
                         column: x => x.WishlistId,
@@ -535,6 +576,11 @@ namespace Infrastructure.Migrations
                 column: "OrderId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_OrderItems_OrderId1",
+                table: "OrderItems",
+                column: "OrderId1");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_OrderItems_ProductId",
                 table: "OrderItems",
                 column: "ProductId");
@@ -574,6 +620,16 @@ namespace Infrastructure.Migrations
                 name: "IX_Orders_UserId",
                 table: "Orders",
                 column: "UserId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_PricingRules_CategoryId",
+                table: "PricingRules",
+                column: "CategoryId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_PricingRules_ProductId",
+                table: "PricingRules",
+                column: "ProductId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Products_Brand",
@@ -702,6 +758,9 @@ namespace Infrastructure.Migrations
 
             migrationBuilder.DropTable(
                 name: "OrderItems");
+
+            migrationBuilder.DropTable(
+                name: "PricingRules");
 
             migrationBuilder.DropTable(
                 name: "Reviews");

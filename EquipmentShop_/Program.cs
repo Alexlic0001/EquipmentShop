@@ -11,7 +11,6 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Add services
 builder.Services.AddControllersWithViews();
-//builder.Services.AddSession(); // Для корзины----
 
 // Database
 builder.Services.AddDbContext<AppDbContext>(options =>
@@ -100,7 +99,7 @@ else
 app.UseHttpsRedirection();
 app.UseStaticFiles();
 app.UseRouting();
-app.UseSession(); // Только один раз!
+app.UseSession(); //  
 app.UseMiddleware<CartMiddleware>();
 app.UseAuthentication();
 app.UseAuthorization();

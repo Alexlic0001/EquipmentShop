@@ -55,6 +55,8 @@ namespace EquipmentShop.Controllers
             {
                 var userId = GetUserId();
                 var cart = await _cartService.GetUserCartAsync(userId);
+                var user = await _userManager.FindByIdAsync(userId); // ← получаем пользователя
+
                 var viewModel = new CartViewModel
                 {
                     CartId = cart.Id,
@@ -74,8 +76,14 @@ namespace EquipmentShop.Controllers
                     Subtotal = cart.Subtotal,
                     ShippingCost = CalculateShippingCost(cart.Subtotal),
                     TaxAmount = CalculateTax(cart.Subtotal),
-                    Total = cart.Subtotal + CalculateShippingCost(cart.Subtotal) + CalculateTax(cart.Subtotal)
+                    Total = cart.Subtotal + CalculateShippingCost(cart.Subtotal) + CalculateTax(cart.Subtotal),
+
+                    // ← ПРЕДПРОСМОТР АДРЕСА ДОСТАВКИ
+                    ShippingAddressPreview = user?.HasDefaultAddress == true
+                        ? $"{user.City}, {user.Address}"
+                        : "Адрес будет указан при оформлении"
                 };
+
                 return View(viewModel);
             }
             catch (UnauthorizedAccessException)
@@ -93,7 +101,7 @@ namespace EquipmentShop.Controllers
         [Authorize]
         [HttpPost("checkout")]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Checkout()
+        public async Task<IActionResult> Checkout(CheckoutViewModel model) // ← добавлен параметр
         {
             try
             {
@@ -105,10 +113,9 @@ namespace EquipmentShop.Controllers
                 if (cart?.Items == null || !cart.Items.Any())
                 {
                     TempData["Error"] = "Ваша корзина пуста";
-                    return RedirectToAction("Index");
+                    return View(model); // ← вернуть модель при ошибке
                 }
 
-                // Создаём заказ
                 var order = new Order
                 {
                     OrderNumber = Order.GenerateOrderNumber(),
@@ -121,28 +128,18 @@ namespace EquipmentShop.Controllers
                     Subtotal = cart.Subtotal,
                     ShippingCost = 0m,
                     TaxAmount = 0m,
-                    DiscountAmount = 0m
+                    DiscountAmount = 0m,
+
+                    // ← АДРЕС ИЗ ФОРМЫ
+                    ShippingAddress = model.ShippingAddress,
+                    ShippingCity = model.ShippingCity,
+                    ShippingRegion = model.ShippingRegion,
+                    ShippingPostalCode = model.ShippingPostalCode,
+                    ShippingCountry = model.ShippingCountry
                 };
 
-                // Адрес доставки
-                if (user.HasDefaultAddress)
-                {
-                    order.ShippingAddress = user.Address!;
-                    order.ShippingCity = user.City!;
-                    order.ShippingRegion = user.Region;
-                    order.ShippingCountry = user.Country;
-                    order.ShippingPostalCode = user.PostalCode;
-                }
-                else
-                {
-                    order.ShippingAddress = "Адрес не указан";
-                    order.ShippingCity = "—";
-                }
-
-                // ✅ ЕДИНСТВЕННЫЙ ВЫЗОВ — ConvertToOrderAsync заполнит OrderItems
                 await _cartService.ConvertToOrderAsync(cart.Id, order);
 
-                // Списываем остатки
                 foreach (var item in order.OrderItems)
                 {
                     if (item.ProductId.HasValue)
@@ -151,28 +148,67 @@ namespace EquipmentShop.Controllers
                     }
                 }
 
-                // Сохраняем заказ
                 await _orderRepository.AddAsync(order);
-
-                // Очищаем корзину и обновляем статистику
                 await _cartService.ClearCartAsync(cart.Id);
-                user.AddOrderStats(order.Total);
-                await _userManager.UpdateAsync(user);
 
-                TempData["Success"] = $"Ваш заказ #{order.OrderNumber} принят в обработку!";
+                // Опционально: обновить адрес по умолчанию
+                if (model.UseDefaultAddress && !string.IsNullOrWhiteSpace(model.ShippingAddress))
+                {
+                    user.Address = model.ShippingAddress;
+                    user.City = model.ShippingCity;
+                    user.Region = model.ShippingRegion;
+                    user.PostalCode = model.ShippingPostalCode;
+                    user.Country = model.ShippingCountry;
+                    
+                    await _userManager.UpdateAsync(user);
+                }
+
+                TempData["Success"] = $"Ваш заказ #{order.OrderNumber} принят!";
                 return RedirectToAction("OrderConfirmation", new { orderNumber = order.OrderNumber });
             }
             catch (UnauthorizedAccessException)
             {
-                return RedirectToAction("Login", "Account", new { returnUrl = Url.Action("Index") });
+                return RedirectToAction("Login", "Account", new { returnUrl = Url.Action("Checkout") });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Критическая ошибка при оформлении заказа");
-                TempData["Error"] = "Не удалось оформить заказ. Попробуйте позже.";
-                return RedirectToAction("Index");
+                _logger.LogError(ex, "Ошибка при оформлении заказа");
+                ModelState.AddModelError("", "Не удалось создать заказ. Попробуйте позже.");
+                return View(model); // ← вернуть модель при ошибке
             }
         }
+
+        [Authorize]
+        [HttpGet("checkout")]
+        public async Task<IActionResult> Checkout()
+        {
+            var userId = GetUserId();
+            var user = await _userManager.FindByIdAsync(userId);
+            if (user == null) return RedirectToAction("Login", "Account");
+
+            var cart = await _cartService.GetUserCartAsync(userId);
+            if (cart?.Items == null || !cart.Items.Any())
+            {
+                TempData["Error"] = "Ваша корзина пуста";
+                return RedirectToAction("Index");
+            }
+
+            // Заполняем адрес из профиля (как предзаполнение)
+            var model = new CheckoutViewModel
+            {
+                UseDefaultAddress = true,
+                ShippingAddress = user.Address ?? "",
+                ShippingCity = user.City ?? "Минск",
+                ShippingRegion = user.Region ?? "Минская обл.",
+                ShippingPostalCode = user.PostalCode ?? "",
+                ShippingCountry = user.Country ?? "Беларусь"
+            };
+
+            return View(model);
+        }
+
+
+
 
         [Authorize]
         [HttpGet("order-confirmation")]

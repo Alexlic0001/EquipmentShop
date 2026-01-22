@@ -216,6 +216,20 @@ else
                                 <span class="h4 text-primary fw-bold">@($"{Model.Total:N0} р.")</span>
                             </div>
 
+
+                            <!-- АДРЕС ДОСТАВКИ -->
+                            @if (!string.IsNullOrEmpty(Model.ShippingAddressPreview))
+                            {
+                                <div class="mb-3 text-muted">
+                                    <small>
+                                        <i class="fas fa-shipping-fast me-1"></i>
+                                        @Model.ShippingAddressPreview
+                                        <a asp-action="Checkout" class="ms-2 small">изменить</a>
+                                    </small>
+                                </div>
+                            }
+
+
                             <!-- ✅ ИСПРАВЛЕНО: НАСТОЯЩАЯ ФОРМА ОФОРМЛЕНИЯ -->
                             <form asp-controller="Cart" asp-action="Checkout" method="post">
                                 @Html.AntiForgeryToken()

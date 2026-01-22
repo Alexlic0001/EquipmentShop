@@ -1,31 +1,81 @@
-html {
-  font-size: 14px;
+/* Основной акцентный цвет — фиолетовый #6f19b5 */
+:root {
+    --primary-color: #6f19b5;
+    --primary-color-rgb: 111, 25, 181;
+    --primary-color-light: #8a47c3;
+    --primary-color-hover: #5a1390;
 }
 
-@media (min-width: 768px) {
-  html {
-    font-size: 16px;
-  }
+/* Замена стандартного Bootstrap primary */
+.btn-primary {
+    background-color: var(--primary-color) !important;
+    border-color: var(--primary-color) !important;
 }
 
-.btn:focus, .btn:active:focus, .btn-link.nav-link:focus, .form-control:focus, .form-check-input:focus {
-  box-shadow: 0 0 0 0.1rem white, 0 0 0 0.25rem #258cfb;
+    .btn-primary:hover {
+        background-color: var(--primary-color-hover) !important;
+        border-color: var(--primary-color-hover) !important;
+    }
+
+/* Ссылки и hover */
+a.text-primary {
+    color: var(--primary-color) !important;
 }
 
-html {
-  position: relative;
-  min-height: 100%;
+a:hover {
+    color: var(--primary-color-light) !important;
 }
 
-body {
-  margin-bottom: 60px;
+/* Hero banner */
+.bg-primary {
+    background-color: var(--primary-color) !important;
 }
 
-.form-floating > .form-control-plaintext::placeholder, .form-floating > .form-control::placeholder {
-  color: var(--bs-secondary-color);
-  text-align: end;
+/* Картинки товаров: акцент при наведении */
+.product-card:hover {
+    border-color: var(--primary-color) !important;
+    box-shadow: 0 4px 12px rgba(111, 25, 181, 0.25) !important;
 }
 
-.form-floating > .form-control-plaintext:focus::placeholder, .form-floating > .form-control:focus::placeholder {
-  text-align: start;
+/* Active / focus states */
+.btn-outline-primary {
+    color: var(--primary-color) !important;
+    border-color: var(--primary-color) !important;
+}
+
+    .btn-outline-primary:hover {
+        background-color: var(--primary-color) !important;
+        color: white !important;
+    }
+
+/* Progress bars, badges и т.д. (если есть) */
+.badge-primary {
+    background-color: var(--primary-color) !important;
+}
+
+/* Navbar links */
+.navbar-nav .nav-link.text-white:hover {
+    color: #ffffff !important;
+}
+
+.navbar-nav .nav-link:hover {
+    color: #e0e0e0 !important; /* чуть светлее при наведении */
+}
+
+/* Dropdown menu */
+.dropdown-menu {
+    border: none;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.dropdown-item:hover {
+    background-color: #f8f9fa;
+}
+
+/* Badge in cart */
+#cart-badge {
+    font-size: 0.7rem;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 4px;
 }

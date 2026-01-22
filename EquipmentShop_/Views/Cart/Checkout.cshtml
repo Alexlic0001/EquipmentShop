@@ -1,0 +1,48 @@
+﻿@model EquipmentShop.Core.ViewModels.CheckoutViewModel
+@{
+    ViewData["Title"] = "Оформление заказа";
+}
+
+<h2>Оформление заказа</h2>
+
+<form asp-action="Checkout" method="post">
+    <div class="row">
+        <div class="col-md-6">
+            <h4>Адрес доставки</h4>
+
+            <div class="mb-3 form-check">
+                <input asp-for="UseDefaultAddress" type="checkbox" class="form-check-input" />
+                <label asp-for="UseDefaultAddress" class="form-check-label">Сохранить как адрес по умолчанию</label>
+            </div>
+
+            <div class="mb-3">
+                <label asp-for="ShippingAddress" class="form-label">Адрес</label>
+                <input asp-for="ShippingAddress" class="form-control" required />
+                <span asp-validation-for="ShippingAddress" class="text-danger"></span>
+            </div>
+            <div class="mb-3">
+                <label asp-for="ShippingCity" class="form-label">Город</label>
+                <input asp-for="ShippingCity" class="form-control" />
+            </div>
+            <div class="mb-3">
+                <label asp-for="ShippingRegion" class="form-label">Область</label>
+                <input asp-for="ShippingRegion" class="form-control" />
+            </div>
+            <div class="mb-3">
+                <label asp-for="ShippingPostalCode" class="form-label">Индекс</label>
+                <input asp-for="ShippingPostalCode" class="form-control" />
+            </div>
+            <div class="mb-3">
+                <label asp-for="ShippingCountry" class="form-label">Страна</label>
+                <input asp-for="ShippingCountry" class="form-control" value="Беларусь" readonly />
+            </div>
+        </div>
+    </div>
+
+    <button type="submit" class="btn btn-primary mt-3">Подтвердить заказ</button>
+    <a asp-action="Index" class="btn btn-secondary mt-3 ms-2">Назад в корзину</a>
+</form>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

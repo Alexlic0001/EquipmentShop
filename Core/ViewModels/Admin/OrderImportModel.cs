@@ -15,5 +15,5 @@ public class OrderImportModel
     public decimal TaxAmount { get; set; }
     public decimal DiscountAmount { get; set; }
     public DateTime OrderDate { get; set; } = DateTime.UtcNow;
-    public string Items { get; set; } = string.Empty; // Формат: "Ноутбук ASUS=2899.99=1;Видеокарта RTX=1899.99=1"
+   // public string Items { get; set; } = string.Empty; // Формат: "Ноутбук ASUS=2899.99=1;Видеокарта RTX=1899.99=1"
 }

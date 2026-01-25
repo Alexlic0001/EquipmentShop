@@ -53,11 +53,7 @@ namespace EquipmentShop.Core.Entities
             return $"DS{datePart}{randomPart}";
         }
 
-        //public bool CanBeCancelled()
-        //{
-        //    return Status == OrderStatus.Pending || Status == OrderStatus.Processing;
-        //}
-        // Для обычного пользователя: только 30 мин + статусы Pending/Processing
+
         public bool CanBeCancelledByUser()
         {
             var isAllowedStatus = Status == OrderStatus.Pending || Status == OrderStatus.Processing;

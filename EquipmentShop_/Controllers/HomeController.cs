@@ -28,8 +28,6 @@ namespace EquipmentShop.Controllers
             _pricingService = pricingService;
         }
 
-
-
         [HttpGet]
         public async Task<IActionResult> Index()
         {

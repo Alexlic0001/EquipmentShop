@@ -622,24 +622,7 @@ namespace EquipmentShop.Infrastructure.Data
                     // Создаем категории
                     var categories = new List<Category>
                     {
-                        //new Category
-                        //{
-                        //    Name = "Ноутбуки",
-                        //    Slug = "laptops",
-                        //    Description = "Игровые и рабочие ноутбуки",
-                        //    IsActive = true,
-                        //    ShowInMenu = true,
-                        //    DisplayOrder = 1
-                        //},
-                        //new Category
-                        //{
-                        //    Name = "Комплектующие",
-                        //    Slug = "components",
-                        //    Description = "Процессоры, видеокарты, память",
-                        //    IsActive = true,
-                        //    ShowInMenu = true,
-                        //    DisplayOrder = 2
-                        //}
+                      
                     };
 
                     await context.Categories.AddRangeAsync(categories);
@@ -648,39 +631,7 @@ namespace EquipmentShop.Infrastructure.Data
                     // Добавляем товары
                     var products = new List<Product>
                     {
-                        //new Product
-                        //{
-                        //    Name = "Игровой ноутбук ASUS ROG",
-                        //    Slug = "asus-rog-gaming-laptop",
-                        //    Description = "Мощный игровой ноутбук с видеокартой RTX 3060",
-                        //    ShortDescription = "Игровой ноутбук для современных игр",
-                        //    Price = 2899.99m,
-                        //    OldPrice = 3299.99m,
-                        //    ImageUrl = "/images/products/default.jpg",
-                        //    CategoryId = categories[0].Id,
-                        //    Brand = "ASUS",
-                        //    StockQuantity = 15,
-                        //    IsFeatured = true,
-                        //    IsNew = true,
-                        //    CreatedAt = DateTime.UtcNow,
-                        //    UpdatedAt = DateTime.UtcNow
-                        //},
-                        //new Product
-                        //{
-                        //    Name = "Процессор Intel Core i9",
-                        //    Slug = "intel-core-i9-processor",
-                        //    Description = "Флагманский процессор 13-го поколения",
-                        //    ShortDescription = "Мощный процессор для игр и работы",
-                        //    Price = 699.99m,
-                        //    ImageUrl = "/images/products/default.jpg",
-                        //    CategoryId = categories[1].Id,
-                        //    Brand = "Intel",
-                        //    StockQuantity = 8,
-                        //    IsFeatured = false,
-                        //    IsNew = true,
-                        //    CreatedAt = DateTime.UtcNow,
-                        //    UpdatedAt = DateTime.UtcNow
-                        //}
+                       
                     };
 
                     await context.Products.AddRangeAsync(products);

@@ -72,11 +72,6 @@ namespace EquipmentShop.Infrastructure.Services
                 throw new Exception($"Заказ с ID {orderId} не найден");
             }
 
-            //if (!order.CanBeCancelled())
-            //{
-            //    throw new OrderProcessingException(order.OrderNumber, order.Status,
-            //        "Заказ не может быть отменен в текущем статусе");
-            //}
 
             // Возвращаем товары на склад
             foreach (var item in order.OrderItems)

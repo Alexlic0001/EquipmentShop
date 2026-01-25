@@ -268,37 +268,6 @@ namespace EquipmentShop.Controllers
         }
 
 
-        [HttpGet("export/orders")]
-        [Authorize(Roles = AppConstants.AdminRole)]
-        public async Task<IActionResult> ExportOrders()
-        {
-            var orders = await _orderRepository.GetAllWithItemsAsync(); //
-            var records = orders.Select(o => new OrderImportModel
-            {
-                OrderNumber = o.OrderNumber,
-                CustomerEmail = o.CustomerEmail,
-                CustomerName = o.CustomerName,
-                CustomerPhone = o.CustomerPhone,
-                ShippingAddress = o.ShippingAddress,
-                Status = o.Status.ToString(),
-                PaymentMethod = o.PaymentMethod.ToString(),
-                Subtotal = o.Subtotal,
-                ShippingCost = o.ShippingCost,
-                TaxAmount = o.TaxAmount,
-                DiscountAmount = o.DiscountAmount,
-                OrderDate = o.OrderDate,
-                Items = string.Join(" || ", o.OrderItems.Select(oi =>
-                {
-                    var name = oi.ProductName
-                        .Replace("\r", "")
-                        .Replace("\n", " ")
-                        .Replace(";", ",")
-                        .Replace("||", " ");
-                    return $"{name}|{oi.UnitPrice:F2}|{oi.Quantity}";
-                }))
-            });
-            return GenerateCsv(records, "orders_export.csv");
-        }
         private IActionResult GenerateCsv<T>(IEnumerable<T> records, string fileName)
         {
             using var memoryStream = new MemoryStream();
@@ -509,78 +478,6 @@ namespace EquipmentShop.Controllers
                 existingSlugs.Add(baseSlug); // для защиты от дублей внутри одного файла
             }
         }
-
-
-        private async Task ImportOrdersFromCsv(Stream stream)
-        {
-            using var reader = new StreamReader(stream, Encoding.UTF8, detectEncodingFromByteOrderMarks: true);
-            using var csv = new CsvReader(reader, new CsvConfiguration(CultureInfo.InvariantCulture)
-            {
-                Delimiter = ";",
-                HasHeaderRecord = true,
-                PrepareHeaderForMatch = args => args.Header.Trim(),
-                MissingFieldFound = null
-            });
-
-            var records = csv.GetRecords<OrderImportModel>().ToList();
-            var existingOrderNumbers = (await _orderRepository.GetAllAsync())
-                .Select(o => o.OrderNumber)
-                .ToHashSet(StringComparer.OrdinalIgnoreCase);
-
-            foreach (var rec in records)
-            {
-                if (string.IsNullOrWhiteSpace(rec.OrderNumber) || existingOrderNumbers.Contains(rec.OrderNumber))
-                    continue;
-
-                // Находим пользователя по email
-                var user = await _userManager.FindByEmailAsync(rec.CustomerEmail);
-                var userId = user?.Id;
-
-                var order = new Order
-                {
-                    OrderNumber = rec.OrderNumber,
-                    UserId = userId,
-                    CustomerEmail = rec.CustomerEmail,
-                    CustomerName = rec.CustomerName,
-                    CustomerPhone = rec.CustomerPhone,
-                    ShippingAddress = rec.ShippingAddress,
-                    Status = Enum.TryParse<OrderStatus>(rec.Status, out var s) ? s : OrderStatus.Pending,
-                    PaymentMethod = Enum.TryParse<PaymentMethod>(rec.PaymentMethod, out var p) ? p : PaymentMethod.Card,
-                    Subtotal = rec.Subtotal,
-                    ShippingCost = rec.ShippingCost,
-                    TaxAmount = rec.TaxAmount,
-                    DiscountAmount = rec.DiscountAmount,
-                    OrderDate = rec.OrderDate,
-                    PaymentStatus = rec.PaymentMethod == "CashOnDelivery" ? PaymentStatus.Pending : PaymentStatus.Paid
-                };
-
-                // Парсим товары
-                if (!string.IsNullOrEmpty(rec.Items))
-                {
-                    foreach (var itemStr in rec.Items.Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries))
-                    {
-                        var parts = itemStr.Split('=');
-                        if (parts.Length >= 3)
-                        {
-                            var name = parts[0].Trim();
-                            var price = decimal.TryParse(parts[1], NumberStyles.Any, CultureInfo.InvariantCulture, out var pr) ? pr : 0m;
-                            var qty = int.TryParse(parts[2], out var q) ? q : 1;
-
-                            order.OrderItems.Add(new OrderItem
-                            {
-                                ProductName = name,
-                                UnitPrice = price,
-                                Quantity = qty
-                            });
-                        }
-                    }
-                }
-
-                await _orderRepository.AddAsync(order);
-                existingOrderNumbers.Add(rec.OrderNumber);
-            }
-        }
-
 
 
         private bool ParseBool(string value)

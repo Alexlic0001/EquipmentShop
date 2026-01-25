@@ -121,7 +121,7 @@ namespace EquipmentShop.Controllers
         [Authorize(Roles = AppConstants.AdminRole)]
         public async Task<IActionResult> ExportUsersAndOrders()
         {
-            var orders = await _orderRepository.GetAllAsync();
+            var orders = await _orderRepository.GetAllWithItemsAsync();
             var records = new List<UserOrderExportModel>();
 
             foreach (var order in orders)
@@ -135,6 +135,14 @@ namespace EquipmentShop.Controllers
 
                 var roles = user != null ? await _userManager.GetRolesAsync(user) : new List<string>();
                 var role = roles.FirstOrDefault() ?? "Customer";
+
+                // Безопасная обработка OrderItems
+                string itemsString = "Нет товаров";
+                if (order.OrderItems?.Any() == true)
+                {
+                    itemsString = string.Join("; ", order.OrderItems.Select(oi =>
+                        $"{(oi.ProductName ?? "Без названия").Replace(";", ",").Replace("=", ":")}={oi.UnitPrice:F2}={oi.Quantity}"));
+                }
 
                 records.Add(new UserOrderExportModel
                 {
@@ -157,8 +165,7 @@ namespace EquipmentShop.Controllers
                     City = order.ShippingCity ?? "",
 
                     // Товары
-                    Items = string.Join("; ", order.OrderItems.Select(oi =>
-                        $"{oi.ProductName.Replace(";", ",").Replace("=", ":")}={oi.UnitPrice:F2}={oi.Quantity}"))
+                    Items = itemsString
                 });
             }
 
@@ -265,7 +272,7 @@ namespace EquipmentShop.Controllers
         [Authorize(Roles = AppConstants.AdminRole)]
         public async Task<IActionResult> ExportOrders()
         {
-            var orders = await _orderRepository.GetAllAsync();
+            var orders = await _orderRepository.GetAllWithItemsAsync(); //
             var records = orders.Select(o => new OrderImportModel
             {
                 OrderNumber = o.OrderNumber,

@@ -61,6 +61,12 @@ namespace EquipmentShop.Infrastructure.Repositories
                 .OrderByDescending(o => o.OrderDate)
                 .ToListAsync();
         }
+        public async Task<IEnumerable<Order>> GetAllWithItemsAsync()
+        {
+            return await _context.Orders
+                .Include(o => o.OrderItems)
+                .ToListAsync();
+        }
 
         public async Task<IEnumerable<Order>> FindAsync(Expression<Func<Order, bool>> predicate)
         {

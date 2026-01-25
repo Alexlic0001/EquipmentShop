@@ -13,12 +13,14 @@ namespace EquipmentShop.Core.Interfaces
         Task<IEnumerable<Order>> GetRecentOrdersAsync(int count = 10);
         Task<IEnumerable<Order>> GetOrdersByStatusAsync(OrderStatus status);
         Task<IEnumerable<Order>> GetOrdersByDateRangeAsync(DateTime startDate, DateTime endDate);
+        Task<IEnumerable<Order>> GetAllWithItemsAsync();
         Task<OrderStats> GetOrderStatsAsync();
         Task UpdateStatusAsync(int orderId, OrderStatus status);
         Task UpdatePaymentStatusAsync(int orderId, PaymentStatus status);
         Task<int> GetTotalOrdersCountAsync();
         Task<decimal> GetTotalRevenueAsync();
         Task<Order> AddOrderWithItemsAsync(Order order);
+        
 
         Task<bool> UpdateOrderStatusAsync(string orderNumber, OrderStatus newStatus);
     }

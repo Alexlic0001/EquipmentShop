@@ -28,40 +28,7 @@ namespace EquipmentShop.Controllers
             _pricingService = pricingService;
         }
 
-        //public async Task<IActionResult> Index()
-        //{
-        //    // Получаем ID текущего пользователя
-        //    var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
-        //    _logger.LogInformation("Текущий пользователь: {UserId}",
-        //        string.IsNullOrEmpty(userId) ? "(не авторизован)" : userId);
-
-        //    // Загружаем глобальные блоки
-        //    var featured = await _productRepository.GetFeaturedAsync(6);
-        //    var newArrivals = await _productRepository.GetNewArrivalsAsync(6);
-        //    var onSale = await _productRepository.GetOnSaleAsync(6);
-
-        //    // Рассчитываем финальные цены для всех товаров
-        //    var featuredWithPrices = await ApplyFinalPricesAsync(featured);
-        //    var newArrivalsWithPrices = await ApplyFinalPricesAsync(newArrivals);
-        //    var onSaleWithPrices = await ApplyFinalPricesAsync(onSale);
-
-        //    ViewBag.Featured = featuredWithPrices;
-        //    ViewBag.NewArrivals = newArrivalsWithPrices;
-        //    ViewBag.OnSale = onSaleWithPrices;
-
-        //    // Персонализированные рекомендации (только 1 товар)
-        //    IEnumerable<Product> personalized = new List<Product>();
-        //    if (!string.IsNullOrEmpty(userId))
-        //    {
-        //        var recs = await _productRepository.GetRecommendedForUserAsync(userId, 1);
-        //        personalized = await ApplyFinalPricesAsync(recs);
-        //    }
-
-        //    ViewBag.Personalized = personalized;
-
-        //    return View();
-        //}
 
         [HttpGet]
         public async Task<IActionResult> Index()
@@ -80,7 +47,7 @@ namespace EquipmentShop.Controllers
                 var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
                 if (!string.IsNullOrEmpty(userId))
                 {
-                    var personalized = await _productRepository.GetRecommendedForUserAsync(userId, 8);
+                    var personalized = await _productRepository.GetRecommendedForUserAsync(userId, 3);
                     ViewBag.Personalized = personalized;
                 }
                 // Для гостей ViewBag.Personalized == null → не отображается

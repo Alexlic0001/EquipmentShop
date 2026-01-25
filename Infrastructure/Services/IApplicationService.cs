@@ -1,6 +1,6 @@
-﻿namespace EquipmentShop.Infrastructure.Services
-{
-    public interface IApplicationService
-    {
-    }
-}
+﻿//namespace EquipmentShop.Infrastructure.Services
+//{
+//    public interface IApplicationService
+//    {
+//    }
+//}

@@ -546,9 +546,9 @@ namespace EquipmentShop.Infrastructure.Repositories
         }
 
 
-        
 
-        public async Task<IEnumerable<Product>> GetRecommendedForUserAsync(string userId, int count = 1)
+
+        public async Task<IEnumerable<Product>> GetRecommendedForUserAsync(string userId, int count = 3)
         {
             // 1. Получаем ID купленных товаров
             var purchasedProductIds = await _context.OrderItems
@@ -557,48 +557,95 @@ namespace EquipmentShop.Infrastructure.Repositories
                 .Distinct()
                 .ToListAsync();
 
-            if (!purchasedProductIds.Any())
+            // 2. Получаем категории и бренды купленных товаров
+            var purchasedCategories = new List<int>();
+            var purchasedBrands = new List<string>();
+
+            if (purchasedProductIds.Any())
             {
-                return (await GetFeaturedAsync(count)).Take(count);
+                var purchasedProducts = await _context.Products
+                    .Where(p => purchasedProductIds.Contains(p.Id))
+                    .Select(p => new { p.CategoryId, p.Brand })
+                    .ToListAsync();
+
+                purchasedCategories = purchasedProducts
+
+                    .Select(p => p.CategoryId)
+                    .Distinct()
+                    .ToList();
+
+                purchasedBrands = purchasedProducts
+                    .Where(p => !string.IsNullOrEmpty(p.Brand))
+                    .Select(p => p.Brand!)
+                    .Distinct()
+                    .ToList();
             }
 
-            // 2. Получаем категории и бренды купленных товаров
-            var purchasedCategories = await _context.Products
-                .Where(p => purchasedProductIds.Contains(p.Id))
-                .Select(p => p.CategoryId)
-                .Distinct()
-                .ToListAsync();
+            // 3. Основной набор рекомендаций: по категориям и брендам
+            var candidates = new List<Product>();
 
-            var purchasedBrands = await _context.Products
-                .Where(p => purchasedProductIds.Contains(p.Id))
-                .Select(p => p.Brand)
-                .Distinct()
-                .ToListAsync();
+            if (purchasedCategories.Any() || purchasedBrands.Any())
+            {
+                var query = _context.Products
+                    .AsNoTracking()
+                    .Include(p => p.Category)
+                    .Where(p => p.IsAvailable && p.StockQuantity > 0);
 
-            // 3. Загружаем кандидатов — только через простые .Contains() от списков значений
-            var candidates = await _context.Products
-                .AsNoTracking()
-                .Include(p => p.Category)
-                .Where(p => p.IsAvailable)
-                .Where(p => !purchasedProductIds.Contains(p.Id)) // исключаем купленные
-                .Where(p => purchasedCategories.Contains(p.CategoryId) || purchasedBrands.Contains(p.Brand))
-                .OrderByDescending(p => p.SoldCount)
-                .ThenByDescending(p => p.Rating)
-                .Take(count * 3) // берём с запасом
-                .ToListAsync();
+                // Исключаем уже купленные
+                if (purchasedProductIds.Any())
+                {
+                    query = query.Where(p => !purchasedProductIds.Contains(p.Id));
+                }
 
-            // 4. Если не хватает — добавляем бестселлеры (только не купленные)
+                // Фильтруем по категориям или брендам
+                if (purchasedCategories.Any() && purchasedBrands.Any())
+                {
+                    query = query.Where(p =>
+                        purchasedCategories.Contains(p.CategoryId) ||
+                        purchasedBrands.Contains(p.Brand));
+                }
+                else if (purchasedCategories.Any())
+                {
+                    query = query.Where(p => purchasedCategories.Contains(p.CategoryId));
+                }
+                else if (purchasedBrands.Any())
+                {
+                    query = query.Where(p => purchasedBrands.Contains(p.Brand));
+                }
+
+                candidates = await query
+                    .OrderByDescending(p => p.SoldCount)
+                    .ThenByDescending(p => p.Rating)
+                    .Take(count * 2)
+                    .ToListAsync();
+            }
+
+            // 4. Если не хватает — добавляем популярные товары
             if (candidates.Count < count)
             {
-                var bestsellers = await GetBestsellersAsync(count * 3);
-                foreach (var bs in bestsellers)
-                {
-                    if (!purchasedProductIds.Contains(bs.Id) && !candidates.Any(c => c.Id == bs.Id))
-                    {
-                        candidates.Add(bs);
-                        if (candidates.Count >= count) break;
-                    }
-                }
+                var bestsellers = await _context.Products
+                    .AsNoTracking()
+                    .Include(p => p.Category)
+                    .Where(p => p.IsAvailable && p.StockQuantity > 0)
+                    .Where(p => !purchasedProductIds.Contains(p.Id))
+                    .Where(p => !candidates.Any(c => c.Id == p.Id))
+                    .OrderByDescending(p => p.SoldCount)
+                    .ThenByDescending(p => p.Rating)
+                    .Take(count - candidates.Count)
+                    .ToListAsync();
+
+                candidates.AddRange(bestsellers);
+            }
+
+            // 5. Если всё ещё пусто — просто возвращаем любые доступные товары
+            if (!candidates.Any())
+            {
+                candidates = await _context.Products
+                    .AsNoTracking()
+                    .Include(p => p.Category)
+                    .Where(p => p.IsAvailable && p.StockQuantity > 0)
+                    .Take(count)
+                    .ToListAsync();
             }
 
             _logger.LogInformation("Рекомендации для {UserId}: куплено {@Purchased}, рекомендовано {@Recs}",

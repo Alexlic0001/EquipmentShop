@@ -343,31 +343,31 @@ namespace EquipmentShop.Infrastructure.Services
             }
         }
 
-        public async Task<ShoppingCart> ConvertToOrderAsync(string cartId, Order order)
-        {
-            var cart = await GetCartAsync(cartId);
-            if (cart.IsEmpty)
-                throw new EmptyCartException(cartId);
+        //public async Task<ShoppingCart> ConvertToOrderAsync(string cartId, Order order)
+        //{
+        //    var cart = await GetCartAsync(cartId);
+        //    if (cart.IsEmpty)
+        //        throw new EmptyCartException(cartId);
 
-            if (!await ValidateCartAsync(cartId))
-                throw new CartException(cartId, "Корзина содержит недоступные или недостаточные товары");
+        //    if (!await ValidateCartAsync(cartId))
+        //        throw new CartException(cartId, "Корзина содержит недоступные или недостаточные товары");
 
-            // ✅ Только заполняем OrderItems — НЕ сохраняем в БД!
-            order.OrderItems = cart.Items.Select(item => new OrderItem
-            {
-                ProductId = item.ProductId,
-                ProductName = item.Product?.Name ?? "Товар",
-                ProductSku = item.Product?.Slug,
-                UnitPrice = item.Price,
-                Quantity = item.Quantity,
-                ProductAttributes = item.SelectedAttributes
-            }).ToList();
+        //    // ✅ Только заполняем OrderItems — НЕ сохраняем в БД!
+        //    order.OrderItems = cart.Items.Select(item => new OrderItem
+        //    {
+        //        ProductId = item.ProductId,
+        //        ProductName = item.Product?.Name ?? "Товар",
+        //        ProductSku = item.Product?.Slug,
+        //        UnitPrice = item.Price,
+        //        Quantity = item.Quantity,
+        //        ProductAttributes = item.SelectedAttributes
+        //    }).ToList();
 
-            order.Subtotal = cart.Items.Sum(i => i.TotalPrice);
+        //    order.Subtotal = cart.Items.Sum(i => i.TotalPrice);
 
-            await ClearCartAsync(cartId);
-            return cart;
-        }
+        //    await ClearCartAsync(cartId);
+        //    return cart;
+        //}
 
         public async Task RenewCartExpirationAsync(string cartId)
         {

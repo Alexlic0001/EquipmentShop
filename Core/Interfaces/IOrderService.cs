@@ -6,7 +6,7 @@ namespace EquipmentShop.Core.Interfaces
 {
     public interface IOrderService
     {
-        Task<Order> CreateOrderFromCartAsync(string cartId, Order order);
+        Task<Order> CreateOrderFromCartAsync(string cartId, string userId);
         Task CancelOrderAsync(int orderId, string reason = "");
         Task ProcessOrderAsync(int orderId);
         Task ShipOrderAsync(int orderId, string trackingNumber, string shippingProvider);

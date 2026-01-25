@@ -3,9 +3,7 @@ using EquipmentShop.Core.Entities;
 using EquipmentShop.Core.Enums;
 using EquipmentShop.Core.Helpers;
 using EquipmentShop.Core.Interfaces;
-using EquipmentShop.Core.Interfaces;
-using EquipmentShop.Infrastructure.Repositories;
-using EquipmentShop.Infrastructure.Services;
+using EquipmentShop.Core.ViewModels;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -20,24 +18,23 @@ namespace EquipmentShop.Controllers
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly ILogger<AccountController> _logger;
         private readonly IEmailService _emailService;
-        private readonly IOrderRepository _orderRepository; // ← НОВОЕ ПОЛЕ
+        private readonly IOrderRepository _orderRepository;
         private readonly IFileStorageService _fileStorageService;
 
-
         public AccountController(
-        SignInManager<ApplicationUser> signInManager,
-        UserManager<ApplicationUser> userManager,
-        ILogger<AccountController> logger,
-        IEmailService emailService,
-        IOrderRepository orderRepository,
-        IFileStorageService fileStorageService) // ← новая зависимость
+            SignInManager<ApplicationUser> signInManager,
+            UserManager<ApplicationUser> userManager,
+            ILogger<AccountController> logger,
+            IEmailService emailService,
+            IOrderRepository orderRepository,
+            IFileStorageService fileStorageService)
         {
             _signInManager = signInManager;
             _userManager = userManager;
             _logger = logger;
             _emailService = emailService;
             _orderRepository = orderRepository;
-            _fileStorageService = fileStorageService; // ← присваивание
+            _fileStorageService = fileStorageService;
         }
 
         [HttpGet]
@@ -45,26 +42,22 @@ namespace EquipmentShop.Controllers
         public IActionResult Login(string? returnUrl = null)
         {
             ViewData["ReturnUrl"] = returnUrl;
-
-            // Проверяем, есть ли сохраненные данные для входа
             var pendingAddToCart = HttpContext.Session.GetString("PendingAddToCart");
             if (!string.IsNullOrEmpty(pendingAddToCart))
             {
                 ViewData["PendingAction"] = "У вас есть товар, ожидающий добавления в корзину";
             }
-
             return View();
         }
+
         [HttpPost]
         [AllowAnonymous]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Login(LoginViewModel model, string? returnUrl = null)
         {
             ViewData["ReturnUrl"] = returnUrl;
-
             if (ModelState.IsValid)
             {
-                // Ищем пользователя по email
                 var user = await _userManager.FindByEmailAsync(model.Email);
                 if (user == null)
                 {
@@ -72,22 +65,13 @@ namespace EquipmentShop.Controllers
                     return View(model);
                 }
 
-                // Вход с использованием UserName (а не Email)
-                var result = await _signInManager.PasswordSignInAsync(
-                    user.UserName, // Используем UserName, а не Email
-                    model.Password,
-                    model.RememberMe,
-                    lockoutOnFailure: false);
-
+                var result = await _signInManager.PasswordSignInAsync(user.UserName, model.Password, model.RememberMe, lockoutOnFailure: false);
                 if (result.Succeeded)
                 {
                     _logger.LogInformation("Пользователь {Email} вошел в систему", model.Email);
-
-                    // Обновляем время последнего входа
                     user.LastLoginAt = DateTime.UtcNow;
                     await _userManager.UpdateAsync(user);
 
-                    // Проверяем, есть ли отложенное добавление в корзину
                     var pendingAddToCart = HttpContext.Session.GetString("PendingAddToCart");
                     if (!string.IsNullOrEmpty(pendingAddToCart))
                     {
@@ -98,14 +82,10 @@ namespace EquipmentShop.Controllers
                                 int.TryParse(parts[0], out int productId) &&
                                 int.TryParse(parts[1], out int quantity))
                             {
-                                // Добавляем товар в корзину пользователя
                                 var cartService = HttpContext.RequestServices.GetRequiredService<IShoppingCartService>();
                                 var cart = await cartService.GetUserCartAsync(user.Id);
                                 await cartService.AddItemAsync(cart.Id, productId, quantity);
-
-                                // Очищаем отложенное действие
                                 HttpContext.Session.Remove("PendingAddToCart");
-
                                 TempData["Success"] = "Товар добавлен в вашу корзину";
                             }
                         }
@@ -129,7 +109,6 @@ namespace EquipmentShop.Controllers
                     _logger.LogWarning("Неудачная попытка входа для пользователя {Email}", model.Email);
                 }
             }
-
             return View(model);
         }
 
@@ -147,10 +126,8 @@ namespace EquipmentShop.Controllers
         public async Task<IActionResult> Register(RegisterViewModel model, string? returnUrl = null)
         {
             ViewData["ReturnUrl"] = returnUrl;
-
             if (ModelState.IsValid)
             {
-                // Проверяем, существует ли уже пользователь с таким email
                 var existingUser = await _userManager.FindByEmailAsync(model.Email);
                 if (existingUser != null)
                 {
@@ -168,25 +145,15 @@ namespace EquipmentShop.Controllers
                     SubscribeToNewsletter = model.SubscribeToNewsletter,
                     EmailNotifications = true,
                     RegisteredAt = DateTime.UtcNow,
-                    EmailConfirmed = true // ← ВАЖНО! Иначе могут быть проблемы с входом
+                    EmailConfirmed = true
                 };
 
                 var result = await _userManager.CreateAsync(user, model.Password);
-
                 if (result.Succeeded)
                 {
                     _logger.LogInformation("Создан новый пользователь: {Email}", model.Email);
+                    await _userManager.AddToRoleAsync(user, AppConstants.CustomerRole);
 
-                    // Добавляем роль Customer
-                    var addToRoleResult = await _userManager.AddToRoleAsync(user, "Customer");
-                    if (!addToRoleResult.Succeeded)
-                    {
-                        _logger.LogWarning("Не удалось назначить роль 'Customer' пользователю {Email}: {Errors}",
-                            model.Email,
-                            string.Join(", ", addToRoleResult.Errors.Select(e => e.Description)));
-                    }
-
-                    // Отправка email (по желанию)
                     try
                     {
                         await _emailService.SendWelcomeEmailAsync(user.Email, user.FullName);
@@ -196,39 +163,29 @@ namespace EquipmentShop.Controllers
                         _logger.LogError(ex, "Ошибка отправки приветственного письма для {Email}", model.Email);
                     }
 
-                    // Автоматический вход
                     await _signInManager.SignInAsync(user, isPersistent: false);
-
                     TempData["Success"] = $"Регистрация прошла успешно! Добро пожаловать, {user.FirstName}!";
-
                     return RedirectToLocal(returnUrl);
                 }
 
-                // Обработка ошибок Identity (например: email уже существует, пароль слабый и т.д.)
                 foreach (var error in result.Errors)
                 {
                     ModelState.AddModelError("", error.Description);
                     _logger.LogWarning("Ошибка регистрации {Email}: {Error}", model.Email, error.Description);
                 }
             }
-
             return View(model);
         }
-
-
 
         [HttpGet]
         [Authorize]
         public async Task<IActionResult> OrderDetails(string orderNumber)
         {
-            if (string.IsNullOrWhiteSpace(orderNumber))
-                return NotFound();
+            if (string.IsNullOrWhiteSpace(orderNumber)) return NotFound();
 
             var user = await _userManager.GetUserAsync(User);
             var order = await _orderRepository.GetByOrderNumberAsync(orderNumber);
-
-            if (order == null || order.UserId != user.Id)
-                return NotFound();
+            if (order == null || order.UserId != user.Id) return NotFound();
 
             var viewModel = new UserOrderDetailsViewModel
             {
@@ -245,10 +202,10 @@ namespace EquipmentShop.Controllers
                     Total = oi.TotalPrice
                 }).ToList()
             };
-
             return View(viewModel);
         }
 
+        // === Внутренние ViewModel, специфичные для AccountController ===
         public class UserOrderDetailsViewModel
         {
             public string OrderNumber { get; set; } = string.Empty;
@@ -267,39 +224,27 @@ namespace EquipmentShop.Controllers
             public decimal Total { get; set; }
         }
 
-
-        // отмена заказа
-
         [HttpPost]
         [Authorize]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> CancelOrder(string orderNumber)
         {
-            if (string.IsNullOrWhiteSpace(orderNumber))
-                return NotFound();
+            if (string.IsNullOrWhiteSpace(orderNumber)) return NotFound();
 
             var user = await _userManager.GetUserAsync(User);
             var order = await _orderRepository.GetByOrderNumberAsync(orderNumber);
+            if (order == null || order.UserId != user.Id) return NotFound();
 
-            // Проверка: заказ существует и принадлежит пользователю
-            if (order == null || order.UserId != user.Id)
-                return NotFound();
-
-            // Проверка: можно ли отменить (30 мин + статус)
             var isAllowedStatus = order.Status == OrderStatus.Pending || order.Status == OrderStatus.Processing;
             var isWithinTimeWindow = order.OrderDate >= DateTime.UtcNow.AddMinutes(-30);
-
             if (!isAllowedStatus || !isWithinTimeWindow)
             {
                 TempData["Error"] = "Невозможно отменить заказ: прошло более 30 минут или заказ уже обрабатывается.";
                 return RedirectToAction("OrderDetails", new { orderNumber });
             }
 
-            // Получаем IOrderService через DI (или создайте поле, если будете использовать часто)
             var orderService = HttpContext.RequestServices.GetRequiredService<IOrderService>();
-
             await orderService.CancelOrderAsync(order.Id, "Отменено пользователем");
-
             TempData["Success"] = $"Заказ #{orderNumber} успешно отменён.";
             return RedirectToAction("OrderDetails", new { orderNumber });
         }
@@ -309,8 +254,7 @@ namespace EquipmentShop.Controllers
         public async Task<IActionResult> Orders()
         {
             var user = await _userManager.GetUserAsync(User);
-            if (user == null)
-                return NotFound();
+            if (user == null) return NotFound();
 
             var orders = await _orderRepository.GetByUserIdAsync(user.Id);
             var viewModel = orders.Select(order => new UserOrderViewModel
@@ -321,11 +265,9 @@ namespace EquipmentShop.Controllers
                 Status = order.Status,
                 ItemCount = order.OrderItems.Count
             }).ToList();
-
             return View(viewModel);
         }
 
-        // ViewModel для заказов в личном кабинете
         public class UserOrderViewModel
         {
             public string OrderNumber { get; set; } = string.Empty;
@@ -333,7 +275,6 @@ namespace EquipmentShop.Controllers
             public decimal Total { get; set; }
             public OrderStatus Status { get; set; }
             public int ItemCount { get; set; }
-
             public string StatusDisplay => EnumHelper<OrderStatus>.GetDisplayName(Status);
         }
 
@@ -353,10 +294,8 @@ namespace EquipmentShop.Controllers
                 Phone = user.PhoneNumber ?? string.Empty,
                 AvatarUrl = user.AvatarUrl
             };
-
             return View(model);
         }
-
 
         [HttpPost]
         [Authorize]
@@ -371,15 +310,12 @@ namespace EquipmentShop.Controllers
             var user = await _userManager.GetUserAsync(User);
             if (user == null) return NotFound();
 
-            // Обновляем данные
             user.FirstName = model.FirstName;
             user.LastName = model.LastName;
             user.PhoneNumber = model.Phone;
 
-            // Обработка аватара
             if (avatarFile != null && avatarFile.Length > 0)
             {
-                // Валидация
                 if (avatarFile.Length > 5 * 1024 * 1024)
                 {
                     ModelState.AddModelError("avatarFile", "Файл слишком большой (макс. 5 МБ)");
@@ -393,14 +329,12 @@ namespace EquipmentShop.Controllers
                     return View("EditProfile", model);
                 }
 
-                // Удаляем старый аватар, если не дефолтный
                 if (!string.IsNullOrEmpty(user.AvatarUrl) &&
                     !user.AvatarUrl.Equals(AppConstants.DefaultUserAvatar, StringComparison.OrdinalIgnoreCase))
                 {
                     await _fileStorageService.DeleteFileAsync(user.AvatarUrl);
                 }
 
-                // Сохраняем новый
                 var fileName = await _fileStorageService.GenerateUniqueFileName(avatarFile.FileName);
                 var filePath = await _fileStorageService.SaveUserAvatarAsync(avatarFile.OpenReadStream(), fileName);
                 user.AvatarUrl = filePath;
@@ -419,11 +353,6 @@ namespace EquipmentShop.Controllers
             return View("EditProfile", model);
         }
 
-
-
-
-
-
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Logout()
@@ -433,14 +362,9 @@ namespace EquipmentShop.Controllers
             {
                 _logger.LogInformation("Пользователь {Email} вышел из системы", user.Email);
             }
-
             await _signInManager.SignOutAsync();
-
-            // Очищаем сессию корзины при выходе
             HttpContext.Session.Remove("CartId");
-
             TempData["Success"] = "Вы успешно вышли из системы";
-
             return RedirectToAction("Index", "Home");
         }
 
@@ -449,12 +373,8 @@ namespace EquipmentShop.Controllers
         public async Task<IActionResult> Profile()
         {
             var user = await _userManager.GetUserAsync(User);
-            if (user == null)
-            {
-                return NotFound();
-            }
+            if (user == null) return NotFound();
 
-            // Получаем количество заказов пользователя
             var orderCount = await _orderRepository.GetByUserIdAsync(user.Id);
             var totalOrders = orderCount.Count();
 
@@ -467,7 +387,7 @@ namespace EquipmentShop.Controllers
                 Phone = user.PhoneNumber,
                 AvatarUrl = user.AvatarUrl,
                 RegisteredAt = user.RegisteredAt,
-                OrderCount = totalOrders, // ← УСТАНАВЛИВАЕМ КОЛИЧЕСТВО ЗАКАЗОВ
+                OrderCount = totalOrders,
                 Addresses = user.AdditionalAddresses?.Select(a => new AddressViewModel
                 {
                     Title = a.Title,
@@ -480,11 +400,8 @@ namespace EquipmentShop.Controllers
                     IsDefault = a.IsDefault
                 }).ToList() ?? new List<AddressViewModel>()
             };
-
             return View(model);
         }
-
-        
 
         [HttpGet]
         [AllowAnonymous]
@@ -506,7 +423,6 @@ namespace EquipmentShop.Controllers
                     var token = await _userManager.GeneratePasswordResetTokenAsync(user);
                     var callbackUrl = Url.Action("ResetPassword", "Account",
                         new { userId = user.Id, token = token }, protocol: HttpContext.Request.Scheme);
-
                     try
                     {
                         await _emailService.SendPasswordResetAsync(user.Email, callbackUrl);
@@ -516,12 +432,9 @@ namespace EquipmentShop.Controllers
                         _logger.LogError(ex, "Ошибка при отправке письма для сброса пароля");
                     }
                 }
-
-                // Всегда показываем одно и то же сообщение для безопасности
                 TempData["Success"] = "Если аккаунт с таким email существует, на него было отправлено письмо для сброса пароля";
                 return RedirectToAction("Login");
             }
-
             return View(model);
         }
 
@@ -533,13 +446,11 @@ namespace EquipmentShop.Controllers
             {
                 return RedirectToAction("Index", "Home");
             }
-
             var model = new ResetPasswordViewModel
             {
                 Token = token,
                 UserId = userId
             };
-
             return View(model);
         }
 
@@ -559,7 +470,6 @@ namespace EquipmentShop.Controllers
                         TempData["Success"] = "Пароль успешно сброшен";
                         return RedirectToAction("Login");
                     }
-
                     foreach (var error in result.Errors)
                     {
                         ModelState.AddModelError("", error.Description);
@@ -570,7 +480,6 @@ namespace EquipmentShop.Controllers
                     ModelState.AddModelError("", "Пользователь не найден");
                 }
             }
-
             return View(model);
         }
 
@@ -583,7 +492,6 @@ namespace EquipmentShop.Controllers
             {
                 return NotFound();
             }
-
             return View();
         }
 
@@ -599,7 +507,6 @@ namespace EquipmentShop.Controllers
                 {
                     return NotFound();
                 }
-
                 var result = await _userManager.ChangePasswordAsync(user, model.OldPassword, model.NewPassword);
                 if (result.Succeeded)
                 {
@@ -607,13 +514,11 @@ namespace EquipmentShop.Controllers
                     TempData["Success"] = "Пароль успешно изменен";
                     return RedirectToAction("Profile");
                 }
-
                 foreach (var error in result.Errors)
                 {
                     ModelState.AddModelError("", error.Description);
                 }
             }
-
             return View(model);
         }
 
@@ -630,192 +535,7 @@ namespace EquipmentShop.Controllers
             {
                 return Redirect(returnUrl);
             }
-            else
-            {
-                return RedirectToAction("Index", "Home");
-            }
-        }
-        // отмена заказа
-
-
-
-        // ViewModel для AccountController
-        public class LoginViewModel
-        {
-            [Required(ErrorMessage = "Email обязателен")]
-            [EmailAddress(ErrorMessage = "Некорректный формат Email")]
-            [Display(Name = "Email")]
-            public string Email { get; set; } = string.Empty;
-
-            [Required(ErrorMessage = "Пароль обязателен")]
-            [DataType(DataType.Password)]
-            [Display(Name = "Пароль")]
-            public string Password { get; set; } = string.Empty;
-
-            [Display(Name = "Запомнить меня")]
-            public bool RememberMe { get; set; }
-
-            public string? ReturnUrl { get; set; }
-        }
-
-        public class RegisterViewModel
-        {
-            [Required(ErrorMessage = "Имя обязательно")]
-            [Display(Name = "Имя")]
-            [StringLength(50, ErrorMessage = "Имя должно содержать от {2} до {1} символов", MinimumLength = 2)]
-            public string FirstName { get; set; } = string.Empty;
-
-            [Required(ErrorMessage = "Фамилия обязательна")]
-            [Display(Name = "Фамилия")]
-            [StringLength(50, ErrorMessage = "Фамилия должна содержать от {2} до {1} символов", MinimumLength = 2)]
-            public string LastName { get; set; } = string.Empty;
-
-            [Required(ErrorMessage = "Email обязателен")]
-            [EmailAddress(ErrorMessage = "Некорректный формат Email")]
-            [Display(Name = "Email")]
-            public string Email { get; set; } = string.Empty;
-
-            [Required(ErrorMessage = "Телефон обязателен")]
-            [Phone(ErrorMessage = "Некорректный формат телефона")]
-            [Display(Name = "Телефон")]
-            public string Phone { get; set; } = string.Empty;
-
-            [Required(ErrorMessage = "Пароль обязателен")]
-            [StringLength(100, ErrorMessage = "Пароль должен содержать от {2} до {1} символов", MinimumLength = 6)]
-            [DataType(DataType.Password)]
-            [Display(Name = "Пароль")]
-            public string Password { get; set; } = string.Empty;
-
-            [DataType(DataType.Password)]
-            [Display(Name = "Подтверждение пароля")]
-            [Compare("Password", ErrorMessage = "Пароли не совпадают")]
-            public string ConfirmPassword { get; set; } = string.Empty;
-
-            [Required(ErrorMessage = "Необходимо согласие с условиями")]
-            [Display(Name = "Я согласен с условиями использования")]
-            public bool AcceptTerms { get; set; }
-
-            [Display(Name = "Подписаться на новости")]
-            public bool SubscribeToNewsletter { get; set; } = true;
-        }
-
-        public class UserProfileViewModel
-        {
-            public string Id { get; set; } = string.Empty;
-
-            [Required(ErrorMessage = "Имя обязательно")]
-            [Display(Name = "Имя")]
-            public string FirstName { get; set; } = string.Empty;
-
-            [Required(ErrorMessage = "Фамилия обязательна")]
-            [Display(Name = "Фамилия")]
-            public string LastName { get; set; } = string.Empty;
-
-            [Required(ErrorMessage = "Email обязателен")]
-            [EmailAddress(ErrorMessage = "Некорректный формат Email")]
-            [Display(Name = "Email")]
-            public string Email { get; set; } = string.Empty;
-
-            [Required(ErrorMessage = "Телефон обязателен")]
-            [Phone(ErrorMessage = "Некорректный формат телефона")]
-            [Display(Name = "Телефон")]
-            public string Phone { get; set; } = string.Empty;
-
-            [Display(Name = "Аватар")]
-            public string? AvatarUrl { get; set; }
-
-            [Display(Name = "Дата регистрации")]
-            public DateTime RegisteredAt { get; set; }
-
-            [Display(Name = "Количество заказов")]
-            public int OrderCount { get; set; }
-
-            [Display(Name = "Адреса доставки")]
-            public List<AddressViewModel> Addresses { get; set; } = new();
-
-            public string FullName => $"{FirstName} {LastName}";
-        }
-
-        public class AddressViewModel
-        {
-            [Display(Name = "Название адреса")]
-            public string Title { get; set; } = "Домашний адрес";
-
-            [Required(ErrorMessage = "Адрес обязателен")]
-            [Display(Name = "Адрес")]
-            public string AddressLine1 { get; set; } = string.Empty;
-
-            [Display(Name = "Дополнительная информация")]
-            public string? AddressLine2 { get; set; }
-
-            [Required(ErrorMessage = "Город обязателен")]
-            [Display(Name = "Город")]
-            public string City { get; set; } = string.Empty;
-
-            [Display(Name = "Область")]
-            public string? Region { get; set; }
-
-            [Display(Name = "Почтовый индекс")]
-            public string? PostalCode { get; set; }
-
-            [Display(Name = "Страна")]
-            public string Country { get; set; } = "Беларусь";
-
-            [Display(Name = "Использовать по умолчанию")]
-            public bool IsDefault { get; set; }
-
-            public string FullAddress => $"{City}, {AddressLine1}" +
-                (!string.IsNullOrEmpty(AddressLine2) ? $", {AddressLine2}" : "") +
-                (!string.IsNullOrEmpty(Region) ? $", {Region}" : "");
-        }
-
-        public class ForgotPasswordViewModel
-        {
-            [Required(ErrorMessage = "Email обязателен")]
-            [EmailAddress(ErrorMessage = "Некорректный формат Email")]
-            [Display(Name = "Email")]
-            public string Email { get; set; } = string.Empty;
-        }
-
-        public class ResetPasswordViewModel
-        {
-            [Required(ErrorMessage = "Email обязателен")]
-            [EmailAddress(ErrorMessage = "Некорректный формат Email")]
-            [Display(Name = "Email")]
-            public string Email { get; set; } = string.Empty;
-
-            [Required(ErrorMessage = "Пароль обязателен")]
-            [StringLength(100, ErrorMessage = "Пароль должен содержать от {2} до {1} символов", MinimumLength = 6)]
-            [DataType(DataType.Password)]
-            [Display(Name = "Пароль")]
-            public string Password { get; set; } = string.Empty;
-
-            [DataType(DataType.Password)]
-            [Display(Name = "Подтверждение пароля")]
-            [Compare("Password", ErrorMessage = "Пароли не совпадают")]
-            public string ConfirmPassword { get; set; } = string.Empty;
-
-            public string Token { get; set; } = string.Empty;
-            public string UserId { get; set; } = string.Empty;
-        }
-
-        public class ChangePasswordViewModel
-        {
-            [Required(ErrorMessage = "Текущий пароль обязателен")]
-            [DataType(DataType.Password)]
-            [Display(Name = "Текущий пароль")]
-            public string OldPassword { get; set; } = string.Empty;
-
-            [Required(ErrorMessage = "Новый пароль обязателен")]
-            [StringLength(100, ErrorMessage = "Пароль должен содержать от {2} до {1} символов", MinimumLength = 6)]
-            [DataType(DataType.Password)]
-            [Display(Name = "Новый пароль")]
-            public string NewPassword { get; set; } = string.Empty;
-
-            [DataType(DataType.Password)]
-            [Display(Name = "Подтверждение нового пароля")]
-            [Compare("NewPassword", ErrorMessage = "Пароли не совпадают")]
-            public string ConfirmPassword { get; set; } = string.Empty;
+            return RedirectToAction("Index", "Home");
         }
     }
 }

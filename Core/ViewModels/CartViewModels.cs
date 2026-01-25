@@ -11,6 +11,7 @@ namespace EquipmentShop.Core.ViewModels
         public decimal TaxAmount { get; set; }
         public decimal Total { get; set; }
         public bool IsEmpty => !Items.Any();
+        public string? ShippingAddressPreview { get; set; }
     }
 
     public class CartItemViewModel

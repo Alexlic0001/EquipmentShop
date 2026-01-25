@@ -604,7 +604,25 @@ namespace EquipmentShop.Controllers
         public async Task<IActionResult> Products()
         {
             var products = await _productRepository.GetAllAsync();
-            return View(products);
+            var categories = await _categoryRepository.GetAllAsync();
+
+            // Группируем товары по категориям
+            var productsByCategory = new Dictionary<Category, List<Product>>();
+
+            foreach (var category in categories)
+            {
+                var categoryProducts = products
+                    .Where(p => p.CategoryId == category.Id)
+                    .ToList();
+
+                if (categoryProducts.Any())
+                {
+                    productsByCategory[category] = categoryProducts;
+                }
+            }
+
+            ViewBag.ProductsByCategory = productsByCategory;
+            return View("ProductsByCategory");
         }
 
         [HttpGet("products/{id}")]
@@ -629,16 +647,21 @@ namespace EquipmentShop.Controllers
             var allCategories = await _categoryRepository.GetAllAsync();
             ViewBag.Categories = allCategories;
 
-            var errors = new List<string>();
-            if (string.IsNullOrWhiteSpace(product.Name)) errors.Add("Название товара обязательно");
-            if (string.IsNullOrWhiteSpace(product.Description)) errors.Add("Описание товара обязательно");
-            if (product.Price <= 0) errors.Add("Цена должна быть больше 0");
-            if (product.StockQuantity < 0) errors.Add("Количество не может быть отрицательным");
-            if (product.CategoryId <= 0) errors.Add("Категория обязательна");
-
-            if (errors.Any())
+            // Валидация модели
+            if (!ModelState.IsValid)
             {
-                foreach (var error in errors) ModelState.AddModelError("", error);
+                var errors = ModelState.Values
+                    .SelectMany(v => v.Errors)
+                    .Select(e => e.ErrorMessage)
+                    .ToList();
+
+                // Если запрос AJAX — возвращаем JSON
+                if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+                {
+                    return Json(new { success = false, errors });
+                }
+
+                // Иначе — возвращаем View
                 return View(product);
             }
 
@@ -659,9 +682,7 @@ namespace EquipmentShop.Controllers
                     }
                 }
 
-                // ✅ Генерируем УНИКАЛЬНЫЙ slug
                 product.Slug = await _productRepository.GenerateUniqueSlugAsync(product.Name);
-
                 product.MetaTitle ??= product.Name;
                 product.MetaDescription ??= product.Description.Length > 160
                     ? product.Description[..160] + "..."
@@ -672,12 +693,24 @@ namespace EquipmentShop.Controllers
                 product.IsAvailable = product.StockQuantity > 0;
 
                 await _productRepository.AddAsync(product);
-                TempData["Success"] = "Товар успешно создан";
-                return RedirectToAction("Products");
+
+                // Успех — возвращаем JSON или редирект
+                if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+                {
+                    return Json(new { success = true, message = "Товар успешно создан" });
+                }
+
+                return RedirectToAction("Products", new { success = "Товар успешно создан" });
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Ошибка при создании товара");
+
+                if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+                {
+                    return Json(new { success = false, errors = new[] { "Произошла ошибка при создании товара" } });
+                }
+
                 ModelState.AddModelError("", $"Ошибка: {ex.Message}");
                 return View(product);
             }
@@ -843,7 +876,7 @@ namespace EquipmentShop.Controllers
                     await _fileStorageService.DeleteFileAsync(product.ImageUrl);
 
                 await _productRepository.DeleteAsync(product);
-                TempData["Success"] = "Товар успешно удалён";
+                //TempData["Success"] = "Товар успешно удалён";
             }
             catch (Exception ex)
             {
@@ -851,7 +884,7 @@ namespace EquipmentShop.Controllers
                 TempData["Error"] = "Не удалось удалить товар.";
             }
 
-            return RedirectToAction("Products");
+            return RedirectToAction("Products", new { success = "Товар успешно удалён" });
         }
 
         // ========== КАТЕГОРИИ ==========

@@ -2,6 +2,14 @@
 @model IEnumerable<EquipmentShop.Core.Entities.Product>
 @{
     ViewData["Title"] = "Каталог товаров";
+
+    // Группируем товары по категориям
+    var productsByCategory = Model
+        .GroupBy(p => p.CategoryId)
+        .ToDictionary(g => g.Key, g => g.ToList());
+
+    // Получаем категории для отображения названий
+    var categories = ViewBag.Categories as List<EquipmentShop.Core.Entities.Category> ?? new List<EquipmentShop.Core.Entities.Category>();
 }
 
 <div class="container mt-4">
@@ -15,50 +23,104 @@
     }
     else
     {
-        <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 row-cols-xl-4 g-4 mt-3">
-            @foreach (var product in Model)
-            {
-                <div class="col">
-                    <div class="card h-100 shadow-sm">
-                        <img src="@product.ImageUrl" class="card-img-top p-3" alt="@product.Name"
-                             style="height: 200px; object-fit: contain;">
+        @foreach (var categoryId in productsByCategory.Keys)
+        {
+            var category = categories.FirstOrDefault(c => c.Id == categoryId);
+            var categoryName = category?.Name ?? "Без категории";
+            var collapseId = $"collapse-{categoryId}";
+            var cardId = $"card-{categoryId}";
 
-                        <div class="card-body">
-                            <h5 class="card-title">
-                                <a asp-action="Details" asp-route-id="@product.Id" class="text-decoration-none text-dark">
-                                    @product.Name
-                                </a>
-                            </h5>
+            <div class="card mb-3" id="@cardId">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">@categoryName</h5>
+                    <button class="btn btn-sm btn-link text-dark p-0"
+                            type="button"
+                            data-bs-toggle="collapse"
+                            data-bs-target="#@collapseId"
+                            aria-expanded="true"
+                            aria-controls="@collapseId">
+                        <i class="toggle-icon fas fa-chevron-up"></i>
+                    </button>
+                </div>
+                <div id="@collapseId" class="collapse show" data-parent="#@cardId">
+                    <div class="card-body">
+                        <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 row-cols-xl-4 g-4">
+                            @foreach (var product in productsByCategory[categoryId])
+                            {
+                                <div class="col">
+                                    <div class="card h-100 shadow-sm">
+                                        <img src="@product.ImageUrl" class="card-img-top p-3" alt="@product.Name"
+                                             style="height: 200px; object-fit: contain;">
 
-                            <div class="mb-2">
-                                <span class="h5 text-primary">@product.Price.ToString("N0")@AppConstants.CurrencySymbol</span>
-                                @if (product.OldPrice.HasValue)
-                                {
-                                    <small class="text-muted text-decoration-line-through ms-2">@product.OldPrice.Value.ToString("N0")@AppConstants.CurrencySymbol</small>
-                                }
-                            </div>
+                                        <div class="card-body">
+                                            <h5 class="card-title">
+                                                <a asp-action="Details" asp-route-id="@product.Id" class="text-decoration-none text-dark">
+                                                    @product.Name
+                                                </a>
+                                            </h5>
 
-                            <div class="d-flex justify-content-between align-items-center">
-                                <span class="badge @(product.StockQuantity > 0 ? "bg-success" : "bg-danger")">
-                                    @(product.StockQuantity > 0 ? "В наличии" : "Нет в наличии")
-                                </span>
+                                            <div class="mb-2">
+                                                <span class="h5 text-primary">@product.Price.ToString("N0")@AppConstants.CurrencySymbol</span>
+                                                @if (product.OldPrice.HasValue)
+                                                {
+                                                    <small class="text-muted text-decoration-line-through ms-2">@product.OldPrice.Value.ToString("N0")@AppConstants.CurrencySymbol</small>
+                                                }
+                                            </div>
 
-                                <div class="text-warning">
-                                    @for (int i = 1; i <= 5; i++)
-                                    {
-                                        <i class="fas @(i <= product.Rating ? "fa-star" : "fa-star-o")"></i>
-                                    }
+                                            <div class="d-flex justify-content-between align-items-center">
+                                                <span class="badge @(product.StockQuantity > 0 ? "bg-success" : "bg-danger")">
+                                                    @(product.StockQuantity > 0 ? "В наличии" : "Нет в наличии")
+                                                </span>
+
+                                                <div class="text-warning">
+                                                    @for (int i = 1; i <= 5; i++)
+                                                    {
+                                                        <i class="fas @(i <= product.Rating ? "fa-star" : "fa-star-o")"></i>
+                                                    }
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="card-footer bg-transparent border-top-0">
+                                            <a asp-action="Details" asp-route-id="@product.Id"
+                                               class="btn btn-primary w-100">Подробнее</a>
+                                        </div>
+                                    </div>
                                 </div>
-                            </div>
-                        </div>
-
-                        <div class="card-footer bg-transparent border-top-0">
-                            <a asp-action="Details" asp-route-id="@product.Id"
-                               class="btn btn-primary w-100">Подробнее</a>
+                            }
                         </div>
                     </div>
                 </div>
-            }
-        </div>
+            </div>
+        }
     }
 </div>
+
+@section Scripts {
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // Обработка кнопок сворачивания/разворачивания
+            document.querySelectorAll('[data-bs-toggle="collapse"]').forEach(button => {
+                const target = button.getAttribute('data-bs-target');
+                const collapse = document.querySelector(target);
+
+                // Устанавливаем начальное состояние иконки
+                updateIcon(button, collapse.classList.contains('show'));
+
+                button.addEventListener('click', function () {
+                    setTimeout(() => {
+                        const isExpanded = collapse.classList.contains('show');
+                        updateIcon(this, isExpanded);
+                    }, 10);
+                });
+            });
+
+            function updateIcon(button, isExpanded) {
+                const icon = button.querySelector('.toggle-icon');
+                if (icon) {
+                    icon.className = 'toggle-icon fas ' + (isExpanded ? 'fa-chevron-up' : 'fa-chevron-down');
+                }
+            }
+        });
+    </script>
+}

@@ -2,61 +2,82 @@
     ViewData["Title"] = "Главная";
 }
 
-<div class="text-center py-5 bg-light rounded-3 mb-4">
-    <h1 class="display-4">Добро пожаловать в EquipmentShop!</h1>
-    <p class="lead">Лучший интернет-магазин компьютерной техники в Беларуси</p>
-    <a asp-controller="Products" asp-action="Index" class="btn btn-primary btn-lg mt-3">
-        <i class="fas fa-shopping-bag"></i> Перейти к покупкам
-    </a>
-    @if (ViewBag.Personalized != null && ((IEnumerable<Product>)ViewBag.Personalized).Any())
-    {
-        <h2 class="mt-5">Рекомендуем лично вам</h2>
-        <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+<!-- Hero Banner -->
+<div class="bg-primary text-white py-5 mb-5 rounded-3 shadow"
+     style="background-color: #6f19b5 !important;">
+    <div class="container text-center">
+        <h1 class="display-5 fw-bold">ПрофСистемы Безопасности</h1>
+        <p class="lead">Системы видеонаблюдения, СКУД, периметральная техника и многое другое — в наличии и под заказ</p>
+        <a asp-controller="Products" asp-action="Index" class="btn btn-light btn-lg mt-3 px-4">
+            <i class="fas fa-shopping-bag me-2"></i>Перейти в каталог
+        </a>
+    </div>
+</div>
+
+<!-- Персонализированные рекомендации (ТОЛЬКО для авторизованных) -->
+@if (ViewBag.Personalized != null)
+{
+    <section class="mb-5">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h2 class="h4">Рекомендуем лично вам</h2>
+            <a asp-controller="Products" asp-action="Index" class="text-decoration-none">Все товары →</a>
+        </div>
+        <div class="row row-cols-2 row-cols-md-3 row-cols-lg-4 g-4">
             @foreach (var p in ViewBag.Personalized)
             {
                 <div class="col">
-                    <div class="card h-100 shadow-sm">
-                        <img src="@p.ImageUrl" class="card-img-top p-3" alt="@p.Name" style="height: 200px; object-fit: contain;">
-                        <div class="card-body">
-                            <h5 class="card-title">@p.Name</h5>
-                            <p class="text-primary h5">@($"{p.Price:N0} р.")</p>
-                        </div>
-                        <div class="card-footer bg-transparent">
-                            <a asp-controller="Products" asp-action="Details" asp-route-id="@p.Id" class="btn btn-outline-primary">Подробнее</a>
-                        </div>
-                    </div>
+                    <partial name="_ProductCard" model="p" />
                 </div>
             }
         </div>
-    }
-</div>
+    </section>
+}
 
-<div class="row mt-5">
-    <div class="col-md-4 text-center mb-4">
-        <div class="card border-0 shadow-sm h-100">
-            <div class="card-body">
-                <i class="fas fa-shipping-fast fa-3x text-primary mb-3"></i>
-                <h3>Быстрая доставка</h3>
-                <p>Доставка по Минску в течение 24 часов</p>
-            </div>
-        </div>
+@* <!-- Рекомендуемые -->
+<section class="mb-5">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2 class="h4">Рекомендуем</h2>
+        <a asp-controller="Products" asp-action="Index" asp-route-isFeatured="true" class="text-decoration-none">Все →</a>
     </div>
-    <div class="col-md-4 text-center mb-4">
-        <div class="card border-0 shadow-sm h-100">
-            <div class="card-body">
-                <i class="fas fa-shield-alt fa-3x text-success mb-3"></i>
-                <h3>Гарантия качества</h3>
-                <p>Гарантия на все товары от 1 года</p>
+    <div class="row row-cols-2 row-cols-md-3 row-cols-lg-4 g-4">
+        @foreach (var p in ViewBag.Featured)
+        {
+            <div class="col">
+                <partial name="_ProductCard" model="p" />
             </div>
-        </div>
+        }
     </div>
-    <div class="col-md-4 text-center mb-4">
-        <div class="card border-0 shadow-sm h-100">
-            <div class="card-body">
-                <i class="fas fa-headset fa-3x text-info mb-3"></i>
-                <h3>Поддержка 24/7</h3>
-                <p>Круглосуточная поддержка клиентов</p>
+</section> *@
+
+<!-- Новинки -->
+<section class="mb-5">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2 class="h4">Новинки</h2>
+        <a asp-controller="Products" asp-action="Index" asp-route-isNew="true" class="text-decoration-none">Все →</a>
+    </div>
+    <div class="row row-cols-2 row-cols-md-3 row-cols-lg-4 g-4">
+        @foreach (var p in ViewBag.NewArrivals)
+        {
+            <div class="col">
+                <partial name="_ProductCard" model="p" />
             </div>
-        </div>
+        }
     </div>
-</div>
+</section>
+
+<!-- Бестселлеры -->
+<section class="mb-5">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2 class="h4">Популярные товары</h2>
+        <a asp-controller="Products" asp-action="Index" asp-route-sortBy="popular" class="text-decoration-none">Все →</a>
+    </div>
+    <div class="row row-cols-2 row-cols-md-3 row-cols-lg-4 g-4">
+        @foreach (var p in ViewBag.Bestsellers)
+        {
+            <div class="col">
+                <partial name="_ProductCard" model="p" />
+            </div>
+        }
+    </div>
+</section>
+

@@ -11,7 +11,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Infrastructure.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260120201201_InitialCreate")]
+    [Migration("20260124141617_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -398,9 +398,6 @@ namespace Infrastructure.Migrations
                     b.Property<int>("OrderId")
                         .HasColumnType("INTEGER");
 
-                    b.Property<int>("OrderId1")
-                        .HasColumnType("INTEGER");
-
                     b.Property<decimal?>("OriginalPrice")
                         .HasPrecision(18, 2)
                         .HasColumnType("TEXT");
@@ -431,8 +428,6 @@ namespace Infrastructure.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("OrderId");
-
-                    b.HasIndex("OrderId1");
 
                     b.HasIndex("ProductId");
 
@@ -963,15 +958,9 @@ namespace Infrastructure.Migrations
 
             modelBuilder.Entity("EquipmentShop.Core.Entities.OrderItem", b =>
                 {
-                    b.HasOne("EquipmentShop.Core.Entities.Order", null)
+                    b.HasOne("EquipmentShop.Core.Entities.Order", "Order")
                         .WithMany("OrderItems")
                         .HasForeignKey("OrderId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("EquipmentShop.Core.Entities.Order", "Order")
-                        .WithMany()
-                        .HasForeignKey("OrderId1")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 

@@ -32,7 +32,7 @@ namespace EquipmentShop.Controllers
             // Получаем все товары
             var products = await _productRepository.GetAllAsync();
 
-            // Фильтрация по поиску (в памяти, так как уже загружены)
+            // Фильтрация по поиску
             if (!string.IsNullOrEmpty(search))
             {
                 var searchTerm = search.ToLowerInvariant();
@@ -43,14 +43,18 @@ namespace EquipmentShop.Controllers
                 ).ToList();
             }
 
-            // Рассчитываем финальные цены для всех товаров
+            // Рассчитываем финальные цены
             var productsWithFinalPrices = new List<Product>();
             foreach (var product in products)
             {
                 var finalPrice = await _pricingService.CalculateFinalPriceAsync(product.Id);
-                product.Price = finalPrice; // Обновляем цену для отображения
+                product.Price = finalPrice;
                 productsWithFinalPrices.Add(product);
             }
+
+           
+            var allCategories = await _categoryRepository.GetAllAsync();
+            ViewBag.Categories = allCategories.ToList();
 
             return View(productsWithFinalPrices);
         }

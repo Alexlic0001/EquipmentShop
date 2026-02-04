@@ -185,6 +185,7 @@ namespace EquipmentShop.Controllers
 
             var user = await _userManager.GetUserAsync(User);
             var order = await _orderRepository.GetByOrderNumberAsync(orderNumber);
+
             if (order == null || order.UserId != user.Id) return NotFound();
 
             var viewModel = new UserOrderDetailsViewModel
@@ -193,7 +194,12 @@ namespace EquipmentShop.Controllers
                 OrderDate = order.OrderDate,
                 Status = order.Status,
                 Total = order.Total,
-                ShippingAddress = $"{order.ShippingCity}, {order.ShippingAddress}",
+                // Адрес доставки
+                ShippingAddress = order.ShippingAddress,
+                ShippingCity = order.ShippingCity,
+                ShippingRegion = order.ShippingRegion,
+                ShippingPostalCode = order.ShippingPostalCode,
+                ShippingCountry = order.ShippingCountry,
                 Items = order.OrderItems.Select(oi => new UserOrderItemViewModel
                 {
                     ProductName = oi.ProductName,
@@ -202,6 +208,7 @@ namespace EquipmentShop.Controllers
                     Total = oi.TotalPrice
                 }).ToList()
             };
+
             return View(viewModel);
         }
 
@@ -212,7 +219,14 @@ namespace EquipmentShop.Controllers
             public DateTime OrderDate { get; set; }
             public OrderStatus Status { get; set; }
             public decimal Total { get; set; }
+
+            // Адрес доставки
             public string ShippingAddress { get; set; } = string.Empty;
+            public string? ShippingCity { get; set; }
+            public string? ShippingRegion { get; set; }
+            public string? ShippingPostalCode { get; set; }
+            public string? ShippingCountry { get; set; }
+
             public List<UserOrderItemViewModel> Items { get; set; } = new();
         }
 

@@ -1,0 +1,92 @@
+﻿@model EquipmentShop.Core.Entities.UserAddress
+@{
+    ViewData["Title"] = "Редактировать адрес";
+    Layout = "_Layout";
+}
+
+<div class="container mt-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a asp-controller="Account" asp-action="Profile">Профиль</a></li>
+            <li class="breadcrumb-item"><a asp-action="Index">Адреса доставки</a></li>
+            <li class="breadcrumb-item active">Редактировать адрес</li>
+        </ol>
+    </nav>
+
+    <h2>Редактировать адрес: @Model.Title</h2>
+
+    <form asp-action="Edit" method="post">
+        @Html.AntiForgeryToken()
+        <input type="hidden" name="index" value="@ViewContext.RouteData.Values["index"]" />
+
+        <div class="row">
+            <div class="col-md-6">
+                <div class="mb-3">
+                    <label asp-for="Title" class="form-label">Название адреса *</label>
+                    <input asp-for="Title" class="form-control" required />
+                    <span asp-validation-for="Title" class="text-danger"></span>
+                </div>
+
+                <div class="mb-3">
+                    <label asp-for="AddressLine1" class="form-label">Адрес *</label>
+                    <input asp-for="AddressLine1" class="form-control" placeholder="Улица, дом, квартира" required />
+                    <span asp-validation-for="AddressLine1" class="text-danger"></span>
+                </div>
+
+                <div class="mb-3">
+                    <label asp-for="AddressLine2" class="form-label">Дополнительно</label>
+                    <input asp-for="AddressLine2" class="form-control" placeholder="Подъезд, этаж, код" />
+                </div>
+
+                <div class="mb-3">
+                    <label asp-for="City" class="form-label">Город *</label>
+                    <input asp-for="City" class="form-control" required />
+                    <span asp-validation-for="City" class="text-danger"></span>
+                </div>
+            </div>
+
+            <div class="col-md-6">
+                <div class="mb-3">
+                    <label asp-for="Region" class="form-label">Область</label>
+                    <input asp-for="Region" class="form-control" />
+                </div>
+
+                <div class="mb-3">
+                    <label asp-for="PostalCode" class="form-label">Почтовый индекс</label>
+                    <input asp-for="PostalCode" class="form-control" />
+                </div>
+
+                <div class="mb-3">
+                    <label asp-for="Country" class="form-label">Страна</label>
+                    <input asp-for="Country" class="form-control" />
+                </div>
+
+                <div class="mb-3">
+                    <label asp-for="Phone" class="form-label">Телефон</label>
+                    <input asp-for="Phone" class="form-control" />
+                </div>
+
+                <div class="mb-3">
+                    <label asp-for="FullName" class="form-label">ФИО получателя</label>
+                    <input asp-for="FullName" class="form-control" />
+                </div>
+
+                <div class="mb-3 form-check">
+                    <input asp-for="IsDefault" class="form-check-input" />
+                    <label asp-for="IsDefault" class="form-check-label">
+                        Использовать как основной адрес
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <div class="mt-4">
+            <button type="submit" class="btn btn-success">
+                <i class="fas fa-save"></i> Сохранить изменения
+            </button>
+            <a asp-action="Index" class="btn btn-secondary">
+                <i class="fas fa-times"></i> Отмена
+            </a>
+        </div>
+    </form>
+</div>

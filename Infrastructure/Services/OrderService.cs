@@ -49,11 +49,38 @@ namespace EquipmentShop.Infrastructure.Services
                 var cart = await _cartService.GetCartAsync(cartId);
                 if (cart.IsEmpty)
                     throw new EmptyCartException(cartId);
-
                 if (!await _cartService.ValidateCartAsync(cartId))
                     throw new CartException(cartId, "Корзина содержит недоступные товары");
 
-                // 3. Создаём заказ
+                // 3. Определяем адрес доставки
+                string shippingAddress = "";
+                string shippingCity = "Минск";
+                string shippingRegion = "Минская обл.";
+                string shippingCountry = "Беларусь";
+                string shippingPostalCode = "";
+
+                // Используем адрес по умолчанию из дополнительных адресов или основной адрес
+                var defaultAddress = user.AdditionalAddresses?.FirstOrDefault(a => a.IsDefault);
+                if (defaultAddress != null)
+                {
+                    shippingAddress = defaultAddress.AddressLine1;
+                    if (!string.IsNullOrEmpty(defaultAddress.AddressLine2))
+                        shippingAddress += $", {defaultAddress.AddressLine2}";
+                    shippingCity = defaultAddress.City;
+                    shippingRegion = defaultAddress.Region ?? "Минская обл.";
+                    shippingCountry = defaultAddress.Country ?? "Беларусь";
+                    shippingPostalCode = defaultAddress.PostalCode ?? "";
+                }
+                else if (!string.IsNullOrEmpty(user.Address))
+                {
+                    shippingAddress = user.Address;
+                    shippingCity = user.City ?? "Минск";
+                    shippingRegion = user.Region ?? "Минская обл.";
+                    shippingCountry = user.Country ?? "Беларусь";
+                    shippingPostalCode = user.PostalCode ?? "";
+                }
+
+                // 4. Создаём заказ
                 var order = new Order
                 {
                     OrderNumber = Order.GenerateOrderNumber(),
@@ -63,23 +90,24 @@ namespace EquipmentShop.Infrastructure.Services
                     CustomerPhone = user.PhoneNumber ?? string.Empty,
                     Status = OrderStatus.Pending,
                     OrderDate = DateTime.UtcNow,
-                    // Адрес по умолчанию из профиля
-                    ShippingAddress = user.Address ?? "",
-                    ShippingCity = user.City ?? "Минск",
-                    ShippingRegion = user.Region ?? "Минская обл.",
-                    ShippingCountry = user.Country ?? "Беларусь",
+                    // Адрес доставки
+                    ShippingAddress = shippingAddress,
+                    ShippingCity = shippingCity,
+                    ShippingRegion = shippingRegion,
+                    ShippingCountry = shippingCountry,
+                    ShippingPostalCode = shippingPostalCode,
                     Subtotal = cart.Subtotal,
                     ShippingCost = 0m,
                     TaxAmount = 0m,
                     DiscountAmount = 0m
                 };
 
-                // 4. Конвертируем CartItems → OrderItems + списываем остатки
+                // 5. Конвертируем CartItems → OrderItems + списываем остатки
                 foreach (var cartItem in cart.Items)
                 {
                     var product = await _productRepository.GetByIdAsync(cartItem.ProductId);
                     if (product == null || !product.IsAvailable || cartItem.Quantity > product.StockQuantity)
-                        continue; // или выбросить исключение
+                        continue;
 
                     order.OrderItems.Add(new OrderItem
                     {
@@ -95,10 +123,10 @@ namespace EquipmentShop.Infrastructure.Services
                     await _productRepository.UpdateStockAsync(cartItem.ProductId, -cartItem.Quantity);
                 }
 
-                // 5. Сохраняем заказ
+                // 6. Сохраняем заказ
                 await _orderRepository.AddAsync(order);
 
-                // 6. Очищаем корзину
+                // 7. Очищаем корзину
                 await _cartService.ClearCartAsync(cartId);
 
                 await transaction.CommitAsync();

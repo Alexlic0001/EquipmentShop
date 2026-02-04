@@ -1,0 +1,16 @@
+﻿global using Xunit;
+global using Moq;
+global using FluentAssertions;
+global using EquipmentShop.Core.Entities;
+global using EquipmentShop.Core.Interfaces;
+global using EquipmentShop.Infrastructure.Data;
+global using EquipmentShop.Infrastructure.Repositories;
+global using EquipmentShop.Infrastructure.Services;
+global using EquipmentShop.Core.ViewModels;
+global using EquipmentShop.Core.Enums;
+global using Microsoft.EntityFrameworkCore;
+global using System;
+global using System.Collections.Generic;
+global using System.Linq;
+global using System.Threading;
+global using System.Threading.Tasks;

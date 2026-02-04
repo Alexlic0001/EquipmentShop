@@ -113,7 +113,7 @@ namespace EquipmentShop.Controllers
         [Authorize]
         [HttpPost("checkout")]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> ProcessCheckout()
+        public async Task<IActionResult> Checkout()
         {
             try
             {

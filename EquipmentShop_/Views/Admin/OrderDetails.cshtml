@@ -5,7 +5,6 @@
     ViewData["Title"] = $"Заказ {Model.OrderNumber}";
     Layout = "_Layout";
 
-    // Определяем, можно ли отменить заказ
     var canCancel = Model.Status != OrderStatus.Delivered &&
                     Model.Status != OrderStatus.Refunded &&
                     Model.Status != OrderStatus.Cancelled;
@@ -64,7 +63,7 @@
                     <h5 class="mb-0">Информация о заказе</h5>
                 </div>
                 <div class="card-body">
-                    <table class="table">
+                    <table class="table table-sm">
                         <tr>
                             <td><strong>Номер:</strong></td>
                             <td>@Model.OrderNumber</td>
@@ -115,15 +114,36 @@
                 </div>
             </div>
 
-            <div class="card">
+            <div class="card mb-3">
                 <div class="card-header">
-                    <h5 class="mb-0">Доставка</h5>
+                    <h5 class="mb-0">Адрес доставки</h5>
                 </div>
                 <div class="card-body">
-                    <p>@Model.ShippingAddress</p>
+                    @if (!string.IsNullOrEmpty(Model.ShippingAddress))
+                    {
+                        <p class="mb-1"><i class="fas fa-map-marker-alt me-2"></i>@Model.ShippingAddress</p>
+                    }
                     @if (!string.IsNullOrEmpty(Model.ShippingCity))
                     {
-                        <p>@Model.ShippingCity</p>
+                        <p class="mb-1"><i class="fas fa-city me-2"></i>@Model.ShippingCity</p>
+                    }
+                    @if (!string.IsNullOrEmpty(Model.ShippingRegion))
+                    {
+                        <p class="mb-1"><i class="fas fa-map me-2"></i>@Model.ShippingRegion</p>
+                    }
+                    @if (!string.IsNullOrEmpty(Model.ShippingPostalCode))
+                    {
+                        <p class="mb-1"><i class="fas fa-mailbox me-2"></i>@Model.ShippingPostalCode</p>
+                    }
+                    @if (!string.IsNullOrEmpty(Model.ShippingCountry))
+                    {
+                        <p class="mb-1"><i class="fas fa-globe me-2"></i>@Model.ShippingCountry</p>
+                    }
+                    @if (string.IsNullOrEmpty(Model.ShippingAddress) &&
+                                        string.IsNullOrEmpty(Model.ShippingCity) &&
+                                        string.IsNullOrEmpty(Model.ShippingRegion))
+                    {
+                        <p class="text-muted mb-0">Адрес не указан</p>
                     }
                 </div>
             </div>
@@ -143,7 +163,6 @@
                 </button>
             </form>
         }
-
         <a asp-action="Orders" class="btn btn-secondary">
             <i class="fas fa-arrow-left"></i> Назад к списку
         </a>

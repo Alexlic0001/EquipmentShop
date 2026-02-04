@@ -1,11 +1,9 @@
 ﻿@model EquipmentShop.Controllers.AccountController.UserOrderDetailsViewModel
 @using EquipmentShop.Core.Enums
-
 @{
     ViewData["Title"] = $"Заказ {Model.OrderNumber}";
     Layout = "_Layout";
 
-    // Проверка возможности отмены
     var canCancel = Model.Status == OrderStatus.Pending || Model.Status == OrderStatus.Processing;
     var within30Minutes = (DateTime.UtcNow - Model.OrderDate).TotalMinutes <= 30;
     var showCancelButton = canCancel && within30Minutes;
@@ -55,7 +53,7 @@
         </div>
 
         <div class="col-md-4">
-            <div class="card">
+            <div class="card mb-3">
                 <div class="card-header">
                     <h5>Информация о заказе</h5>
                 </div>
@@ -82,9 +80,34 @@
                                 break;
                         }
                     </p>
-                    <p><strong>Адрес доставки:</strong><br>@Model.ShippingAddress</p>
-                    <hr>
-                    <p class="h5 mb-0">Итого: <strong>@($"{Model.Total:N0} р.")</strong></p>
+                    <hr />
+                    <h6><strong>Адрес доставки:</strong></h6>
+                    <p class="mb-1">@Model.ShippingAddress</p>
+                    @if (!string.IsNullOrEmpty(Model.ShippingCity))
+                    {
+                        <p class="mb-1"><i class="fas fa-city me-2"></i>@Model.ShippingCity</p>
+                    }
+                    @if (!string.IsNullOrEmpty(Model.ShippingRegion))
+                    {
+                        <p class="mb-1"><i class="fas fa-map me-2"></i>@Model.ShippingRegion</p>
+                    }
+                    @if (!string.IsNullOrEmpty(Model.ShippingPostalCode))
+                    {
+                        <p class="mb-1"><i class="fas fa-mailbox me-2"></i>@Model.ShippingPostalCode</p>
+                    }
+                    @if (!string.IsNullOrEmpty(Model.ShippingCountry))
+                    {
+                        <p class="mb-1"><i class="fas fa-globe me-2"></i>@Model.ShippingCountry</p>
+                    }
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <span class="h5 mb-0">Итого:</span>
+                        <strong class="h5">@($"{Model.Total:N0} р.")</strong>
+                    </div>
                 </div>
             </div>
         </div>

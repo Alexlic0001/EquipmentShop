@@ -33,22 +33,23 @@ namespace EquipmentShop.Controllers
         {
             try
             {
+                // Загружаем товары
                 var featured = await _productRepository.GetFeaturedAsync(8);
                 var newArrivals = await _productRepository.GetNewArrivalsAsync(8);
                 var bestsellers = await _productRepository.GetBestsellersAsync(8);
 
-                ViewBag.Featured = featured;
-                ViewBag.NewArrivals = newArrivals;
-                ViewBag.Bestsellers = bestsellers;
+                // Применяем правила ценообразования
+                ViewBag.Featured = await ApplyFinalPricesAsync(featured);
+                ViewBag.NewArrivals = await ApplyFinalPricesAsync(newArrivals);
+                ViewBag.Bestsellers = await ApplyFinalPricesAsync(bestsellers);
 
                 // Персонализация — ТОЛЬКО для авторизованных
                 var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
                 if (!string.IsNullOrEmpty(userId))
                 {
                     var personalized = await _productRepository.GetRecommendedForUserAsync(userId, 3);
-                    ViewBag.Personalized = personalized;
+                    ViewBag.Personalized = await ApplyFinalPricesAsync(personalized);
                 }
-                // Для гостей ViewBag.Personalized == null → не отображается
 
                 return View();
             }

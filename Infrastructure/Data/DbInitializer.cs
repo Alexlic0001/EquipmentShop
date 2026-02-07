@@ -26,23 +26,19 @@ namespace EquipmentShop.Infrastructure.Data
         {
             var categories = new List<Category>
         {
-
         };
 
             // Подкатегории для Компьютеры и ноутбуки
             var computersCategory = categories[0];
             computersCategory.SubCategories = new List<Category>
         {
-      
         };
 
             // Подкатегории для Комплектующие
             var componentsCategory = categories[1];
             componentsCategory.SubCategories = new List<Category>
         {
-    
         };
-
             await context.Categories.AddRangeAsync(categories);
             await context.SaveChangesAsync();
         }
@@ -53,12 +49,10 @@ namespace EquipmentShop.Infrastructure.Data
             var laptopsCategory = categories.First(c => c.Slug == "laptops");
             var processorsCategory = categories.First(c => c.Slug == "processors");
             var videoCardsCategory = categories.First(c => c.Slug == "video-cards");
-
             var products = new List<Product>
         {
 
         };
-
             await context.Products.AddRangeAsync(products);
             await context.SaveChangesAsync();
         }
@@ -67,22 +61,10 @@ namespace EquipmentShop.Infrastructure.Data
         {
             // Примеры заказов для тестирования
             var products = await context.Products.Take(3).ToListAsync();
-
             var orders = new List<Order>
         {
- 
         };
-
             await context.Orders.AddRangeAsync(orders);
-            await context.SaveChangesAsync();
-
-            // Примеры отзывов
-            var reviews = new List<Review>
-        {
-           
-        };
-
-            await context.Reviews.AddRangeAsync(reviews);
             await context.SaveChangesAsync();
         }
     }

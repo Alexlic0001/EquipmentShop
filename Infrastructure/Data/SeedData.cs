@@ -40,10 +40,8 @@ namespace EquipmentShop.Infrastructure.Data
         {
             // Очистка тестовых данных (для тестов)
             context.Orders.RemoveRange(context.Orders);
-            context.Reviews.RemoveRange(context.Reviews);
             context.ShoppingCarts.RemoveRange(context.ShoppingCarts);
             context.CartItems.RemoveRange(context.CartItems);
-
             await context.SaveChangesAsync();
         }
     }

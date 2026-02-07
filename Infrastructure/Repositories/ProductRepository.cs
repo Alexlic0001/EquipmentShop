@@ -1,5 +1,4 @@
-﻿
-using EquipmentShop.Core.Entities;
+﻿using EquipmentShop.Core.Entities;
 using EquipmentShop.Core.Interfaces;
 using EquipmentShop.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
@@ -20,7 +19,6 @@ namespace EquipmentShop.Infrastructure.Repositories
         }
 
         // --- Реализация IProductRepository ---
-
         public async Task<Product?> GetByIdAsync(int id)
         {
             return await _context.Products
@@ -243,7 +241,6 @@ namespace EquipmentShop.Infrastructure.Repositories
                 "name_asc" => query.OrderBy(p => p.Name),
                 "name_desc" => query.OrderByDescending(p => p.Name),
                 "popular" => query.OrderByDescending(p => p.SoldCount),
-                "rating" => query.OrderByDescending(p => p.Rating),
                 _ => query.OrderByDescending(p => p.CreatedAt)
             };
 
@@ -271,6 +268,7 @@ namespace EquipmentShop.Infrastructure.Repositories
             {
                 product.CreatedAt = DateTime.UtcNow;
                 product.UpdatedAt = DateTime.UtcNow;
+
                 _context.Products.Add(product);
                 await _context.SaveChangesAsync();
                 return product;
@@ -326,22 +324,10 @@ namespace EquipmentShop.Infrastructure.Repositories
                 existingProduct.IsAvailable = product.StockQuantity > 0;
 
                 // Сохраняем статистику если не передана
-                if (product.Rating == 0 && existingProduct.Rating > 0)
-                    product.Rating = existingProduct.Rating;
-
-                if (product.ReviewsCount == 0 && existingProduct.ReviewsCount > 0)
-                    product.ReviewsCount = existingProduct.ReviewsCount;
-
                 if (product.SoldCount == 0 && existingProduct.SoldCount > 0)
                     product.SoldCount = existingProduct.SoldCount;
 
-                existingProduct.Rating = product.Rating;
-                existingProduct.ReviewsCount = product.ReviewsCount;
                 existingProduct.SoldCount = product.SoldCount;
-
-                existingProduct.MetaTitle = product.MetaTitle;
-                existingProduct.MetaDescription = product.MetaDescription;
-                existingProduct.MetaKeywords = product.MetaKeywords;
 
                 // Коллекции
                 if (product.Tags != null && product.Tags.Any())
@@ -475,31 +461,6 @@ namespace EquipmentShop.Infrastructure.Repositories
             await _context.SaveChangesAsync();
             return true;
         }
-
-        public async Task UpdateRatingAsync(int productId)
-        {
-            var product = await _context.Products
-                .Include(p => p.Reviews)
-                .FirstOrDefaultAsync(p => p.Id == productId);
-
-            if (product?.Reviews != null)
-            {
-                var approved = product.Reviews.Where(r => r.IsApproved).ToList();
-                if (approved.Any())
-                {
-                    product.Rating = Math.Round(approved.Average(r => r.Rating), 1);
-                    product.ReviewsCount = approved.Count;
-                }
-                else
-                {
-                    product.Rating = 0;
-                    product.ReviewsCount = 0;
-                }
-                product.UpdatedAt = DateTime.UtcNow;
-                await _context.SaveChangesAsync();
-            }
-        }
-
         public async Task<Dictionary<string, int>> GetInventoryStatsAsync()
         {
             return new Dictionary<string, int>
@@ -545,9 +506,6 @@ namespace EquipmentShop.Infrastructure.Repositories
             return slug;
         }
 
-
-
-
         public async Task<IEnumerable<Product>> GetRecommendedForUserAsync(string userId, int count = 3)
         {
             // 1. Получаем ID купленных товаров
@@ -569,7 +527,6 @@ namespace EquipmentShop.Infrastructure.Repositories
                     .ToListAsync();
 
                 purchasedCategories = purchasedProducts
-
                     .Select(p => p.CategoryId)
                     .Distinct()
                     .ToList();
@@ -614,8 +571,7 @@ namespace EquipmentShop.Infrastructure.Repositories
                 }
 
                 candidates = await query
-                    .OrderByDescending(p => p.SoldCount)
-                    .ThenByDescending(p => p.Rating)
+                    .OrderByDescending(p => p.SoldCount) 
                     .Take(count * 2)
                     .ToListAsync();
             }
@@ -629,8 +585,7 @@ namespace EquipmentShop.Infrastructure.Repositories
                     .Where(p => p.IsAvailable && p.StockQuantity > 0)
                     .Where(p => !purchasedProductIds.Contains(p.Id))
                     .Where(p => !candidates.Any(c => c.Id == p.Id))
-                    .OrderByDescending(p => p.SoldCount)
-                    .ThenByDescending(p => p.Rating)
+                    .OrderByDescending(p => p.SoldCount) 
                     .Take(count - candidates.Count)
                     .ToListAsync();
 

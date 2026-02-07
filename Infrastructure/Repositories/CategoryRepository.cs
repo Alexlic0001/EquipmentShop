@@ -195,9 +195,5 @@ namespace EquipmentShop.Infrastructure.Repositories
                 .AnyAsync(predicate);
         }
 
-        public Task<IEnumerable<Product>> FilterAsync(ProductFilter filter)
-        {
-            throw new NotImplementedException();
-        }
     }
 }

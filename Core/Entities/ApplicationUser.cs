@@ -46,7 +46,6 @@ namespace EquipmentShop.Core.Entities
 
         // Навигационные свойства
         public ICollection<Order> Orders { get; set; } = new List<Order>();
-        public ICollection<Review> Reviews { get; set; } = new List<Review>();
         public ICollection<Wishlist> Wishlists { get; set; } = new List<Wishlist>();
 
         // Вычисляемые свойства

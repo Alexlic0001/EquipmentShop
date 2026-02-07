@@ -20,10 +20,6 @@
         public bool ShowOnHomepage { get; set; } = false;
         public bool IsActive { get; set; } = true;
 
-        // Мета-данные
-        public string MetaTitle { get; set; } = string.Empty;
-        public string MetaDescription { get; set; } = string.Empty;
-
         // Навигационные свойства
         public ICollection<Product> Products { get; set; } = new List<Product>();
 

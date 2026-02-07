@@ -22,7 +22,6 @@ namespace EquipmentShop.Infrastructure.Data
         public DbSet<OrderItem> OrderItems => Set<OrderItem>();
         public DbSet<ShoppingCart> ShoppingCarts => Set<ShoppingCart>();
         public DbSet<CartItem> CartItems => Set<CartItem>();
-        public DbSet<Review> Reviews => Set<Review>();
         public DbSet<Wishlist> Wishlists => Set<Wishlist>();
         public DbSet<WishlistItem> WishlistItems => Set<WishlistItem>();
         public DbSet<PricingRule> PricingRules { get; set; }
@@ -105,14 +104,8 @@ namespace EquipmentShop.Infrastructure.Data
                 entity.Property(p => p.Brand)
                     .HasMaxLength(100);
 
-                entity.Property(p => p.Rating)
-                    .HasDefaultValue(0.0);
-
                 entity.Property(p => p.StockQuantity)
                     .HasDefaultValue(0);
-
-                //entity.Property(p => p.IsAvailable)
-                //    .HasComputedColumnSql("[StockQuantity] > 0");
 
                 // Конвертация списков в JSON
                 entity.Property(p => p.GalleryImages)
@@ -139,10 +132,10 @@ namespace EquipmentShop.Infrastructure.Data
                     .HasForeignKey(p => p.CategoryId)
                     .OnDelete(DeleteBehavior.Restrict);
 
-                entity.HasMany(p => p.Reviews)
-                    .WithOne(r => r.Product)
-                    .HasForeignKey(r => r.ProductId)
-                    .OnDelete(DeleteBehavior.NoAction);
+                //entity.HasMany(p => p.Reviews)
+                //    .WithOne(r => r.Product)
+                //    .HasForeignKey(r => r.ProductId)
+                //    .OnDelete(DeleteBehavior.NoAction);
 
                 entity.HasMany(p => p.OrderItems)
                     .WithOne(oi => oi.Product)
@@ -175,12 +168,6 @@ namespace EquipmentShop.Infrastructure.Data
 
                 entity.Property(c => c.IconClass)
                     .HasMaxLength(50);
-
-                entity.Property(c => c.MetaTitle)
-                    .HasMaxLength(200);
-
-                entity.Property(c => c.MetaDescription)
-                    .HasMaxLength(500);
 
                 // Иерархия
                 entity.HasOne(c => c.ParentCategory)
@@ -359,58 +346,6 @@ namespace EquipmentShop.Infrastructure.Data
                     .OnDelete(DeleteBehavior.Restrict);
             });
 
-            // ИСПРАВЛЕННАЯ конфигурация Review
-            modelBuilder.Entity<Review>(entity =>
-            {
-                entity.HasKey(r => r.Id);
-                entity.HasIndex(r => r.ProductId);
-                entity.HasIndex(r => r.UserId);
-                entity.HasIndex(r => r.Rating);
-                entity.HasIndex(r => r.IsApproved);
-                entity.HasIndex(r => r.IsFeatured);
-                entity.HasIndex(r => r.CreatedAt);
-
-                entity.Property(r => r.UserName)
-                    .IsRequired()
-                    .HasMaxLength(100);
-
-                entity.Property(r => r.UserEmail)
-                    .HasMaxLength(100);
-
-                entity.Property(r => r.Title)
-                    .IsRequired()
-                    .HasMaxLength(200);
-
-                entity.Property(r => r.Comment)
-                    .IsRequired()
-                    .HasMaxLength(2000);
-
-                entity.Property(r => r.OrderId)
-                    .HasMaxLength(50);
-
-                entity.Property(r => r.AdminResponse)
-                    .HasMaxLength(1000);
-
-                // Конвертация списков в JSON
-                entity.Property(r => r.Pros)
-                    .HasConversion(
-                        v => JsonSerializer.Serialize(v, JsonSerializerOptions.Default),
-                        v => JsonSerializer.Deserialize<List<string>>(v, JsonSerializerOptions.Default) ?? new List<string>()
-                    );
-
-                entity.Property(r => r.Cons)
-                    .HasConversion(
-                        v => JsonSerializer.Serialize(v, JsonSerializerOptions.Default),
-                        v => JsonSerializer.Deserialize<List<string>>(v, JsonSerializerOptions.Default) ?? new List<string>()
-                    );
-
-                // Ограничения
-                entity.HasCheckConstraint("CK_Review_Rating", "[Rating] >= 1 AND [Rating] <= 5");
-
-                // ИСПРАВЛЕНО: Убрана связь с ApplicationUser, т.к. в Review.cs нет свойства User
-                // Вместо этого связь только через UserId
-            });
-
             // Конфигурация Wishlist
             modelBuilder.Entity<Wishlist>(entity =>
             {
@@ -443,9 +378,6 @@ namespace EquipmentShop.Infrastructure.Data
                       .OnDelete(DeleteBehavior.Restrict);
             });
 
-
-
-
             // Конфигурация WishlistItem
             modelBuilder.Entity<WishlistItem>(entity =>
             {
@@ -475,11 +407,10 @@ namespace EquipmentShop.Infrastructure.Data
             }
         }
 
-
         public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
         {
             var entries = ChangeTracker.Entries()
-                .Where(e => e.Entity is Product || e.Entity is Order || e.Entity is Review);
+                .Where(e => e.Entity is Product || e.Entity is Order);
 
             // Включаем внешние ключи перед каждой транзакцией
             await Database.ExecuteSqlRawAsync("PRAGMA foreign_keys = ON;");
@@ -516,10 +447,6 @@ namespace EquipmentShop.Infrastructure.Data
                                 order.CancelledDate = DateTime.UtcNow;
                             }
                         }
-                    }
-                    else if (entry.Entity is Review review)
-                    {
-                        review.UpdatedAt = DateTime.UtcNow;
                     }
                 }
             }

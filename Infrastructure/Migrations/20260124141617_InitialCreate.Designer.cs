@@ -207,15 +207,15 @@ namespace Infrastructure.Migrations
                     b.Property<bool>("IsActive")
                         .HasColumnType("INTEGER");
 
-                    b.Property<string>("MetaDescription")
-                        .IsRequired()
-                        .HasMaxLength(500)
-                        .HasColumnType("TEXT");
+                    //b.Property<string>("MetaDescription")
+                    //    .IsRequired()
+                    //    .HasMaxLength(500)
+                    //    .HasColumnType("TEXT");
 
-                    b.Property<string>("MetaTitle")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("TEXT");
+                    //b.Property<string>("MetaTitle")
+                    //    .IsRequired()
+                    //    .HasMaxLength(200)
+                    //    .HasColumnType("TEXT");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -524,18 +524,6 @@ namespace Infrastructure.Migrations
 
                     b.Property<bool>("IsNew")
                         .HasColumnType("INTEGER");
-
-                    b.Property<string>("MetaDescription")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("MetaKeywords")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("MetaTitle")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
 
                     b.Property<int>("MinStockThreshold")
                         .HasColumnType("INTEGER");

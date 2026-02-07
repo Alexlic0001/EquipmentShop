@@ -172,8 +172,6 @@ namespace EquipmentShop.Controllers
             return GenerateCsv(records, "users_and_orders.csv");
         }
 
-
-
         private async Task ImportUsersAndOrdersFromCsv(Stream stream)
         {
             using var reader = new StreamReader(stream, Encoding.UTF8, detectEncodingFromByteOrderMarks: true);
@@ -266,7 +264,6 @@ namespace EquipmentShop.Controllers
                 await _orderRepository.AddAsync(order);
             }
         }
-
 
         private IActionResult GenerateCsv<T>(IEnumerable<T> records, string fileName)
         {
@@ -587,11 +584,6 @@ namespace EquipmentShop.Controllers
                 }
 
                 product.Slug = await _productRepository.GenerateUniqueSlugAsync(product.Name);
-                product.MetaTitle ??= product.Name;
-                product.MetaDescription ??= product.Description.Length > 160
-                    ? product.Description[..160] + "..."
-                    : product.Description;
-
                 product.CreatedAt = DateTime.UtcNow;
                 product.UpdatedAt = DateTime.UtcNow;
                 product.IsAvailable = product.StockQuantity > 0;
@@ -614,7 +606,6 @@ namespace EquipmentShop.Controllers
                 {
                     return Json(new { success = false, errors = new[] { "Произошла ошибка при создании товара" } });
                 }
-
                 ModelState.AddModelError("", $"Ошибка: {ex.Message}");
                 return View(product);
             }
@@ -625,7 +616,6 @@ namespace EquipmentShop.Controllers
         {
             var product = await _productRepository.GetByIdAsync(id);
             if (product == null) return NotFound();
-
             if (product.Tags != null && product.Tags.Any())
                 product.TagsString = string.Join(", ", product.Tags);
 
@@ -642,15 +632,11 @@ namespace EquipmentShop.Controllers
 
             ViewBag.Categories = await _categoryRepository.GetAllAsync();
             var form = Request.Form;
-
             var name = form["Name"].ToString().Trim();
             var description = form["Description"].ToString().Trim();
             var shortDescription = form["ShortDescription"].ToString().Trim();
             var slug = form["Slug"].ToString().Trim();
             var brand = form["Brand"].ToString().Trim();
-            var metaTitle = form["MetaTitle"].ToString().Trim();
-            var metaDescription = form["MetaDescription"].ToString().Trim();
-            var metaKeywords = form["MetaKeywords"].ToString().Trim();
             var tagsString = form["TagsString"].ToString().Trim();
 
             if (!decimal.TryParse(form["Price"], out var price) || price <= 0)
@@ -711,9 +697,6 @@ namespace EquipmentShop.Controllers
                 existingProduct.IsFeatured = isFeatured;
                 existingProduct.IsNew = isNew;
                 existingProduct.IsAvailable = isAvailable;
-                existingProduct.MetaTitle = metaTitle;
-                existingProduct.MetaDescription = metaDescription;
-                existingProduct.MetaKeywords = metaKeywords;
                 existingProduct.UpdatedAt = DateTime.UtcNow;
 
                 existingProduct.Tags = string.IsNullOrEmpty(tagsString)
@@ -780,7 +763,6 @@ namespace EquipmentShop.Controllers
                     await _fileStorageService.DeleteFileAsync(product.ImageUrl);
 
                 await _productRepository.DeleteAsync(product);
-                //TempData["Success"] = "Товар успешно удалён";
             }
             catch (Exception ex)
             {
@@ -839,8 +821,6 @@ namespace EquipmentShop.Controllers
                 }
 
                 category.Slug ??= category.Name.ToLower().Replace(" ", "-").Replace(".", "").Replace(",", "");
-                category.MetaTitle ??= category.Name;
-                category.MetaDescription ??= category.Description ?? category.Name;
                 category.IsActive = true;
 
                 await _categoryRepository.AddAsync(category);

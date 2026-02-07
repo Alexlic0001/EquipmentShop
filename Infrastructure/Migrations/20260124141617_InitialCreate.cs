@@ -81,9 +81,7 @@ namespace Infrastructure.Migrations
                     DisplayOrder = table.Column<int>(type: "INTEGER", nullable: false),
                     ShowInMenu = table.Column<bool>(type: "INTEGER", nullable: false),
                     ShowOnHomepage = table.Column<bool>(type: "INTEGER", nullable: false),
-                    IsActive = table.Column<bool>(type: "INTEGER", nullable: false),
-                    MetaTitle = table.Column<string>(type: "TEXT", maxLength: 200, nullable: false),
-                    MetaDescription = table.Column<string>(type: "TEXT", maxLength: 500, nullable: false)
+                    IsActive = table.Column<bool>(type: "INTEGER", nullable: false)
                 },
                 constraints: table =>
                 {

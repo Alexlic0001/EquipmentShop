@@ -14,14 +14,10 @@ builder.Services.AddControllersWithViews();
 
 // Database
 builder.Services.AddDbContext<AppDbContext>(options =>
-    //options.UseSqlite(
-    //    "Data Source=EquipmentShop.db",
-    //    b => b.MigrationsAssembly("EquipmentShop_") // 
+
     options.UseSqlite(
         "Data Source=EquipmentShop.db",
         b => b.MigrationsAssembly("Infrastructure")
-
-
     ));
 
 // Identity
@@ -64,19 +60,9 @@ builder.Services.ConfigureApplicationCookie(options =>
 builder.Services.AddScoped<IProductRepository, ProductRepository>();
 builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
 builder.Services.AddScoped<IOrderRepository, OrderRepository>();
-builder.Services.AddScoped<IReviewService, ReviewRepository>();
 builder.Services.AddScoped<IShoppingCartService, ShoppingCartService>();
 builder.Services.AddScoped<IFileStorageService, FileStorageService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
-
-//builder.Services.AddScoped<IOrderService>(sp =>
-//    new OrderService(
-//        sp.GetRequiredService<AppDbContext>(),
-//        sp.GetRequiredService<IOrderRepository>(),
-//        sp.GetRequiredService<IProductRepository>(),
-//        sp.GetRequiredService<IShoppingCartService>(),
-//        sp.GetRequiredService<ILogger<OrderService>>()
-//    ));
 builder.Services.AddScoped<IOrderService, OrderService>();
 builder.Services.AddScoped<IPricingService, PricingService>();
 builder.Services.AddHttpContextAccessor();

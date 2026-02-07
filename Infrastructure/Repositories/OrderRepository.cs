@@ -26,7 +26,6 @@ namespace EquipmentShop.Infrastructure.Repositories
                 .ThenInclude(oi => oi.Product)
                 .FirstOrDefaultAsync(o => o.Id == id);
         }
-
         public async Task<bool> UpdateOrderStatusAsync(string orderNumber, OrderStatus newStatus)
         {
             var order = await _context.Orders.FirstOrDefaultAsync(o => o.OrderNumber == orderNumber);
@@ -53,7 +52,6 @@ namespace EquipmentShop.Infrastructure.Repositories
                 .ThenInclude(oi => oi.Product)
                 .FirstOrDefaultAsync(o => o.Id == id);
         }
-
         public async Task<IEnumerable<Order>> GetAllAsync()
         {
             return await _context.Orders
@@ -76,7 +74,6 @@ namespace EquipmentShop.Infrastructure.Repositories
                 .OrderByDescending(o => o.OrderDate)
                 .ToListAsync();
         }
-
         public async Task<IEnumerable<Order>> GetByUserIdAsync(string userId)
         {
             return await _context.Orders
@@ -120,10 +117,6 @@ namespace EquipmentShop.Infrastructure.Repositories
 
             return order;
         }
-
-
-
-
 
         public async Task<IEnumerable<Order>> GetRecentOrdersAsync(int count = 10)
         {
@@ -284,9 +277,5 @@ namespace EquipmentShop.Infrastructure.Repositories
             return await _context.Orders.AnyAsync(predicate);
         }
 
-        public Task<IEnumerable<Product>> FilterAsync(ProductFilter filter)
-        {
-            throw new NotImplementedException();
-        }
     }
 }

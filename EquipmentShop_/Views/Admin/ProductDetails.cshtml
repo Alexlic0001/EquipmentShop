@@ -62,16 +62,6 @@
                             </td>
                         </tr>
                         <tr>
-                            <td><strong>Рейтинг:</strong></td>
-                            <td>
-                                @for (int i = 1; i <= 5; i++)
-                                {
-                                    <i class="fas @(i <= Model.Rating ? "fa-star" : "fa-star-o") text-warning"></i>
-                                }
-                                <span class="ms-2">(@Model.ReviewsCount отзывов)</span>
-                            </td>
-                        </tr>
-                        <tr>
                             <td><strong>Продано:</strong></td>
                             <td>@Model.SoldCount шт.</td>
                         </tr>

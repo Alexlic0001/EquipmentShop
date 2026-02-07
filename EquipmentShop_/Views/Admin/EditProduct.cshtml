@@ -1,5 +1,4 @@
-﻿<!-- EquipmentShop/Views/Admin/EditProduct.cshtml -->
-@model EquipmentShop.Core.Entities.Product
+﻿@model EquipmentShop.Core.Entities.Product
 @{
     ViewData["Title"] = "Редактирование товара";
     Layout = "_Layout";
@@ -128,16 +127,6 @@
                             <input class="form-check-input" type="checkbox" name="IsAvailable" id="IsAvailable" @(Model.IsAvailable ? "checked" : "") />
                             <label class="form-check-label" for="IsAvailable">Доступен для продажи</label>
                         </div>
-                    </div>
-                </div>
-
-                <!-- SEO -->
-                <div class="card mb-3">
-                    <div class="card-header"><h5 class="mb-0">SEO</h5></div>
-                    <div class="card-body">
-                        <input name="MetaTitle" class="form-control mb-2" placeholder="Meta Title" value="@Model.MetaTitle" />
-                        <textarea name="MetaDescription" class="form-control mb-2" placeholder="Meta Description" rows="2">@Model.MetaDescription</textarea>
-                        <input name="MetaKeywords" class="form-control" placeholder="Meta Keywords" value="@Model.MetaKeywords" />
                     </div>
                 </div>
             </div>

@@ -71,13 +71,6 @@
                                                 <span class="badge @(product.StockQuantity > 0 ? "bg-success" : "bg-danger")">
                                                     @(product.StockQuantity > 0 ? "В наличии" : "Нет в наличии")
                                                 </span>
-
-                                                <div class="text-warning">
-                                                    @for (int i = 1; i <= 5; i++)
-                                                    {
-                                                        <i class="fas @(i <= product.Rating ? "fa-star" : "fa-star-o")"></i>
-                                                    }
-                                                </div>
                                             </div>
                                         </div>
 

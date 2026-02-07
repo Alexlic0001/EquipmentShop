@@ -26,24 +26,14 @@ namespace EquipmentShop.Core.Entities
         public bool IsNew { get; set; }
         public bool IsOnSale => OldPrice.HasValue;
 
-        public double Rating { get; set; }
-        public int ReviewsCount { get; set; }
         public int SoldCount { get; set; }
 
         public Dictionary<string, string> Specifications { get; set; } = new();
         public List<string> Tags { get; set; } = new();
 
-        public string MetaTitle { get; set; } = string.Empty;
-        public string MetaDescription { get; set; } = string.Empty;
-        public string MetaKeywords { get; set; } = string.Empty;
-
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
         public DateTime? PublishedAt { get; set; }
-
-        // ДОБАВЬТЕ ЭТОТ АТРИБУТ:
-        [JsonIgnore]
-        public ICollection<Review> Reviews { get; set; } = new List<Review>();
 
         [JsonIgnore]
         public ICollection<OrderItem> OrderItems { get; set; } = new List<OrderItem>();
@@ -55,12 +45,6 @@ namespace EquipmentShop.Core.Entities
         [NotMapped]
         [JsonIgnore]
         public string SpecificationsString { get; set; } = string.Empty;
-
-        public decimal GetDiscountPercentage()
-        {
-            if (!OldPrice.HasValue || OldPrice.Value <= 0) return 0;
-            return 100 - (Price / OldPrice.Value * 100);
-        }
 
         public bool IsLowStock => StockQuantity <= MinStockThreshold && StockQuantity > 0;
         public bool IsOutOfStock => StockQuantity <= 0;

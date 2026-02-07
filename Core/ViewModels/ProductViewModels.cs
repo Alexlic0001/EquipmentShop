@@ -35,7 +35,7 @@ namespace EquipmentShop.Core.ViewModels
         //public string FormattedOldPrice => OldPrice?.ToString("C0") ?? string.Empty;
         public bool IsOnSale => OldPrice.HasValue;
         public string StockStatus => GetStockStatus();
-        public string RatingStars => new string('★', (int)Math.Round(Rating)) + new string('☆', 5 - (int)Math.Round(Rating));
+        //public string RatingStars => new string('★', (int)Math.Round(Rating)) + new string('☆', 5 - (int)Math.Round(Rating));
 
         private decimal GetDiscountPercentage()
         {
@@ -76,14 +76,6 @@ namespace EquipmentShop.Core.ViewModels
     {
         public ProductViewModel Product { get; set; } = null!;
         public IEnumerable<ProductViewModel> RelatedProducts { get; set; } = new List<ProductViewModel>();
-        public IEnumerable<ReviewViewModel> Reviews { get; set; } = new List<ReviewViewModel>();
-        public ReviewStats ReviewStats { get; set; } = null!;
-        public bool CanAddReview { get; set; }
-        public bool HasPurchasedProduct { get; set; }
-        public ReviewFilter ReviewFilter { get; set; } = new ReviewFilter();
-
-        // Для формы добавления отзыва
-        public CreateReviewViewModel? NewReview { get; set; }
     }
 
 }

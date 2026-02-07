@@ -28,20 +28,11 @@
                 {
                     <div class="text-muted text-decoration-line-through">Старая цена: @Model.OldPrice.Value.ToString("N0")@AppConstants.CurrencySymbol</div>
                     <div class="text-success">
-                        Скидка: @Model.GetDiscountPercentage().ToString("F0")%
+                       @*  Скидка: @Model.GetDiscountPercentage().ToString("F0")% *@
                     </div>
                 }
             </div>
 
-            <div class="mb-3">
-                <div class="text-warning mb-2">
-                    @for (int i = 1; i <= 5; i++)
-                    {
-                        <i class="fas @(i <= Model.Rating ? "fa-star" : "fa-star-o")"></i>
-                    }
-                    <span class="text-muted ms-2">(@Model.ReviewsCount отзывов)</span>
-                </div>
-            </div>
             <div class="mb-4">
                 @if (Model.StockQuantity > 0)
                 {

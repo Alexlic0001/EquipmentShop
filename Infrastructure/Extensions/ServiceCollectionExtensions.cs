@@ -21,13 +21,11 @@ namespace EquipmentShop.Infrastructure.Services
             services.AddScoped<IProductRepository, ProductRepository>();
             services.AddScoped<ICategoryRepository, CategoryRepository>();
             services.AddScoped<IOrderRepository, OrderRepository>();
-            services.AddScoped<IReviewService, ReviewRepository>();
 
             // Services
             services.AddScoped<IShoppingCartService, ShoppingCartService>();
             services.AddScoped<IEmailService, EmailService>();
             services.AddScoped<IFileStorageService, FileStorageService>();
-
             services.AddScoped<OrderService>();
 
             return services;

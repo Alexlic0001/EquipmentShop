@@ -14,13 +14,13 @@ namespace EquipmentShop.Controllers
         private readonly ILogger<HomeController> _logger;
         private readonly IProductRepository _productRepository;
         private readonly IOrderRepository _orderRepository;
-        private readonly IPricingService _pricingService; // ← Добавлено
+        private readonly IPricingService _pricingService; // ← 
 
         public HomeController(
             ILogger<HomeController> logger,
             IProductRepository productRepository,
             IOrderRepository orderRepository,
-            IPricingService pricingService) // ← Внедрено
+            IPricingService pricingService) // ← 
         {
             _logger = logger;
             _productRepository = productRepository;
@@ -39,7 +39,7 @@ namespace EquipmentShop.Controllers
                 var bestsellers = await _productRepository.GetBestsellersAsync(8);
 
                 // Применяем правила ценообразования
-                ViewBag.Featured = await ApplyFinalPricesAsync(featured);
+                ViewBag.Featured = await _pricingService.ApplyFinalPricesToProductsAsync(featured);
                 ViewBag.NewArrivals = await ApplyFinalPricesAsync(newArrivals);
                 ViewBag.Bestsellers = await ApplyFinalPricesAsync(bestsellers);
 

@@ -144,6 +144,7 @@ namespace EquipmentShop.Controllers
                     PhoneNumber = model.Phone,
                     SubscribeToNewsletter = model.SubscribeToNewsletter,
                     EmailNotifications = true,
+                    SmsNotifications = false,
                     RegisteredAt = DateTime.UtcNow,
                     EmailConfirmed = true
                 };

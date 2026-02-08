@@ -23,19 +23,5 @@
         // Навигационные свойства
         public ICollection<Product> Products { get; set; } = new List<Product>();
 
-        // Методы
-        public string GetFullPath()
-        {
-            var path = Name;
-            var parent = ParentCategory;
-            while (parent != null)
-            {
-                path = $"{parent.Name} > {path}";
-                parent = parent.ParentCategory;
-            }
-            return path;
-        }
-
-        public bool HasProducts => Products?.Any(p => p.IsAvailable) ?? false;
     }
 }

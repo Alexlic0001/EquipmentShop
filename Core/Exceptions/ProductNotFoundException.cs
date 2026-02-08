@@ -10,11 +10,5 @@ namespace EquipmentShop.Core.Exceptions
         {
             ProductId = productId;
         }
-
-        public ProductNotFoundException(int productId, Exception innerException)
-            : base($"Товар с ID {productId} не найден", innerException)
-        {
-            ProductId = productId;
-        }
     }
 }

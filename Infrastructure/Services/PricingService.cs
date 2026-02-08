@@ -1,5 +1,4 @@
-﻿
-using EquipmentShop.Core.Entities;
+﻿using EquipmentShop.Core.Entities;
 using EquipmentShop.Core.Interfaces;
 using EquipmentShop.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
@@ -64,9 +63,23 @@ namespace EquipmentShop.Infrastructure.Services
             };
         }
 
+        public async Task<List<Product>> ApplyFinalPricesToProductsAsync(IEnumerable<Product> products)
+        {
+            var result = new List<Product>();
+
+            foreach (var product in products)
+            {
+                var finalPrice = await CalculateFinalPriceAsync(product.Id);
+                product.Price = finalPrice;
+                result.Add(product);
+            }
+
+            return result;
+        }
+
         public async Task ApplyAllPricingRulesAsync()
         {
-            // Опционально: можно кэшировать финальные цены
+            await Task.CompletedTask;
         }
     }
 }

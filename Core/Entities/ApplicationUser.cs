@@ -36,7 +36,7 @@ namespace EquipmentShop.Core.Entities
         // Настройки уведомлений
         public bool SubscribeToNewsletter { get; set; } = true;
         public bool EmailNotifications { get; set; } = true;
-        public bool SmsNotifications { get; set; } = false;
+        //public bool SmsNotifications { get; set; } = false;
 
         // Статистика
         public int TotalOrders { get; set; } = 0;
@@ -51,6 +51,8 @@ namespace EquipmentShop.Core.Entities
         // Вычисляемые свойства
         public string FullName => $"{FirstName} {LastName}";
         public bool HasDefaultAddress => !string.IsNullOrEmpty(Address) && !string.IsNullOrEmpty(City);
+
+        public bool SmsNotifications { get; set; }
 
         // Методы
         public void AddAddress(UserAddress address)

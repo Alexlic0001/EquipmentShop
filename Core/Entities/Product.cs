@@ -24,7 +24,6 @@ namespace EquipmentShop.Core.Entities
         public bool IsAvailable { get; set; }
         public bool IsFeatured { get; set; }
         public bool IsNew { get; set; }
-        public bool IsOnSale => OldPrice.HasValue;
 
         public int SoldCount { get; set; }
 
@@ -33,7 +32,6 @@ namespace EquipmentShop.Core.Entities
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
-        public DateTime? PublishedAt { get; set; }
 
         [JsonIgnore]
         public ICollection<OrderItem> OrderItems { get; set; } = new List<OrderItem>();
@@ -41,10 +39,6 @@ namespace EquipmentShop.Core.Entities
         [NotMapped]
         [JsonIgnore]
         public string TagsString { get; set; } = string.Empty;
-
-        [NotMapped]
-        [JsonIgnore]
-        public string SpecificationsString { get; set; } = string.Empty;
 
         public bool IsLowStock => StockQuantity <= MinStockThreshold && StockQuantity > 0;
         public bool IsOutOfStock => StockQuantity <= 0;

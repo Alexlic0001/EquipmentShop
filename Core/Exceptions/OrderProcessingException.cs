@@ -1,5 +1,4 @@
-﻿
-using EquipmentShop.Core.Enums;
+﻿using EquipmentShop.Core.Enums;
 
 namespace EquipmentShop.Core.Exceptions
 {
@@ -15,11 +14,5 @@ namespace EquipmentShop.Core.Exceptions
             OrderStatus = status;
         }
 
-        public OrderProcessingException(string orderNumber, OrderStatus status, string message, Exception innerException)
-            : base($"Ошибка обработки заказа {orderNumber}: {message}", innerException)
-        {
-            OrderNumber = orderNumber;
-            OrderStatus = status;
-        }
     }
 }

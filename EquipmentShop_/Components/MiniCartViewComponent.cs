@@ -11,13 +11,13 @@ namespace EquipmentShop.Components
         private readonly IShoppingCartService _cartService;
         private readonly IHttpContextAccessor _httpContextAccessor;
 
-        public MiniCartViewComponent(
-            IShoppingCartService cartService,
-            IHttpContextAccessor httpContextAccessor)
-        {
-            _cartService = cartService;
-            _httpContextAccessor = httpContextAccessor;
-        }
+        //public MiniCartViewComponent(
+        //    IShoppingCartService cartService,
+        //    IHttpContextAccessor httpContextAccessor)
+        //{
+        //    _cartService = cartService;
+        //    _httpContextAccessor = httpContextAccessor;
+        //}
 
         public async Task<IViewComponentResult> InvokeAsync()
         {

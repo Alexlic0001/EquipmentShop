@@ -1,5 +1,4 @@
-﻿
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 
 namespace EquipmentShop.Core.Enums
 {
@@ -17,7 +16,7 @@ namespace EquipmentShop.Core.Enums
         [Display(Name = "ЕРИП")]
         ERIP = 4,
 
-        [Display(Name = "Картой курьеру")]
+        [Display(Name = "Оплата курьеру")]
         CardToCourier = 5
     }
 }

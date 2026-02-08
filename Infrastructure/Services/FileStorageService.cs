@@ -7,11 +7,6 @@ namespace EquipmentShop.Infrastructure.Services
     {
         private readonly ILogger<FileStorageService> _logger;
 
-        public FileStorageService(ILogger<FileStorageService> logger)
-        {
-            _logger = logger;
-        }
-
         public async Task<string> SaveProductImageAsync(Stream fileStream, string fileName)
         {
             return await SaveFileAsync(fileStream, fileName, "products");
@@ -107,17 +102,6 @@ namespace EquipmentShop.Infrastructure.Services
         {
             var extension = Path.GetExtension(originalFileName);
             return $"{Guid.NewGuid()}{extension}";
-        }
-
-        public async Task<IEnumerable<string>> GetProductGalleryAsync(int productId)
-        {
-            // Заглушка для демо
-            return new List<string>();
-        }
-
-        public async Task ClearProductGalleryAsync(int productId)
-        {
-            // Заглушка для демо
         }
     }
 }

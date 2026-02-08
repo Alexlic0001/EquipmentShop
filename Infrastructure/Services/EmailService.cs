@@ -8,17 +8,8 @@ namespace EquipmentShop.Infrastructure.Services
     public class EmailService : IEmailService
     {
         private readonly ILogger<EmailService> _logger;
-
-        public EmailService(ILogger<EmailService> logger)
-        {
-            _logger = logger;
-        }
-
         public async Task SendOrderConfirmationAsync(Order order)
         {
-            // В реальном приложении здесь была бы отправка email
-            // Для демо просто логируем
-
             _logger.LogInformation("Отправка подтверждения заказа {OrderNumber} на email {Email}",
                 order.OrderNumber, order.CustomerEmail);
 

@@ -10,12 +10,6 @@ namespace EquipmentShop.Core.Exceptions
         {
             CartId = cartId;
         }
-
-        public CartException(string cartId, string message, Exception innerException)
-            : base($"Ошибка корзины {cartId}: {message}", innerException)
-        {
-            CartId = cartId;
-        }
     }
 
     public class EmptyCartException : CartException

@@ -434,45 +434,6 @@ namespace EquipmentShop.Infrastructure.Repositories
             return await query.AnyAsync();
         }
 
-        public async Task IncreaseStockAsync(int productId, int quantity)
-        {
-            var product = await _context.Products.FindAsync(productId);
-            if (product != null)
-            {
-                product.StockQuantity += quantity;
-                product.UpdatedAt = DateTime.UtcNow;
-                await _context.SaveChangesAsync();
-            }
-        }
-
-        public async Task<bool> DecreaseStockAsync(int productId, int quantity)
-        {
-            if (quantity <= 0)
-                return false;
-
-            var product = await _context.Products.FindAsync(productId);
-            if (product == null || product.StockQuantity < quantity)
-                return false;
-
-            product.StockQuantity -= quantity;
-            product.SoldCount += quantity;
-            product.UpdatedAt = DateTime.UtcNow;
-
-            await _context.SaveChangesAsync();
-            return true;
-        }
-        public async Task<Dictionary<string, int>> GetInventoryStatsAsync()
-        {
-            return new Dictionary<string, int>
-            {
-                ["total"] = await _context.Products.CountAsync(),
-                ["available"] = await _context.Products.CountAsync(p => p.IsAvailable),
-                ["lowStock"] = await _context.Products.CountAsync(p => p.IsLowStock),
-                ["outOfStock"] = await _context.Products.CountAsync(p => p.IsOutOfStock)
-            };
-        }
-
-        
 
         private static string GenerateSlug(string name)
         {

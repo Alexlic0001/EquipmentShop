@@ -36,7 +36,6 @@ namespace EquipmentShop.Core.ViewModels
     {
         public int ItemCount { get; set; }
         public decimal Total { get; set; }
-        public bool IsEmpty => ItemCount == 0;
     }
 
     public class MiniCartViewModel
@@ -47,14 +46,4 @@ namespace EquipmentShop.Core.ViewModels
         public bool IsEmpty => !Items.Any();
     }
 
-    public class AddToCartViewModel
-    {
-        [Required]
-        public int ProductId { get; set; }
-
-        [Range(1, 10, ErrorMessage = "Количество должно быть от 1 до 10")]
-        public int Quantity { get; set; } = 1;
-
-        public string? Attributes { get; set; }
-    }
 }

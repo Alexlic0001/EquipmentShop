@@ -44,15 +44,9 @@ namespace EquipmentShop.Controllers
             }
 
             // Рассчитываем финальные цены
-            var productsWithFinalPrices = new List<Product>();
-            foreach (var product in products)
-            {
-                var finalPrice = await _pricingService.CalculateFinalPriceAsync(product.Id);
-                product.Price = finalPrice;
-                productsWithFinalPrices.Add(product);
-            }
+            var productsWithFinalPrices = await _pricingService.ApplyFinalPricesToProductsAsync(products);
 
-           
+
             var allCategories = await _categoryRepository.GetAllAsync();
             ViewBag.Categories = allCategories.ToList();
 

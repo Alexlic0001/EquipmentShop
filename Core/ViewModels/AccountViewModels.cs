@@ -17,8 +17,6 @@ namespace EquipmentShop.Core.ViewModels
 
         [Display(Name = "Запомнить меня")]
         public bool RememberMe { get; set; }
-
-        public string? ReturnUrl { get; set; }
     }
 
     public class RegisterViewModel
@@ -93,8 +91,6 @@ namespace EquipmentShop.Core.ViewModels
 
         [Display(Name = "Адреса доставки")]
         public List<AddressViewModel> Addresses { get; set; } = new();
-
-        public string FullName => $"{FirstName} {LastName}";
     }
 
     public class AddressViewModel
@@ -124,13 +120,9 @@ namespace EquipmentShop.Core.ViewModels
 
         [Display(Name = "Использовать по умолчанию")]
         public bool IsDefault { get; set; }
-
-        public string FullAddress => $"{City}, {AddressLine1}" +
-            (!string.IsNullOrEmpty(AddressLine2) ? $", {AddressLine2}" : "") +
-            (!string.IsNullOrEmpty(Region) ? $", {Region}" : "");
     }
 
-    // === НОВЫЕ ViewModel (перенесены из контроллера) ===
+    // === НОВЫЕ ViewModel ===
 
     public class ForgotPasswordViewModel
     {
@@ -145,18 +137,12 @@ namespace EquipmentShop.Core.ViewModels
         [Required(ErrorMessage = "Email обязателен")]
         [EmailAddress(ErrorMessage = "Некорректный Email")]
         [Display(Name = "Email")]
-        public string Email { get; set; } = string.Empty;
 
-        [Required(ErrorMessage = "Пароль обязателен")]
-        [StringLength(100, ErrorMessage = "Пароль должен быть от {2} до {1} символов", MinimumLength = 6)]
-        [DataType(DataType.Password)]
-        [Display(Name = "Пароль")]
         public string Password { get; set; } = string.Empty;
 
         [DataType(DataType.Password)]
         [Display(Name = "Подтверждение пароля")]
         [Compare("Password", ErrorMessage = "Пароли не совпадают")]
-        public string ConfirmPassword { get; set; } = string.Empty;
 
         public string Token { get; set; } = string.Empty;
         public string UserId { get; set; } = string.Empty;

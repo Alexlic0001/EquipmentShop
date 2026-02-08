@@ -17,24 +17,24 @@ namespace EquipmentShop.Controllers
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly ILogger<CartController> _logger;
         private readonly IOrderService _orderService;
-        private readonly IOrderRepository _orderRepository;     // ← добавлено
-        private readonly IProductRepository _productRepository; // ← добавлено
+        private readonly IOrderRepository _orderRepository;     //
+        private readonly IProductRepository _productRepository; // 
 
-        // 🔧 ИСПРАВЛЕНО: все зависимости инжектятся в конструктор
+
         public CartController(
             IShoppingCartService cartService,
             UserManager<ApplicationUser> userManager,
             ILogger<CartController> logger,
             IOrderService orderService,
-            IOrderRepository orderRepository,        // ← добавлено
-            IProductRepository productRepository)    // ← добавлено
+            IOrderRepository orderRepository,        // 
+            IProductRepository productRepository)    // 
         {
             _cartService = cartService;
             _userManager = userManager;
             _logger = logger;
             _orderService = orderService;
-            _orderRepository = orderRepository;      // ← присвоено
-            _productRepository = productRepository;  // ← присвоено
+            _orderRepository = orderRepository;      // 
+            _productRepository = productRepository;  //
         }
 
         private string GetUserId()
@@ -106,7 +106,7 @@ namespace EquipmentShop.Controllers
                 return RedirectToAction("Index");
             }
             // Можно показать страницу подтверждения без формы
-            return View("Checkout"); // Views/Cart/Checkout.cshtml
+            return View("Checkout"); 
         }
 
         // === POST: /cart/checkout ===

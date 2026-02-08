@@ -6,7 +6,7 @@ namespace EquipmentShop.Core.Entities
     public class Order
     {
         public int Id { get; set; }
-        public string OrderNumber { get; set; } = string.Empty; // ← Убрана инициализация
+        public string OrderNumber { get; set; } = string.Empty; //
 
         public string? UserId { get; set; }
         public string CustomerEmail { get; set; } = string.Empty;
@@ -57,7 +57,7 @@ namespace EquipmentShop.Core.Entities
         public bool CanBeCancelledByUser()
         {
             var isAllowedStatus = Status == OrderStatus.Pending || Status == OrderStatus.Processing;
-            var isWithinTimeWindow = OrderDate >= DateTime.UtcNow.AddMinutes(-30);
+            var isWithinTimeWindow = DateTime.UtcNow <= OrderDate.AddMinutes(30);
             return isAllowedStatus && isWithinTimeWindow;
         }
 

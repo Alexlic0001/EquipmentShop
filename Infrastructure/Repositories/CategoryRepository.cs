@@ -42,6 +42,7 @@ namespace EquipmentShop.Infrastructure.Repositories
             return await _context.Categories
                 .Include(c => c.ParentCategory)
                 .Include(c => c.SubCategories.Where(sc => sc.IsActive))
+                .Include(c => c.Products.Where(p => p.IsAvailable)) // ←
                 .Where(c => c.IsActive)
                 .OrderBy(c => c.DisplayOrder)
                 .ThenBy(c => c.Name)
@@ -139,7 +140,27 @@ namespace EquipmentShop.Infrastructure.Repositories
         {
             try
             {
-                _context.Categories.Update(category);
+                // Находим существующую категорию в контексте
+                var existingCategory = await _context.Categories
+                    .FirstOrDefaultAsync(c => c.Id == category.Id);
+
+                if (existingCategory == null)
+                {
+                    throw new InvalidOperationException($"Категория с ID {category.Id} не найдена");
+                }
+
+                // Обновляем поля
+                existingCategory.Name = category.Name;
+                existingCategory.Slug = category.Slug;
+                existingCategory.Description = category.Description;
+                existingCategory.ParentCategoryId = category.ParentCategoryId;
+                existingCategory.DisplayOrder = category.DisplayOrder;
+                existingCategory.IconClass = category.IconClass;
+                existingCategory.ImageUrl = category.ImageUrl;
+                existingCategory.ShowInMenu = category.ShowInMenu;
+                existingCategory.ShowOnHomepage = category.ShowOnHomepage;
+                existingCategory.IsActive = category.IsActive;
+
                 await _context.SaveChangesAsync();
             }
             catch (Exception ex)

@@ -22,16 +22,6 @@
 
         // Вычисляемые свойства
         public decimal TotalPrice => UnitPrice * Quantity;
-        public decimal? DiscountAmount => OriginalPrice.HasValue
-            ? (OriginalPrice.Value - UnitPrice) * Quantity
-            : 0;
 
-        // Методы
-        public void UpdateFromProduct(Product product)
-        {
-            ProductName = product.Name;
-            UnitPrice = product.Price;
-            OriginalPrice = product.OldPrice;
-        }
     }
 }

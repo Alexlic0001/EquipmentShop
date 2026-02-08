@@ -158,10 +158,10 @@ namespace EquipmentShop.Infrastructure.Services
 
             order.Status = OrderStatus.Cancelled;
             order.CancelledDate = DateTime.UtcNow;
-            if (!string.IsNullOrEmpty(reason))
-            {
-                order.AdminNotes = $"Отменено: {reason}\n{order.AdminNotes}";
-            }
+            //if (!string.IsNullOrEmpty(reason))
+            //{
+            //    order.AdminNotes = $"Отменено: {reason}\n{order.AdminNotes}";
+            //}
 
             await _orderRepository.UpdateAsync(order);
             _logger.LogInformation("Заказ {OrderNumber} отменен", order.OrderNumber);
@@ -192,8 +192,8 @@ namespace EquipmentShop.Infrastructure.Services
                 throw new OrderProcessingException(order.OrderNumber, order.Status, "Заказ не готов к отгрузке");
 
             order.Status = OrderStatus.Shipped;
-            order.TrackingNumber = trackingNumber;
-            order.ShippingProvider = shippingProvider;
+            //order.TrackingNumber = trackingNumber;
+            //order.ShippingProvider = shippingProvider;
             order.ShippedDate = DateTime.UtcNow;
             await _orderRepository.UpdateAsync(order);
             _logger.LogInformation("Заказ {OrderNumber} отгружен. Трек: {TrackingNumber}", order.OrderNumber, trackingNumber);

@@ -219,20 +219,20 @@ namespace EquipmentShop.Infrastructure.Data
                 entity.Property(o => o.ShippingCountry)
                     .HasMaxLength(50);
 
-                entity.Property(o => o.ShippingNotes)
-                    .HasMaxLength(1000);
+                //entity.Property(o => o.ShippingNotes)
+                //    .HasMaxLength(1000);
 
-                entity.Property(o => o.TrackingNumber)
-                    .HasMaxLength(100);
+                //entity.Property(o => o.TrackingNumber)
+                //    .HasMaxLength(100);
 
-                entity.Property(o => o.ShippingProvider)
-                    .HasMaxLength(100);
+                //entity.Property(o => o.ShippingProvider)
+                //    .HasMaxLength(100);
 
-                entity.Property(o => o.AdminNotes)
-                    .HasMaxLength(2000);
+                //entity.Property(o => o.AdminNotes)
+                //    .HasMaxLength(2000);
 
-                entity.Property(o => o.CustomerNotes)
-                    .HasMaxLength(1000);
+                //entity.Property(o => o.CustomerNotes)
+                //    .HasMaxLength(1000);
 
                 // Конвертация enum
                 entity.Property(o => o.Status)

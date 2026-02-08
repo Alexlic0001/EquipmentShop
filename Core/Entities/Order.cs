@@ -18,7 +18,7 @@ namespace EquipmentShop.Core.Entities
         public string? ShippingRegion { get; set; }
         public string? ShippingPostalCode { get; set; }
         public string? ShippingCountry { get; set; } = "Беларусь";
-        public string? ShippingNotes { get; set; }
+        //public string? ShippingNotes { get; set; }
 
         public OrderStatus Status { get; set; } = OrderStatus.Pending;
         public PaymentMethod PaymentMethod { get; set; } = PaymentMethod.Card;
@@ -30,8 +30,8 @@ namespace EquipmentShop.Core.Entities
         public decimal DiscountAmount { get; set; }
         public decimal Total => Subtotal + ShippingCost + TaxAmount - DiscountAmount;
 
-        public string? TrackingNumber { get; set; }
-        public string? ShippingProvider { get; set; }
+        //public string? TrackingNumber { get; set; }
+        //public string? ShippingProvider { get; set; }
 
         public DateTime OrderDate { get; set; } = DateTime.UtcNow;
         public DateTime? PaymentDate { get; set; }
@@ -40,8 +40,8 @@ namespace EquipmentShop.Core.Entities
         public DateTime? DeliveredDate { get; set; }
         public DateTime? CancelledDate { get; set; }
 
-        public string? AdminNotes { get; set; }
-        public string? CustomerNotes { get; set; }
+        //public string? AdminNotes { get; set; }
+        //public string? CustomerNotes { get; set; }
 
         public ICollection<OrderItem> OrderItems { get; set; } = new List<OrderItem>();
 

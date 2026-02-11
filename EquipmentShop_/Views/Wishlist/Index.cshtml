@@ -1,0 +1,93 @@
+﻿@using EquipmentShop.Core.Constants
+@model EquipmentShop.Core.Entities.Wishlist
+@{
+    ViewData["Title"] = "Избранное";
+    Layout = "_Layout";
+}
+
+<div class="container mt-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a asp-controller="Home" asp-action="Index">Главная</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Избранное</li>
+        </ol>
+    </nav>
+
+    <h1>Избранное</h1>
+
+    @if (Model.WishlistItems == null || !Model.WishlistItems.Any()) // ← WishlistItems
+    {
+        <div class="alert alert-info">
+            <div class="text-center py-5">
+                <i class="fas fa-heart fa-4x text-muted mb-3"></i>
+                <h3>Ваш список желаний пуст</h3>
+                <p class="text-muted">Добавьте товары, которые хотите купить позже</p>
+                <a asp-controller="Products" asp-action="Index" class="btn btn-primary mt-3">
+                    <i class="fas fa-shopping-bag"></i> Перейти к покупкам
+                </a>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="row">
+            @foreach (var item in Model.WishlistItems) // ← WishlistItems
+            {
+                <div class="col-md-6 col-lg-4 mb-4">
+                    <div class="card h-100 shadow-sm">
+                        <img src="@item.Product.ImageUrl"
+                             class="card-img-top p-3"
+                             alt="@item.Product.Name"
+                             style="height: 200px; object-fit: contain;">
+                        <div class="card-body">
+                            <h5 class="card-title">
+                                <a asp-controller="Products" asp-action="Details" asp-route-id="@item.Product.Id"
+                                   class="text-decoration-none text-dark">
+                                    @item.Product.Name
+                                </a>
+                            </h5>
+                            <div class="mb-3">
+                                <span class="h5 text-primary">@($"{item.Product.Price:N0} р.")</span>
+                                @if (item.Product.OldPrice.HasValue)
+                                {
+                                    <small class="text-muted text-decoration-line-through ms-2">
+                                        @($"{item.Product.OldPrice:N0} р.")
+                                    </small>
+                                }
+                            </div>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span class="badge @(item.Product.StockQuantity > 0 ? "bg-success" : "bg-danger")">
+                                    @(item.Product.StockQuantity > 0 ? "В наличии" : "Нет в наличии")
+                                </span>
+                                <form asp-action="MoveToCart" method="post" class="d-inline">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="productId" value="@item.ProductId" />
+                                    <input type="hidden" name="quantity" value="1" />
+                                    <button type="submit" class="btn btn-sm btn-primary" title="В корзину">
+                                        <i class="fas fa-cart-plus"></i>
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                        <div class="card-footer bg-transparent border-top-0">
+                            <form asp-action="Remove" method="post" class="d-inline">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="productId" value="@item.ProductId" />
+                                <button type="submit" class="btn btn-sm btn-outline-danger w-100"
+                                        onclick="return confirm('Удалить из избранного?')">
+                                    <i class="fas fa-trash me-1"></i> Удалить
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+
+        <div class="mt-4">
+            <a asp-controller="Products" asp-action="Index" class="btn btn-outline-primary">
+                <i class="fas fa-arrow-left"></i> Продолжить покупки
+            </a>
+        </div>
+    }
+</div>

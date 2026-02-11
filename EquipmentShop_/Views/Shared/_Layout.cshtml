@@ -11,9 +11,9 @@
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
 
     <!-- Bootstrap 5 CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css  " rel="stylesheet">
     <!-- Font Awesome -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css  ">
 
     <style>
         .navbar-brand {
@@ -53,7 +53,7 @@
                     <i class="fas fa-laptop"></i> EquipmentShop
                 </a>
 
-                <button class="navbar-toggler" type="	button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                     <span class="navbar-toggler-icon"></span>
                 </button>
 
@@ -69,7 +69,7 @@
                                 <i class="fas fa-shopping-bag"></i> Товары
                             </a>
                         </li>
-                       @*  @if (User.Identity?.IsAuthenticated == true)
+                        @*  @if (User.Identity?.IsAuthenticated == true)
                         {
                             <li class="nav-item">
                                 <a class="nav-link" asp-controller="Cart" asp-action="Index">
@@ -90,11 +90,19 @@
                     <div class="navbar-nav">
                         @if (User.Identity?.IsAuthenticated == true)
                         {
-                            <!-- Только одна иконка корзины (без дублирования) -->
+                            <!-- Иконка корзины -->
                             <li class="nav-item">
                                 <a class="nav-link" asp-controller="Cart" asp-action="Index">
                                     <i class="fas fa-shopping-cart"></i>
                                     <span id="cartItemCount" class="badge bg-danger cart-count" style="display: none;">0</span>
+                                </a>
+                            </li>
+
+                            <!-- Иконка избранного -->
+                            <li class="nav-item">
+                                <a class="nav-link" asp-controller="Wishlist" asp-action="Index">
+                                    <i class="fas fa-heart"></i>
+                                    <span id="wishlistCount" class="badge bg-danger cart-count" style="display: none;">0</span>
                                 </a>
                             </li>
 
@@ -227,8 +235,8 @@
     </footer>
 
     <!-- JS -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js  "></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js  "></script>
 
     <script>
         // Обновление количества товаров в корзине
@@ -252,41 +260,131 @@
             }
         }
 
+        // Функция переключения избранного
+        async function toggleWishlist(productId, button) {
+            const isAuthenticated = @Html.Raw(User.Identity?.IsAuthenticated == true ? "true" : "false");
+
+            if (!isAuthenticated) {
+                if (confirm('Для добавления в избранное необходимо войти в аккаунт. Перейти на страницу входа?')) {
+                    sessionStorage.setItem('wishlistProductId', productId);
+                    window.location.href = '@Url.Action("Login", "Account")?returnUrl=' + encodeURIComponent(location.href);
+                }
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('productId', productId);
+            const token = document.querySelector('[name="__RequestVerificationToken"]')?.value;
+            if (token) formData.append('__RequestVerificationToken', token);
+
+            try {
+                const response = await fetch(
+                    button.querySelector('i').classList.contains('fa-heart-fill') ||
+                    button.querySelector('i').classList.contains('fas')
+                        ? '@Url.Action("Remove", "Wishlist")'
+                        : '@Url.Action("Add", "Wishlist")',
+                    {
+                        method: 'POST',
+                        body: formData
+                    }
+                );
+
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.success) {
+                        // Переключаем визуальное состояние кнопки
+                        const icon = button.querySelector('i');
+                        icon.classList.toggle('fa-heart');
+                        icon.classList.toggle('fa-heart-fill');
+
+                        // Обновляем счётчик избранного
+                        updateWishlistCount();
+
+                        // Показываем уведомление
+                        showNotification(
+                            icon.classList.contains('fa-heart-fill') || icon.classList.contains('fas')
+                                ? 'Добавлено в избранное'
+                                : 'Удалено из избранного',
+                            'success'
+                        );
+                    }
+                } else {
+                    showNotification('Ошибка при обновлении избранного', 'danger');
+                }
+            } catch (error) {
+                console.error('Ошибка:', error);
+                showNotification('Произошла ошибка', 'danger');
+            }
+        }
+
+        // Показ уведомлений
+        function showNotification(message, type = 'info') {
+            const toastContainer = document.getElementById('toastContainer');
+            if (!toastContainer) {
+                const container = document.createElement('div');
+                container.id = 'toastContainer';
+                container.className = 'toast-container position-fixed bottom-0 end-0 p-3';
+                container.style.zIndex = '9999';
+                document.body.appendChild(container);
+            }
+
+            const toast = document.createElement('div');
+            toast.className = `toast align-items-center text-white bg-${type} border-0`;
+            toast.role = 'alert';
+            toast.setAttribute('aria-live', 'assertive');
+            toast.setAttribute('aria-atomic', 'true');
+            toast.innerHTML = `
+                <div class="d-flex">
+                    <div class="toast-body">${message}</div>
+                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+                </div>
+            `;
+
+            document.getElementById('toastContainer').appendChild(toast);
+
+            const bsToast = new bootstrap.Toast(toast, { delay: 2000 });
+            bsToast.show();
+
+            toast.addEventListener('hidden.bs.toast', () => {
+                toast.remove();
+            });
+        }
+
+        // Обновление счётчика избранного
+        async function updateWishlistCount() {
+            if (!@Html.Raw(User.Identity?.IsAuthenticated == true ? "true" : "false")) return;
+
+            try {
+                const res = await fetch('@Url.Action("GetWishlistCount", "Wishlist")');
+                const data = await res.json();
+                const el = document.getElementById('wishlistCount');
+                if (el) {
+                    if (data.count > 0) {
+                        el.textContent = data.count;
+                        el.style.display = 'inline';
+                    } else {
+                        el.style.display = 'none';
+                    }
+                }
+            } catch (e) {
+                console.error('Не удалось обновить избранное', e);
+            }
+        }
+
+        // Инициализация при загрузке
         document.addEventListener('DOMContentLoaded', function () {
             updateCartCount();
+            updateWishlistCount();
 
-            // Обработчик кнопок "Добавить в корзину"
-            document.querySelectorAll('.add-to-cart-btn').forEach(btn => {
-                btn.addEventListener('click', async (e) => {
-                    e.preventDefault();
-                    const id = btn.dataset.productId;
-                    const qty = document.getElementById(`quantity-${id}`)?.value || 1;
-
-                    const isAuthenticated = @Html.Raw(User.Identity?.IsAuthenticated == true ? "true" : "false");
-                    if (!isAuthenticated) {
-                        if (confirm('Для добавления в корзину нужно войти. Перейти на страницу входа?')) {
-                            sessionStorage.setItem('pendingProductId', id);
-                            sessionStorage.setItem('pendingQuantity', qty);
-                            window.location.href = '@Url.Action("Login", "Account")?returnUrl=' + encodeURIComponent(location.href);
-                        }
-                        return;
-                    }
-
-                    const formData = new FormData();
-                    formData.append('productId', id);
-                    formData.append('quantity', qty);
-                    const token = document.querySelector('[name="__RequestVerificationToken"]')?.value;
-                    if (token) formData.append('__RequestVerificationToken', token);
-
-                    const res = await fetch('@Url.Action("AddToCart", "Cart")', { method: 'POST', body: formData });
-                    if (res.ok) {
-                        updateCartCount();
-                        alert('Товар добавлен в корзину!');
-                    } else {
-                        alert('Ошибка при добавлении в корзину');
-                    }
-                });
-            });
+            // Если товар был добавлен в избранное до авторизации
+            const wishlistProductId = sessionStorage.getItem('wishlistProductId');
+            if (wishlistProductId) {
+                sessionStorage.removeItem('wishlistProductId');
+                setTimeout(() => {
+                    const btn = document.querySelector(`.wishlist-btn[data-product-id="${wishlistProductId}"]`);
+                    if (btn) toggleWishlist(parseInt(wishlistProductId), btn);
+                }, 500);
+            }
         });
     </script>
 

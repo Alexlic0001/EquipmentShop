@@ -65,6 +65,7 @@ builder.Services.AddScoped<IFileStorageService, FileStorageService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<IOrderService, OrderService>();
 builder.Services.AddScoped<IPricingService, PricingService>();
+builder.Services.AddScoped<IWishlistService, WishlistService>();
 builder.Services.AddHttpContextAccessor();
 builder.Logging.AddConsole();
 builder.Logging.AddDebug();

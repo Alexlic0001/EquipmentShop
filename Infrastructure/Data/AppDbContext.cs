@@ -384,15 +384,28 @@ namespace EquipmentShop.Infrastructure.Data
                 entity.HasKey(wi => wi.Id);
                 entity.HasIndex(wi => wi.WishlistId);
                 entity.HasIndex(wi => wi.ProductId);
-
                 entity.HasIndex(wi => new { wi.WishlistId, wi.ProductId })
                     .IsUnique();
 
                 // Отношения
+                entity.HasOne(wi => wi.Wishlist)
+                    .WithMany(w => w.WishlistItems)
+                    .HasForeignKey(wi => wi.WishlistId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
                 entity.HasOne(wi => wi.Product)
                     .WithMany()
                     .HasForeignKey(wi => wi.ProductId)
                     .OnDelete(DeleteBehavior.Restrict);
+
+                // Свойство AddedAt
+                entity.Property(wi => wi.AddedAt)
+                    .IsRequired()
+                    .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                // Свойство Notes
+                entity.Property(wi => wi.Notes)
+                    .HasMaxLength(500);
             });
         }
 

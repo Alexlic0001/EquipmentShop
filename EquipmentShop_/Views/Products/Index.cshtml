@@ -49,6 +49,33 @@
                             {
                                 <div class="col">
                                     <div class="card h-100 shadow-sm">
+                                        <!-- Бейджи товара -->
+                                        @if (product.OldPrice.HasValue && product.OldPrice > product.Price)
+                                        {
+                                            <div class="position-absolute top-0 end-0 bg-danger text-white px-2 py-1 small">
+                                                <i class="fas fa-tag"></i> Акция
+                                            </div>
+                                        }
+                                        @if (product.IsNew)
+                                        {
+                                            <div class="position-absolute top-0 start-0 bg-success text-white px-2 py-1 small">
+                                                <i class="fas fa-sparkles"></i> Новинка
+                                            </div>
+                                        }
+
+                                        <!-- Кнопка избранного -->
+                                        @if (User.Identity?.IsAuthenticated == true)
+                                        {
+                                            <div class="position-absolute top-0 end-0 p-2" style="z-index: 10;">
+                                                <button class="btn btn-sm btn-outline-danger wishlist-btn"
+                                                        data-product-id="@product.Id"
+                                                        title="Добавить в избранное"
+                                                        onclick="toggleWishlist(@product.Id, this)">
+                                                    <i class="far fa-heart"></i>
+                                                </button>
+                                            </div>
+                                        }
+
                                         <img src="@product.ImageUrl" class="card-img-top p-3" alt="@product.Name"
                                              style="height: 200px; object-fit: contain;">
 
@@ -108,6 +135,9 @@
                 });
             });
 
+            // Проверка состояния избранного для всех товаров на странице
+            updateWishlistState();
+
             function updateIcon(button, isExpanded) {
                 const icon = button.querySelector('.toggle-icon');
                 if (icon) {
@@ -115,5 +145,31 @@
                 }
             }
         });
+
+        // Обновление состояния всех кнопок избранного на странице
+        async function updateWishlistState() {
+            if (!@Html.Raw(User.Identity?.IsAuthenticated == true ? "true" : "false")) return;
+
+            const wishlistButtons = document.querySelectorAll('.wishlist-btn');
+            for (const button of wishlistButtons) {
+                const productId = button.dataset.productId;
+                try {
+                    const response = await fetch(`@Url.Action("Check", "Wishlist")?productId=${productId}`);
+                    if (response.ok) {
+                        const data = await response.json();
+                        const icon = button.querySelector('i');
+                        if (data.isInWishlist) {
+                            button.classList.remove('btn-outline-danger');
+                            button.classList.add('btn-danger');
+                            icon.classList.remove('far', 'fa-heart');
+                            icon.classList.add('fas', 'fa-heart');
+                            button.title = 'Удалить из избранного';
+                        }
+                    }
+                } catch (error) {
+                    console.error('Ошибка проверки избранного:', error);
+                }
+            }
+        }
     </script>
 }

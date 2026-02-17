@@ -24,10 +24,10 @@
 
             <div class="mb-3">
                 <span class="h3 text-primary">@Model.Price.ToString("N0")@AppConstants.CurrencySymbol</span>
-                @if (Model.OldPrice.HasValue)
+    @*             @if (Model.OldPrice.HasValue)
                 {
                     <span class="text-muted text-decoration-line-through ms-2">@Model.OldPrice.Value.ToString("N0")@AppConstants.CurrencySymbol</span>
-                }
+                } *@
             </div>
 
             <div class="card mb-3">

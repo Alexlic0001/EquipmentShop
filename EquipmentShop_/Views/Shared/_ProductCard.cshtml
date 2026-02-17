@@ -2,12 +2,12 @@
 
 <div class="card h-100 shadow-sm border-0 product-card">
     <!-- Бейджи товара -->
-    @if (Model.OldPrice.HasValue && Model.OldPrice > Model.Price)
+   @*  @if (Model.OldPrice.HasValue && Model.OldPrice > Model.Price)
     {
         <div class="position-absolute top-0 end-0 bg-danger text-white px-2 py-1 small">
             <i class="fas fa-tag"></i> Акция
         </div>
-    }
+    } *@
     @if (Model.IsNew)
     {
         <div class="position-absolute top-0 start-0 bg-success text-white px-2 py-1 small">
@@ -60,14 +60,14 @@
                 <!-- Цена -->
                 <div class="mb-2">
                     <span class="h6 text-primary fw-bold">@($"{Model.Price:N0} р.")</span>
-                    @if (Model.OldPrice.HasValue)
+                   @*  @if (Model.OldPrice.HasValue)
                     {
                         <br>
                         <small class="text-muted text-decoration-line-through">@($"{Model.OldPrice:N0} р.")</small>
                         <small class="text-success d-block">
                             <i class="fas fa-arrow-down"></i> Экономия @($"{(Model.OldPrice.Value - Model.Price):N0} р.")
                         </small>
-                    }
+                    } *@
                 </div>
 
                 <!-- Статус наличия -->

@@ -7,7 +7,7 @@ namespace EquipmentShop.Core.Interfaces
         Task<Product?> GetBySlugAsync(string slug);
         Task<IEnumerable<Product>> GetFeaturedAsync(int count = 8);
         Task<IEnumerable<Product>> GetNewArrivalsAsync(int count = 8);
-        Task<IEnumerable<Product>> GetOnSaleAsync(int count = 8);
+        //Task<IEnumerable<Product>> GetOnSaleAsync(int count = 8);
         Task<IEnumerable<Product>> GetByCategoryAsync(int categoryId, int page = 1, int pageSize = 12);
         Task<IEnumerable<Product>> SearchAsync(string query, int page = 1, int pageSize = 12);
         Task<IEnumerable<Product>> GetRelatedAsync(int productId, int count = 4);
@@ -31,7 +31,7 @@ namespace EquipmentShop.Core.Interfaces
         public string? Brand { get; set; }
         public List<string> Tags { get; set; } = new();
         public bool? InStock { get; set; }
-        public bool? OnSale { get; set; }
+        //public bool? OnSale { get; set; }
         public bool? IsFeatured { get; set; }
         public string? SortBy { get; set; } // "price_asc", "price_desc", "newest", "popular"
         public int Page { get; set; } = 1;

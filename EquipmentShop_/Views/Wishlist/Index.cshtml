@@ -48,12 +48,12 @@
                             </h5>
                             <div class="mb-3">
                                 <span class="h5 text-primary">@($"{item.Product.Price:N0} р.")</span>
-                                @if (item.Product.OldPrice.HasValue)
+                      @*           @if (item.Product.OldPrice.HasValue)
                                 {
                                     <small class="text-muted text-decoration-line-through ms-2">
                                         @($"{item.Product.OldPrice:N0} р.")
                                     </small>
-                                }
+                                } *@
                             </div>
                             <div class="d-flex justify-content-between align-items-center">
                                 <span class="badge @(item.Product.StockQuantity > 0 ? "bg-success" : "bg-danger")">

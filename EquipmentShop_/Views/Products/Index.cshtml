@@ -50,12 +50,7 @@
                                 <div class="col">
                                     <div class="card h-100 shadow-sm">
                                         <!-- Бейджи товара -->
-                                        @if (product.OldPrice.HasValue && product.OldPrice > product.Price)
-                                        {
-                                            <div class="position-absolute top-0 end-0 bg-danger text-white px-2 py-1 small">
-                                                <i class="fas fa-tag"></i> Акция
-                                            </div>
-                                        }
+           
                                         @if (product.IsNew)
                                         {
                                             <div class="position-absolute top-0 start-0 bg-success text-white px-2 py-1 small">
@@ -88,10 +83,7 @@
 
                                             <div class="mb-2">
                                                 <span class="h5 text-primary">@product.Price.ToString("N0")@AppConstants.CurrencySymbol</span>
-                                                @if (product.OldPrice.HasValue)
-                                                {
-                                                    <small class="text-muted text-decoration-line-through ms-2">@product.OldPrice.Value.ToString("N0")@AppConstants.CurrencySymbol</small>
-                                                }
+                                         
                                             </div>
 
                                             <div class="d-flex justify-content-between align-items-center">

@@ -59,7 +59,7 @@ namespace EquipmentShop.UnitTests.Services
         {
             var p = new Product { Name = "P", Slug = $"p-{Guid.NewGuid():N}".Substring(0, 12), Price = 100m, StockQuantity = 10, IsAvailable = true, CategoryId = _categoryId, ImageUrl = "/img.jpg" };
             await _context.Products.AddAsync(p); await _context.SaveChangesAsync();
-            var o = new Order { OrderNumber = Order.GenerateOrderNumber(), UserId = "u1", Status = OrderStatus.Pending, OrderDate = DateTime.UtcNow, CustomerName = "U", CustomerEmail = "u@test.com", CustomerPhone = "+375291234567", ShippingAddress = "Minsk", Subtotal = 200m, ShippingCost = 0, TaxAmount = 0, DiscountAmount = 0, OrderItems = new List<OrderItem> { new OrderItem { ProductId = p.Id, Quantity = 2, UnitPrice = 100m, ProductName = "P" } } };
+            var o = new Order { OrderNumber = Order.GenerateOrderNumber(), UserId = "u1", Status = OrderStatus.Pending, OrderDate = DateTime.UtcNow, CustomerName = "U", CustomerEmail = "u@test.com", CustomerPhone = "+375291234567", ShippingAddress = "Minsk", Subtotal = 200m, ShippingCost = 0, TaxAmount = 0, OrderItems = new List<OrderItem> { new OrderItem { ProductId = p.Id, Quantity = 2, UnitPrice = 100m, ProductName = "P" } } };
             await _context.Orders.AddAsync(o); await _context.SaveChangesAsync();
             await _orderService.CancelOrderAsync(o.Id, "Отменено");
             var co = await _context.Orders.FindAsync(o.Id); co.Status.Should().Be(OrderStatus.Cancelled);

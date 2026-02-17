@@ -11,7 +11,7 @@ namespace EquipmentShop.Core.Entities
         public string Description { get; set; } = string.Empty;
         public string ShortDescription { get; set; } = string.Empty;
         public decimal Price { get; set; }
-        public decimal? OldPrice { get; set; }
+        //public decimal? OldPrice { get; set; }
         public string ImageUrl { get; set; } = "/images/products/default.jpg";
         public List<string> GalleryImages { get; set; } = new();
 

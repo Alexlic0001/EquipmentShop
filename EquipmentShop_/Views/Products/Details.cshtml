@@ -24,13 +24,7 @@
 
             <div class="mb-3">
                 <div class="h3 text-primary">@Model.Price.ToString("N0")@AppConstants.CurrencySymbol</div>
-                @if (Model.OldPrice.HasValue)
-                {
-                    <div class="text-muted text-decoration-line-through">Старая цена: @Model.OldPrice.Value.ToString("N0")@AppConstants.CurrencySymbol</div>
-                    <div class="text-success">
-                       @*  Скидка: @Model.GetDiscountPercentage().ToString("F0")% *@
-                    </div>
-                }
+
             </div>
 
             <div class="mb-4">

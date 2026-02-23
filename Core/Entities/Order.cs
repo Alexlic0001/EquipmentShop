@@ -27,8 +27,10 @@ namespace EquipmentShop.Core.Entities
         public decimal Subtotal { get; set; }
         public decimal ShippingCost { get; set; }
         public decimal TaxAmount { get; set; }
-        public decimal DiscountAmount { get; set; }
-        public decimal Total => Subtotal + ShippingCost + TaxAmount - DiscountAmount;
+        //public decimal DiscountAmount { get; set; }
+        //public decimal Total => Subtotal + ShippingCost + TaxAmount - DiscountAmount;
+        public decimal Total => Subtotal + ShippingCost + TaxAmount;
+
 
         //public string? TrackingNumber { get; set; }
         //public string? ShippingProvider { get; set; }

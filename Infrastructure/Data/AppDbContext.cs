@@ -95,8 +95,8 @@ namespace EquipmentShop.Infrastructure.Data
                     .HasPrecision(18, 2)
                     .IsRequired();
 
-                entity.Property(p => p.OldPrice)
-                    .HasPrecision(18, 2);
+                //entity.Property(p => p.OldPrice)
+                //    .HasPrecision(18, 2);
 
                 entity.Property(p => p.ImageUrl)
                     .HasMaxLength(500);
@@ -263,8 +263,8 @@ namespace EquipmentShop.Infrastructure.Data
                 entity.Property(o => o.TaxAmount)
                     .HasPrecision(18, 2);
 
-                entity.Property(o => o.DiscountAmount)
-                    .HasPrecision(18, 2);
+                //entity.Property(o => o.DiscountAmount)
+                //    .HasPrecision(18, 2);
 
                 // Отношения
                 entity.HasMany(o => o.OrderItems)

@@ -99,7 +99,7 @@ namespace EquipmentShop.Infrastructure.Services
                     Subtotal = cart.Subtotal,
                     ShippingCost = 0m,
                     TaxAmount = 0m,
-                    DiscountAmount = 0m
+                    //DiscountAmount = 0m
                 };
 
                 // 5. Конвертируем CartItems → OrderItems + списываем остатки

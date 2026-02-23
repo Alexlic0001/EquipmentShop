@@ -4,25 +4,19 @@ using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using System.Linq;
 
-namespace EquipmentShop.Controllers
+namespace EquipmentShop_.Controllers
 {
     [Authorize]
-    public class WishlistController : Controller
+    public class WishlistController(
+        IWishlistService wishlistService,
+        IShoppingCartService cartService,
+        ILogger<WishlistController> logger) : Controller
     {
-        private readonly IWishlistService _wishlistService;
-        private readonly IShoppingCartService _cartService;
-        private readonly ILogger<WishlistController> _logger;
-
-        public WishlistController(
-            IWishlistService wishlistService,
-            IShoppingCartService cartService,
-            ILogger<WishlistController> logger)
-        {
-            _wishlistService = wishlistService;
-            _cartService = cartService;
-            _logger = logger;
-        }
+        private readonly IWishlistService _wishlistService = wishlistService;
+        private readonly IShoppingCartService _cartService = cartService;
+        private readonly ILogger<WishlistController> _logger = logger;
 
         private string? GetUserId()
         {
@@ -34,6 +28,29 @@ namespace EquipmentShop.Controllers
             }
             return userId;
         }
+
+        private async Task<IActionResult> HandleWishlistAction(Func<string, Task> action, string successMessage)
+        {
+            try
+            {
+                var userId = GetUserId();
+                if (string.IsNullOrEmpty(userId))
+                    return RedirectToLogin();
+
+                await action(userId);
+                TempData["Success"] = successMessage;
+                return RedirectToAction(nameof(Index));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Ошибка при выполнении действия с избранным");
+                TempData["Error"] = "Ошибка при выполнении операции";
+                return RedirectToAction(nameof(Index));
+            }
+        }
+
+        private RedirectToActionResult RedirectToLogin(string? returnUrl = null) =>
+                  RedirectToAction("Login", "Account", new { returnUrl });
 
         [HttpPost]
         public async Task<IActionResult> Add(int productId)
@@ -48,10 +65,9 @@ namespace EquipmentShop.Controllers
                 }
 
                 _logger.LogInformation("Добавление товара {ProductId} в избранное пользователя {UserId}", productId, userId);
-
                 await _wishlistService.AddItemAsync(userId, productId);
-
                 _logger.LogInformation("Товар {ProductId} успешно добавлен в избранное пользователя {UserId}", productId, userId);
+
                 return Json(new { success = true, message = "Товар добавлен в избранное" });
             }
             catch (Exception ex)
@@ -61,50 +77,19 @@ namespace EquipmentShop.Controllers
             }
         }
 
-        [HttpPost] // ← Добавьте этот атрибут
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> MoveToCart(int productId, int quantity = 1)
-        {
-            try
-            {
-                var userId = GetUserId();
-                await _wishlistService.MoveToCartAsync(userId, productId, quantity);
-                TempData["Success"] = "Товар добавлен в корзину";
-                return RedirectToAction("Index", "Cart");
-            }
-            catch (UnauthorizedAccessException)
-            {
-                return RedirectToAction("Login", "Account");
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Ошибка при добавлении в корзину");
-                TempData["Error"] = "Ошибка при добавлении в корзину";
-                return RedirectToAction(nameof(Index));
-            }
-        }
+        [HttpPost, ValidateAntiForgeryToken]
+        public async Task<IActionResult> MoveToCart(int productId, int quantity = 1) =>
+            await HandleWishlistAction(
+                (userId) => _wishlistService.MoveToCartAsync(userId, productId, quantity),
+                "Товар добавлен в корзину"
+            );
 
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Remove(int productId)
-        {
-            try
-            {
-                var userId = GetUserId();
-                if (string.IsNullOrEmpty(userId))
-                    return RedirectToAction("Login", "Account");
-
-                await _wishlistService.RemoveItemAsync(userId, productId);
-                TempData["Success"] = "Товар удалён из избранного";
-                return RedirectToAction(nameof(Index));
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Ошибка удаления товара {ProductId}", productId);
-                TempData["Error"] = "Ошибка при удалении";
-                return RedirectToAction(nameof(Index));
-            }
-        }
+        [HttpPost, ValidateAntiForgeryToken]
+        public async Task<IActionResult> Remove(int productId) =>
+            await HandleWishlistAction(
+                (userId) => _wishlistService.RemoveItemAsync(userId, productId),
+                "Товар удалён из избранного"
+            );
 
         [HttpGet]
         public async Task<IActionResult> GetWishlistCount()
@@ -112,12 +97,10 @@ namespace EquipmentShop.Controllers
             try
             {
                 var userId = GetUserId();
-                if (string.IsNullOrEmpty(userId))
-                {
-                    return Json(new { count = 0 });
-                }
+                var count = string.IsNullOrEmpty(userId)
+                    ? 0
+                    : await _wishlistService.GetWishlistItemCountAsync(userId);
 
-                var count = await _wishlistService.GetWishlistItemCountAsync(userId);
                 return Json(new { count });
             }
             catch (Exception ex)
@@ -134,9 +117,7 @@ namespace EquipmentShop.Controllers
             {
                 var userId = GetUserId();
                 if (string.IsNullOrEmpty(userId))
-                {
-                    return RedirectToAction("Login", "Account", new { returnUrl = Url.Action("Index", "Wishlist") });
-                }
+                    return RedirectToLogin(Url.Action(nameof(Index)));
 
                 var wishlist = await _wishlistService.GetOrCreateWishlistAsync(userId);
                 return View(wishlist);

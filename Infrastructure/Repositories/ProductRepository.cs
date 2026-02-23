@@ -67,18 +67,18 @@ namespace EquipmentShop.Infrastructure.Repositories
                 .ToListAsync();
         }
 
-        public async Task<IEnumerable<Product>> GetOnSaleAsync(int count = 8)
-        {
-            var products = await _context.Products
-                .AsNoTracking()
-                .Include(p => p.Category)
-                .Where(p => p.OldPrice.HasValue && p.IsAvailable)
-                .ToListAsync();
+        //public async Task<IEnumerable<Product>> GetOnSaleAsync(int count = 8)
+        //{
+        //    var products = await _context.Products
+        //        .AsNoTracking()
+        //        .Include(p => p.Category)
+        //        .Where(p => p.OldPrice.HasValue && p.IsAvailable)
+        //        .ToListAsync();
 
-            return products
-                .OrderByDescending(p => 100 - (p.Price / p.OldPrice.Value * 100))
-                .Take(count);
-        }
+        //    return products
+        //        .OrderByDescending(p => 100 - (p.Price / p.OldPrice.Value * 100))
+        //        .Take(count);
+        //}
 
         public async Task<IEnumerable<Product>> GetByCategoryAsync(int categoryId, int page = 1, int pageSize = 12)
         {
@@ -226,8 +226,8 @@ namespace EquipmentShop.Infrastructure.Repositories
                 query = filter.InStock.Value ? query.Where(p => p.IsAvailable) : query.Where(p => !p.IsAvailable);
 
             // Товары со скидкой
-            if (filter.OnSale.HasValue)
-                query = filter.OnSale.Value ? query.Where(p => p.OldPrice.HasValue) : query;
+            //if (filter.OnSale.HasValue)
+            //    query = filter.OnSale.Value ? query.Where(p => p.OldPrice.HasValue) : query;
 
             // Рекомендуемые
             if (filter.IsFeatured.HasValue)
@@ -313,7 +313,7 @@ namespace EquipmentShop.Infrastructure.Repositories
                 existingProduct.Description = product.Description;
                 existingProduct.ShortDescription = product.ShortDescription;
                 existingProduct.Price = product.Price;
-                existingProduct.OldPrice = product.OldPrice;
+                //existingProduct.OldPrice = product.OldPrice;
                 existingProduct.ImageUrl = product.ImageUrl ?? existingProduct.ImageUrl;
                 existingProduct.CategoryId = product.CategoryId;
                 existingProduct.Brand = product.Brand;

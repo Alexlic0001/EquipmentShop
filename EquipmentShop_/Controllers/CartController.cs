@@ -139,10 +139,8 @@ namespace EquipmentShop_.Controllers
             return View();
         }
 
-        [Authorize]
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> AddToCart(int productId, int quantity = 1)
+        [HttpPost, ValidateAntiForgeryToken]
+        public async Task<IActionResult> AddToCart(int productId, int quantity = 1, string? returnUrl = null)
         {
             // Проверка авторизации
             if (!User.Identity.IsAuthenticated)
@@ -171,9 +169,6 @@ namespace EquipmentShop_.Controllers
                     return Redirect(returnUrl);
                 else
                     return RedirectToAction("Details", "Products", new { id = productId });
-            }
-                    returnUrl = Url.Action("Details", "Products", new { id = productId })
-                });
             }
             catch (ProductNotAvailableException ex)
             {

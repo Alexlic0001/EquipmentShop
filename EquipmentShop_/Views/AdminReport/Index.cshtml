@@ -1,0 +1,259 @@
+﻿@using EquipmentShop.Core.ViewModels.Admin
+@using EquipmentShop.Core.Entities
+@using EquipmentShop.Core.Constants
+@using EquipmentShop.Core.Enums
+
+@model EquipmentShop.Core.ViewModels.Admin.SalesReportFilterViewModel
+@{
+    ViewData["Title"] = "Отчеты по продажам";
+    Layout = "_Layout";
+
+    // Безопасное извлечение данных из ViewBag
+    var reportData = ViewBag.ReportData as List<SalesReportViewModel>;
+    var categories = ViewBag.Categories as List<Category>;
+}
+
+<div class="container mt-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a asp-controller="Admin" asp-action="Dashboard">Админ-панель</a></li>
+            <li class="breadcrumb-item active">Отчеты по продажам</li>
+        </ol>
+    </nav>
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1><i class="fas fa-chart-line"></i> Отчеты по продажам</h1>
+        <div class="btn-group">
+            <a asp-action="ExportToCsv"
+               asp-route-startDate="@Model.StartDate?.ToString("yyyy-MM-dd")"
+               asp-route-endDate="@Model.EndDate?.ToString("yyyy-MM-dd")"
+               asp-route-categoryId="@Model.CategoryId"
+               asp-route-brand="@Model.Brand"
+               class="btn btn-success">
+                <i class="fas fa-file-csv"></i> Экспорт CSV
+            </a>
+            <a asp-action="ExportSummaryCsv"
+               asp-route-startDate="@Model.StartDate?.ToString("yyyy-MM-dd")"
+               asp-route-endDate="@Model.EndDate?.ToString("yyyy-MM-dd")"
+               class="btn btn-info">
+                <i class="fas fa-file-alt"></i> Сводка CSV
+            </a>
+        </div>
+    </div>
+
+    <!-- Фильтры -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0"><i class="fas fa-filter"></i> Фильтры</h5>
+        </div>
+        <div class="card-body">
+            <form asp-action="GenerateReport" method="post">
+                <div class="row">
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">Дата с</label>
+                        <input type="date" asp-for="StartDate" class="form-control" />
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">Дата по</label>
+                        <input type="date" asp-for="EndDate" class="form-control" />
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">Категория</label>
+                        <select asp-for="CategoryId" class="form-select">
+                            <option value="">Все категории</option>
+                            @if (categories != null)
+                            {
+                                foreach (var cat in categories)
+                                {
+                                    <option value="@cat.Id" selected="@(Model.CategoryId == cat.Id)">
+                                        @cat.Name
+                                    </option>
+                                }
+                            }
+                        </select>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">Бренд</label>
+                        <input type="text" asp-for="Brand" class="form-control"
+                               placeholder="Например: ASUS"
+                               value="@Model.Brand" />
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">Сортировка</label>
+                        <select asp-for="SortBy" class="form-select">
+                            <option value="TotalRevenue" selected="@(Model.SortBy == "TotalRevenue")">По выручке</option>
+                            <option value="TotalQuantitySold" selected="@(Model.SortBy == "TotalQuantitySold")">По количеству</option>
+                            <option value="ProductName" selected="@(Model.SortBy == "ProductName")">По названию</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">Порядок</label>
+                        <select asp-for="SortDescending" class="form-select">
+                            <option value="true" selected="@(Model.SortDescending == true)">По убыванию</option>
+                            <option value="false" selected="@(Model.SortDescending == false)">По возрастанию</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6 mb-3 d-flex align-items-end">
+                        <button type="submit" class="btn btn-primary me-2">
+                            <i class="fas fa-search"></i> Сформировать отчет
+                        </button>
+                        <a asp-action="Index" class="btn btn-secondary">
+                            <i class="fas fa-redo"></i> Сбросить
+                        </a>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Сводные показатели -->
+    @if (ViewBag.TotalRevenue != null)
+    {
+        <div class="row mb-4">
+            <div class="col-md-4">
+                <div class="card bg-primary text-white">
+                    <div class="card-body">
+                        <h5>Общая выручка</h5>
+                        <h3>@ViewBag.TotalRevenue.ToString("N0") р.</h3>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card bg-success text-white">
+                    <div class="card-body">
+                        <h5>Продано товаров</h5>
+                        <h3>@ViewBag.TotalQuantitySold шт.</h3>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card bg-info text-white">
+                    <div class="card-body">
+                        <h5>Уникальных товаров</h5>
+                        <h3>@ViewBag.TotalProducts</h3>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+
+    <!-- Таблица отчета -->
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0"><i class="fas fa-table"></i> Детализация по товарам</h5>
+        </div>
+        <div class="card-body">
+            @if (reportData != null && reportData.Any())
+            {
+                <div class="table-responsive">
+                    <table class="table table-hover table-striped align-middle">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>Товар</th>
+                                <th>Категория</th>
+                                <th>Бренд</th>
+                                <th class="text-end">Продано (шт)</th>
+                                <th class="text-end">Заказов</th>
+                                <th class="text-end">Цена</th>
+                                <th class="text-end">Выручка</th>
+                                <th class="text-end">Средний чек</th>
+                                <th>Первая продажа</th>
+                                <th>Последняя продажа</th>
+                                <th>Статус</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var item in reportData)
+                            {
+                                <tr>
+                                    <td>
+                                        <strong>@item.ProductName</strong><br>
+                                        <small class="text-muted">@item.ProductSku</small>
+                                    </td>
+                                    <td>@item.CategoryName</td>
+                                    <td>@item.Brand</td>
+                                    <td class="text-end fw-bold">@item.TotalQuantitySold</td>
+                                    <td class="text-end">@item.OrderCount</td>
+                                    <td class="text-end">@item.UnitPrice.ToString("N0") р.</td>
+                                    <td class="text-end fw-bold text-primary">@item.TotalRevenue.ToString("N0") р.</td>
+                                    <td class="text-end">@item.AverageOrderValue.ToString("N0") р.</td>
+                                    <td>@item.FirstSaleDate.ToString("dd.MM.yyyy")</td>
+                                    <td>@item.LastSaleDate.ToString("dd.MM.yyyy")</td>
+                                    <td>
+                                        @if (item.Status == "Активен")
+                                        {
+                                            <span class="badge bg-success">@item.Status</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-secondary">@item.Status</span>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                        <tfoot class="table-light">
+                            <tr>
+                                <td colspan="3" class="text-end fw-bold">Итого:</td>
+                                <td class="text-end fw-bold">@reportData.Sum(r => r.TotalQuantitySold)</td>
+                                <td class="text-end">@reportData.Sum(r => r.OrderCount)</td>
+                                <td>-</td>
+                                <td class="text-end fw-bold text-primary">@reportData.Sum(r => r.TotalRevenue).ToString("N0") р.</td>
+                                <td>-</td>
+                                <td colspan="3"></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            }
+            else if (ViewBag.TotalRevenue != null)
+            {
+                <!-- Отчет сформирован, но данных нет -->
+                <div class="text-center text-muted py-5">
+                    <i class="fas fa-inbox fa-4x mb-3"></i>
+                    <h5>Нет данных за выбранный период</h5>
+                    <p class="mb-0">Попробуйте изменить параметры фильтра или период дат</p>
+                </div>
+            }
+            else
+            {
+                <!-- Отчет ещё не сформирован -->
+                <div class="text-center text-muted py-5">
+                    <i class="fas fa-chart-bar fa-4x mb-3"></i>
+                    <h5>Выберите параметры и нажмите "Сформировать отчет"</h5>
+                    <p class="mb-0">Данные о продажах появятся здесь после генерации отчета</p>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Установка дат по умолчанию (последние 30 дней), если не заданы
+            const startDateInput = document.querySelector('input[asp-for="StartDate"]');
+            const endDateInput = document.querySelector('input[asp-for="EndDate"]');
+
+            const today = new Date();
+            const thirtyDaysAgo = new Date();
+            thirtyDaysAgo.setDate(today.getDate() - 30);
+
+            if (startDateInput && !startDateInput.value) {
+                startDateInput.value = thirtyDaysAgo.toISOString().split('T')[0];
+            }
+            if (endDateInput && !endDateInput.value) {
+                endDateInput.value = today.toISOString().split('T')[0];
+            }
+
+            // Авто-отправка формы при изменении фильтров (опционально)
+            // document.querySelectorAll('select[asp-for], input[asp-for]').forEach(el => {
+            //     el.addEventListener('change', function() {
+            //         this.closest('form').submit();
+            //     });
+            // });
+        });
+    </script>
+}

@@ -78,7 +78,7 @@ namespace EquipmentShop_.Controllers
         }
 
         [Authorize, HttpPost("checkout"), ValidateAntiForgeryToken]
-        public async Task<IActionResult> Checkout()
+        public async Task<IActionResult> Checkout(CheckoutViewModel model)  // ← Добавлен параметр
         {
             try
             {
@@ -87,7 +87,6 @@ namespace EquipmentShop_.Controllers
                 if (user == null)
                 {
                     _logger.LogWarning("Пользователь с ID {UserId} не найден в БД (возможно, удалён)", userId);
-                    /*await _signInManager.SignOutAsync();*/ // Разлогинить
                     TempData["Error"] = "Ваша учётная запись была удалена. Пожалуйста, войдите снова.";
                     return RedirectToAction("Login", "Account", new { returnUrl = Url.Action("Index", "Cart") });
                 }
@@ -99,7 +98,9 @@ namespace EquipmentShop_.Controllers
                     return RedirectToAction(nameof(Index));
                 }
 
-                var order = await _orderService.CreateOrderFromCartAsync(cart.Id, userId);
+                // Передаём модель с адресом в сервис
+                var order = await _orderService.CreateOrderFromCartAsync(cart.Id, userId, model);
+
                 TempData["Success"] = $"Ваш заказ #{order.OrderNumber} принят!";
                 return RedirectToAction(nameof(OrderConfirmation), new { orderNumber = order.OrderNumber });
             }

@@ -48,7 +48,7 @@
                                         OrderStatus.Delivered => "Доставлен",
                                         OrderStatus.Cancelled => "Отменен",
                                         OrderStatus.Refunded => "Возврат",
-                                        OrderStatus.OnHold => "На удержании",
+                                       
                                         _ => order.Status.ToString()
                                     };
 
@@ -58,7 +58,7 @@
                                         OrderStatus.Cancelled or OrderStatus.Refunded => "bg-danger",
                                         OrderStatus.Pending or OrderStatus.AwaitingPayment => "bg-secondary",
                                         OrderStatus.Processing or OrderStatus.Paid or OrderStatus.Shipped => "bg-warning text-dark",
-                                        OrderStatus.OnHold => "bg-info",
+                                       
                                         _ => "bg-light text-dark"
                                     };
                                 }

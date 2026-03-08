@@ -3,6 +3,7 @@ using EquipmentShop.Core.Entities;
 using EquipmentShop.Core.Enums;
 using EquipmentShop.Core.Exceptions;
 using EquipmentShop.Core.Interfaces;
+using EquipmentShop.Core.ViewModels;
 using EquipmentShop.Infrastructure.Data;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Logging;
@@ -35,34 +36,51 @@ namespace EquipmentShop.Infrastructure.Services
             _logger = logger;
         }
 
-        public async Task<Order> CreateOrderFromCartAsync(string cartId, string userId)
+        public async Task<Order> CreateOrderFromCartAsync(
+    string cartId,
+    string userId,
+    CheckoutViewModel? checkoutModel = null)  // ← Новый параметр
         {
             using var transaction = await _context.Database.BeginTransactionAsync();
             try
             {
-                // 1. Получаем пользователя
                 var user = await _userManager.FindByIdAsync(userId);
                 if (user == null)
                     throw new InvalidOperationException("Пользователь не найден");
 
-                // 2. Получаем корзину
                 var cart = await _cartService.GetCartAsync(cartId);
                 if (cart.IsEmpty)
                     throw new EmptyCartException(cartId);
+
                 if (!await _cartService.ValidateCartAsync(cartId))
                     throw new CartException(cartId, "Корзина содержит недоступные товары");
 
-                // 3. Определяем адрес доставки
+                // ✅ 3. Определяем адрес доставки с приоритетами
                 string shippingAddress = "";
                 string shippingCity = "Минск";
                 string shippingRegion = "Минская обл.";
                 string shippingCountry = "Беларусь";
                 string shippingPostalCode = "";
 
-                // Используем адрес по умолчанию из дополнительных адресов или основной адрес
-                var defaultAddress = user.AdditionalAddresses?.FirstOrDefault(a => a.IsDefault);
-                if (defaultAddress != null)
+                // Приоритет 1: Адрес из формы checkout (если передан и заполнен)
+                if (checkoutModel != null && !string.IsNullOrWhiteSpace(checkoutModel.ShippingAddress))
                 {
+                    shippingAddress = checkoutModel.ShippingAddress;
+                    shippingCity = !string.IsNullOrWhiteSpace(checkoutModel.ShippingCity)
+                        ? checkoutModel.ShippingCity
+                        : "Минск";
+                    shippingRegion = !string.IsNullOrWhiteSpace(checkoutModel.ShippingRegion)
+                        ? checkoutModel.ShippingRegion
+                        : "Минская обл.";
+                    shippingCountry = !string.IsNullOrWhiteSpace(checkoutModel.ShippingCountry)
+                        ? checkoutModel.ShippingCountry
+                        : "Беларусь";
+                    shippingPostalCode = checkoutModel.ShippingPostalCode ?? "";
+                }
+                // Приоритет 2: Адрес по умолчанию из дополнительных адресов пользователя
+                else if (user.AdditionalAddresses?.Any(a => a.IsDefault) == true)
+                {
+                    var defaultAddress = user.AdditionalAddresses.First(a => a.IsDefault);
                     shippingAddress = defaultAddress.AddressLine1;
                     if (!string.IsNullOrEmpty(defaultAddress.AddressLine2))
                         shippingAddress += $", {defaultAddress.AddressLine2}";
@@ -71,6 +89,7 @@ namespace EquipmentShop.Infrastructure.Services
                     shippingCountry = defaultAddress.Country ?? "Беларусь";
                     shippingPostalCode = defaultAddress.PostalCode ?? "";
                 }
+                // Приоритет 3: Основной адрес пользователя
                 else if (!string.IsNullOrEmpty(user.Address))
                 {
                     shippingAddress = user.Address;
@@ -86,20 +105,21 @@ namespace EquipmentShop.Infrastructure.Services
                     OrderNumber = Order.GenerateOrderNumber(),
                     UserId = userId,
                     CustomerName = user.FullName,
-                    CustomerEmail = user.Email,
+                    CustomerEmail = user.Email ?? string.Empty,
                     CustomerPhone = user.PhoneNumber ?? string.Empty,
                     Status = OrderStatus.Pending,
                     OrderDate = DateTime.UtcNow,
-                    // Адрес доставки
+
+                    //  Адрес доставки
                     ShippingAddress = shippingAddress,
                     ShippingCity = shippingCity,
                     ShippingRegion = shippingRegion,
                     ShippingCountry = shippingCountry,
                     ShippingPostalCode = shippingPostalCode,
+
                     Subtotal = cart.Subtotal,
                     ShippingCost = 0m,
                     TaxAmount = 0m,
-                    //DiscountAmount = 0m
                 };
 
                 // 5. Конвертируем CartItems → OrderItems + списываем остатки
@@ -119,7 +139,6 @@ namespace EquipmentShop.Infrastructure.Services
                         ProductAttributes = cartItem.SelectedAttributes
                     });
 
-                    // Списываем остатки
                     await _productRepository.UpdateStockAsync(cartItem.ProductId, -cartItem.Quantity);
                 }
 
@@ -130,7 +149,8 @@ namespace EquipmentShop.Infrastructure.Services
                 await _cartService.ClearCartAsync(cartId);
 
                 await transaction.CommitAsync();
-                _logger.LogInformation("Заказ {OrderNumber} успешно создан из корзины {CartId}", order.OrderNumber, cartId);
+                _logger.LogInformation("Заказ {OrderNumber} успешно создан из корзины {CartId}",
+                    order.OrderNumber, cartId);
 
                 return order;
             }

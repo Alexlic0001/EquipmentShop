@@ -118,13 +118,13 @@
                                         <li><a class="dropdown-item" asp-controller="Admin" asp-action="Products"><i class="fas fa-box"></i> Товары</a></li>
                                         <li><a class="dropdown-item" asp-controller="Admin" asp-action="Categories"><i class="fas fa-folder"></i> Категории</a></li>
                                         <li><a class="dropdown-item" asp-controller="Admin" asp-action="Orders"><i class="fas fa-shopping-bag"></i> Заказы</a></li>
-
+                                        <!-- НОВОЕ: Отчеты -->
+                                        <li><hr class="dropdown-divider"></li>
+                                        <li><a class="dropdown-item" asp-controller="AdminReport" asp-action="Index"><i class="fas fa-chart-line"></i> Отчеты по продажам</a></li>
                                         @if (User.IsInRole(AppConstants.AdminRole))
                                         {
                                             <li><hr class="dropdown-divider"></li>
                                             <li><a class="dropdown-item" asp-controller="Admin" asp-action="Users"><i class="fas fa-users"></i> Пользователи</a></li>
-                                            <li><a class="dropdown-item" asp-controller="Admin" asp-action="CreateProduct"><i class="fas fa-plus"></i> Добавить товар</a></li>
-                                            <li><a class="dropdown-item" asp-controller="Admin" asp-action="CreateCategory"><i class="fas fa-folder-plus"></i> Добавить категорию</a></li>
                                             <li><a class="dropdown-item" asp-controller="Admin" asp-action="ImportData"><i class="fas fa-file-import"></i> Импорт/Экспорт</a></li>
                                             <li><a class="dropdown-item" asp-controller="Admin" asp-action="PricingRules"><i class="fas fa-percent"></i> Ценообразование</a></li>
                                         }

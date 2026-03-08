@@ -89,13 +89,22 @@
                                         <span class="badge bg-info">Ожидает обработки</span>
                                         break;
                                     case OrderStatus.Processing:
-                                        <span class="badge bg-warning">В обработке</span>
+                                        <span class="badge bg-warning text-dark">В обработке</span>
+                                        break;
+                                    case OrderStatus.AwaitingPayment:
+                                        <span class="badge bg-secondary">Ожидает оплаты</span>
+                                        break;
+                                    case OrderStatus.Paid:
+                                        <span class="badge bg-primary">Оплачен</span>
+                                        break;
+                                    case OrderStatus.Shipped:
+                                        <span class="badge bg-info">Передан в доставку</span>
                                         break;
                                     case OrderStatus.Delivered:
                                         <span class="badge bg-success">Доставлен</span>
                                         break;
                                     case OrderStatus.Cancelled:
-                                        <span class="badge bg-danger">Отменён</span>
+                                        <span class="badge bg-danger">Отменен</span>
                                         break;
                                     case OrderStatus.Refunded:
                                         <span class="badge bg-secondary">Возврат</span>
@@ -152,10 +161,18 @@
 
     <!-- Кнопки действий -->
     <div class="mt-3">
+        <!-- ✅ Кнопка изменения статуса -->
+        <a asp-controller="AdminOrder"
+           asp-action="ChangeStatus"
+           asp-route-orderNumber="@Model.OrderNumber"
+           class="btn btn-warning me-2">
+            <i class="fas fa-edit"></i> Изменить статус
+        </a>
+
         @if (canCancel)
         {
             <form asp-action="CancelOrder" asp-controller="Admin" asp-route-id="@Model.Id" method="post" class="d-inline">
-                @Html.AntiForgeryToken()
+                @Html.AntiForgeryToken()  <!-- ✅ ИСПРАВЛЕНО -->
                 <button type="submit"
                         class="btn btn-danger"
                         onclick="return confirm('Вы уверены, что хотите отменить заказ?')">

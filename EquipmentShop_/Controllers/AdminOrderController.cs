@@ -18,15 +18,14 @@ namespace EquipmentShop_.Controllers
         // Допустимые переходы между статусами
         private static readonly Dictionary<OrderStatus, OrderStatus[]> AllowedTransitions = new()
         {
-            [OrderStatus.Pending] = [OrderStatus.Processing, OrderStatus.OnHold, OrderStatus.Cancelled],
-            [OrderStatus.Processing] = [OrderStatus.AwaitingPayment, OrderStatus.Paid, OrderStatus.OnHold, OrderStatus.Cancelled],
-            [OrderStatus.AwaitingPayment] = [OrderStatus.Paid, OrderStatus.Cancelled, OrderStatus.OnHold],
-            [OrderStatus.Paid] = [OrderStatus.Shipped, OrderStatus.Cancelled, OrderStatus.OnHold],
+            [OrderStatus.Pending] = [OrderStatus.Processing, OrderStatus.Cancelled],
+            [OrderStatus.Processing] = [OrderStatus.AwaitingPayment, OrderStatus.Paid, OrderStatus.Cancelled],
+            [OrderStatus.AwaitingPayment] = [OrderStatus.Paid, OrderStatus.Cancelled],
+            [OrderStatus.Paid] = [OrderStatus.Shipped, OrderStatus.Cancelled],
             [OrderStatus.Shipped] = [OrderStatus.Delivered, OrderStatus.Refunded, OrderStatus.Cancelled],
             [OrderStatus.Delivered] = [OrderStatus.Refunded],
             [OrderStatus.Cancelled] = [],
             [OrderStatus.Refunded] = [],
-            [OrderStatus.OnHold] = [OrderStatus.Pending, OrderStatus.Processing, OrderStatus.AwaitingPayment, OrderStatus.Paid, OrderStatus.Cancelled]
         };
 
         [HttpGet]

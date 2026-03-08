@@ -28,7 +28,5 @@ namespace EquipmentShop.Core.Enums
         [Display(Name = "Возврат")]
         Refunded = 8,
 
-        [Display(Name = "На удержании")]
-        OnHold = 9
     }
 }

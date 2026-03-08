@@ -26,7 +26,7 @@ namespace EquipmentShop.Core.ViewModels
                 OrderStatus.Delivered => "Доставлен",
                 OrderStatus.Cancelled => "Отменен",
                 OrderStatus.Refunded => "Возврат",
-                OrderStatus.OnHold => "На удержании",
+                
                 _ => "Неизвестно"
             };
         }

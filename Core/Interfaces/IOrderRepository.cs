@@ -1,6 +1,6 @@
 ﻿using EquipmentShop.Core.Entities;
 using EquipmentShop.Core.Enums;
-
+using EquipmentShop.Core.ViewModels.Admin;
 
 namespace EquipmentShop.Core.Interfaces
 {
@@ -23,6 +23,16 @@ namespace EquipmentShop.Core.Interfaces
         
 
         Task<bool> UpdateOrderStatusAsync(string orderNumber, OrderStatus newStatus);
+
+        Task<IEnumerable<SalesReportData>> GetSalesReportAsync(
+            DateTime? startDate = null,
+            DateTime? endDate = null,
+            int? categoryId = null,
+            string? brand = null);
+        Task<SalesSummaryData> GetSalesSummaryAsync(
+            DateTime? startDate = null,
+            DateTime? endDate = null);
+
     }
 
     public class OrderStats
@@ -36,4 +46,6 @@ namespace EquipmentShop.Core.Interfaces
         public Dictionary<string, int> OrdersByStatus { get; set; } = new();
         public Dictionary<string, int> OrdersByMonth { get; set; } = new();
     }
+
+   
 }

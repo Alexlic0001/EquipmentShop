@@ -79,3 +79,24 @@ a:hover {
     height: 18px;
     padding: 0 4px;
 }
+
+/* Подсветка обязательных полей */
+.form-control[required]:invalid:not(:focus) {
+    border-color: #dc3545;
+    background-image: url("data:image/svg+xml,..."); /* иконка ошибки */
+}
+
+.form-control[required]:valid {
+    border-color: #198754;
+}
+
+/* Звёздочка для обязательных полей */
+label[for]::after {
+    content: " *";
+    color: #dc3545;
+    font-weight: bold;
+}
+
+label[for]:not([class*="required"])::after {
+    display: none; /* Скрыть, если не обязательное */
+}

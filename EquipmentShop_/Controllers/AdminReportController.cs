@@ -2,6 +2,7 @@
 using CsvHelper.Configuration;
 using EquipmentShop.Core.Constants;
 using EquipmentShop.Core.Entities;
+using EquipmentShop.Core.Enums;
 using EquipmentShop.Core.Interfaces;
 using EquipmentShop.Core.ViewModels.Admin;
 using Microsoft.AspNetCore.Authorization;
@@ -25,7 +26,6 @@ namespace EquipmentShop_.Controllers
         [HttpGet("")]
         public async Task<IActionResult> Index()
         {
-            // ✅ Гарантируем, что Categories не будет null
             var categories = await _categoryRepository.GetAllAsync();
             ViewBag.Categories = categories ?? new List<Category>();
 
@@ -48,7 +48,6 @@ namespace EquipmentShop_.Controllers
                     filter.Brand
                 );
 
-                // Сортировка
                 reportData = filter.SortBy switch
                 {
                     "TotalQuantitySold" => filter.SortDescending
@@ -84,7 +83,7 @@ namespace EquipmentShop_.Controllers
                 ViewBag.TotalQuantitySold = viewModel.Sum(r => r.TotalQuantitySold);
                 ViewBag.TotalProducts = viewModel.Count;
                 ViewBag.ReportData = viewModel;
-                ViewBag.Categories = await _categoryRepository.GetAllAsync(); // ✅ Для повторного отображения формы
+                ViewBag.Categories = await _categoryRepository.GetAllAsync();
 
                 return View("Index", filter);
             }
@@ -164,6 +163,129 @@ namespace EquipmentShop_.Controllers
                 TempData["Error"] = "Ошибка при экспорте сводки";
                 return RedirectToAction("Index");
             }
+        }
+
+        // 📊 API для линейного графика (выручка по времени)
+        [HttpGet("chart-data")]
+        public async Task<IActionResult> GetChartData(
+            DateTime? startDate,
+            DateTime? endDate,
+            string groupBy = "month") // "week" или "month"
+        {
+            try
+            {
+                var orders = await _orderRepository.GetAllWithItemsAsync();
+
+                var filteredOrders = orders
+                    .Where(o => o.Status != OrderStatus.Cancelled &&
+                               o.Status != OrderStatus.Refunded)
+                    .Where(o => (!startDate.HasValue || o.OrderDate >= startDate.Value) &&
+                               (!endDate.HasValue || o.OrderDate <= endDate.Value))
+                    .OrderBy(o => o.OrderDate)
+                    .ToList();
+
+                var chartData = groupBy.ToLower() == "week"
+                    ? GetWeeklyRevenueData(filteredOrders)
+                    : GetMonthlyRevenueData(filteredOrders);
+
+                return Json(chartData);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Ошибка при получении данных для графика");
+                return Json(new { error = "Ошибка при загрузке данных" });
+            }
+        }
+
+        // 🥧 API для круговой диаграммы (выручка по категориям)
+        [HttpGet("category-chart-data")]
+        public async Task<IActionResult> GetCategoryChartData(
+            DateTime? startDate,
+            DateTime? endDate)
+        {
+            try
+            {
+                var reportData = await _orderRepository.GetSalesReportAsync(
+                    startDate, endDate, null, null);
+
+                var categoryData = reportData
+                    .GroupBy(r => r.CategoryName)
+                    .Select(g => new
+                    {
+                        category = g.Key,
+                        revenue = g.Sum(r => r.TotalRevenue),
+                        quantity = g.Sum(r => r.TotalQuantitySold)
+                    })
+                    .OrderByDescending(x => x.revenue)
+                    .Take(10)
+                    .ToList();
+
+                return Json(categoryData);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Ошибка при получении данных для круговой диаграммы");
+                return Json(new { error = "Ошибка при загрузке данных" });
+            }
+        }
+
+        // 🔁 Группировка по неделям
+        private object GetWeeklyRevenueData(List<Order> orders)
+        {
+            var weeklyData = orders
+                .GroupBy(o => GetWeekKey(o.OrderDate))
+                .OrderBy(g => g.Key)
+                .Select(g => new
+                {
+                    label = $"Неделя {GetWeekNumber(g.Key)}",
+                    revenue = Math.Round(g.Sum(o => o.Total), 2),
+                    orders = g.Count()
+                })
+                .ToList();
+
+            return new
+            {
+                labels = weeklyData.Select(d => d.label).ToList(),
+                revenue = weeklyData.Select(d => d.revenue).ToList(),
+                orders = weeklyData.Select(d => d.orders).ToList()
+            };
+        }
+
+        // 🔁 Группировка по месяцам
+        private object GetMonthlyRevenueData(List<Order> orders)
+        {
+            var monthlyData = orders
+                .GroupBy(o => new { o.OrderDate.Year, o.OrderDate.Month })
+                .OrderBy(g => g.Key.Year).ThenBy(g => g.Key.Month)
+                .Select(g => new
+                {
+                    label = $"{g.Key.Month:00}.{g.Key.Year}",
+                    revenue = Math.Round(g.Sum(o => o.Total), 2),
+                    orders = g.Count()
+                })
+                .ToList();
+
+            return new
+            {
+                labels = monthlyData.Select(d => d.label).ToList(),
+                revenue = monthlyData.Select(d => d.revenue).ToList(),
+                orders = monthlyData.Select(d => d.orders).ToList()
+            };
+        }
+
+        // 🔁 Ключ недели: "2024-W12"
+        private string GetWeekKey(DateTime date)
+        {
+            var calendar = CultureInfo.InvariantCulture.Calendar;
+            var week = calendar.GetWeekOfYear(date, CalendarWeekRule.FirstDay, DayOfWeek.Monday);
+            return $"{date.Year}-W{week:00}";
+        }
+
+        // 🔁 Номер недели из ключа
+        private int GetWeekNumber(string weekKey)
+        {
+            var parts = weekKey.Split("-W");
+            return int.Parse(parts[1]);
         }
 
         private IActionResult GenerateCsv<T>(IEnumerable<T> records, string fileName)

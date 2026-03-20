@@ -47,19 +47,19 @@
             <h5 class="mb-0"><i class="fas fa-filter"></i> Фильтры</h5>
         </div>
         <div class="card-body">
-            <form asp-action="GenerateReport" method="post">
+            <form asp-action="GenerateReport" method="post" id="reportForm">
                 <div class="row">
                     <div class="col-md-3 mb-3">
                         <label class="form-label">Дата с</label>
-                        <input type="date" asp-for="StartDate" class="form-control" />
+                        <input type="date" asp-for="StartDate" class="form-control" id="startDate" />
                     </div>
                     <div class="col-md-3 mb-3">
                         <label class="form-label">Дата по</label>
-                        <input type="date" asp-for="EndDate" class="form-control" />
+                        <input type="date" asp-for="EndDate" class="form-control" id="endDate" />
                     </div>
-                    <div class="col-md-3 mb-3">
+                    @* <div class="col-md-3 mb-3">
                         <label class="form-label">Категория</label>
-                        <select asp-for="CategoryId" class="form-select">
+                        <select asp-for="CategoryId" class="form-select" id="categoryId">
                             <option value="">Все категории</option>
                             @if (categories != null)
                             {
@@ -71,13 +71,12 @@
                                 }
                             }
                         </select>
-                    </div>
-                    <div class="col-md-3 mb-3">
+                    </div> *@
+                    @*  <div class="col-md-3 mb-3">
                         <label class="form-label">Бренд</label>
-                        <input type="text" asp-for="Brand" class="form-control"
-                               placeholder="Например: ASUS"
-                               value="@Model.Brand" />
-                    </div>
+                        <input type="text" asp-for="Brand" class="form-control" id="brand"
+                               placeholder="Например: ASUS" value="@Model.Brand" />
+                    </div> *@
                 </div>
                 <div class="row">
                     <div class="col-md-3 mb-3">
@@ -139,6 +138,46 @@
         </div>
     }
 
+    <!-- 📊 ДИАГРАММЫ -->
+    @if (ViewBag.TotalRevenue != null)
+    {
+        <div class="row mb-4">
+            <!-- 📈 Линейный график выручки -->
+            <div class="col-lg-8">
+                <div class="card shadow-sm h-100">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0"><i class="fas fa-chart-line"></i> Динамика выручки</h5>
+                        <div class="btn-group btn-group-sm" role="group">
+                            <button type="button" class="btn btn-outline-primary active"
+                                    data-group-by="month" onclick="switchGroupBy('month')">
+                                По месяцам
+                            </button>
+                            <button type="button" class="btn btn-outline-primary"
+                                    data-group-by="week" onclick="switchGroupBy('week')">
+                                По неделям
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="revenueChart" height="100"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 🥧 Круговая диаграмма по категориям -->
+            <div class="col-lg-4">
+                <div class="card shadow-sm h-100">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="fas fa-chart-pie"></i> По категориям</h5>
+                    </div>
+                    <div class="card-body d-flex align-items-center justify-content-center">
+                        <canvas id="categoryChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+
     <!-- Таблица отчета -->
     <div class="card">
         <div class="card-header">
@@ -149,6 +188,20 @@
             {
                 <div class="table-responsive">
                     <table class="table table-hover table-striped align-middle">
+                        <!-- 🔧 Настройка ширины колонок -->
+                        <colgroup>
+                            <col style="width: 22%;">  <!-- Товар -->
+                            <col style="width: 12%;">  <!-- Категория -->
+                            <col style="width: 10%;">  <!-- Бренд -->
+                            <col style="width: 8%;">   <!-- Продано -->
+                            <col style="width: 7%;">   <!-- Заказов -->
+                            <col style="width: 13%;">  <!-- Цена (шире) -->
+                            <col style="width: 15%;">  <!-- Выручка (шире) -->
+                            <col style="width: 13%;">  <!-- Средний чек -->
+                            <col style="width: 10%;">  <!-- Первая продажа -->
+                            <col style="width: 10%;">  <!-- Последняя продажа -->
+                            <col style="width: 8%;">   <!-- Статус -->
+                        </colgroup>
                         <thead class="table-dark">
                             <tr>
                                 <th>Товар</th>
@@ -176,9 +229,12 @@
                                     <td>@item.Brand</td>
                                     <td class="text-end fw-bold">@item.TotalQuantitySold</td>
                                     <td class="text-end">@item.OrderCount</td>
-                                    <td class="text-end">@item.UnitPrice.ToString("N0") р.</td>
-                                    <td class="text-end fw-bold text-primary">@item.TotalRevenue.ToString("N0") р.</td>
-                                    <td class="text-end">@item.AverageOrderValue.ToString("N0") р.</td>
+                                    <!-- 🔧 Цена: запрет переноса -->
+                                    <td class="text-end" style="white-space: nowrap;">@item.UnitPrice.ToString("N0") р.</td>
+                                    <!-- 🔧 Выручка: запрет переноса -->
+                                    <td class="text-end fw-bold text-primary" style="white-space: nowrap;">@item.TotalRevenue.ToString("N0") р.</td>
+                                    <!-- 🔧 Средний чек: тоже защищаем от переноса -->
+                                    <td class="text-end" style="white-space: nowrap;">@item.AverageOrderValue.ToString("N0") р.</td>
                                     <td>@item.FirstSaleDate.ToString("dd.MM.yyyy")</td>
                                     <td>@item.LastSaleDate.ToString("dd.MM.yyyy")</td>
                                     <td>
@@ -200,7 +256,8 @@
                                 <td class="text-end fw-bold">@reportData.Sum(r => r.TotalQuantitySold)</td>
                                 <td class="text-end">@reportData.Sum(r => r.OrderCount)</td>
                                 <td>-</td>
-                                <td class="text-end fw-bold text-primary">@reportData.Sum(r => r.TotalRevenue).ToString("N0") р.</td>
+                                <!-- 🔧 Итоговая выручка: запрет переноса -->
+                                <td class="text-end fw-bold text-primary" style="white-space: nowrap;">@reportData.Sum(r => r.TotalRevenue).ToString("N0") р.</td>
                                 <td>-</td>
                                 <td colspan="3"></td>
                             </tr>
@@ -231,12 +288,18 @@
 </div>
 
 @section Scripts {
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            // Установка дат по умолчанию (последние 30 дней), если не заданы
-            const startDateInput = document.querySelector('input[asp-for="StartDate"]');
-            const endDateInput = document.querySelector('input[asp-for="EndDate"]');
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js  "></script>
 
+    <script>
+        let revenueChart;
+        let categoryChart;
+        let currentGroupBy = 'month';
+
+        document.addEventListener('DOMContentLoaded', function() {
+            // Установка дат по умолчанию (последние 30 дней)
+            const startDateInput = document.getElementById('startDate');
+            const endDateInput = document.getElementById('endDate');
             const today = new Date();
             const thirtyDaysAgo = new Date();
             thirtyDaysAgo.setDate(today.getDate() - 30);
@@ -248,12 +311,181 @@
                 endDateInput.value = today.toISOString().split('T')[0];
             }
 
-            // Авто-отправка формы при изменении фильтров (опционально)
-            // document.querySelectorAll('select[asp-for], input[asp-for]').forEach(el => {
-            //     el.addEventListener('change', function() {
-            //         this.closest('form').submit();
-            //     });
-            // });
+            // Инициализация графиков только если есть данные
+            @if (ViewBag.TotalRevenue != null)
+            {
+                        <text>
+                        initializeRevenueChart();
+                        initializeCategoryChart();
+                        loadRevenueData();
+                        loadCategoryData();
+                        </text>
+            }
+
+            // Обновление графиков при отправке формы
+            document.getElementById('reportForm')?.addEventListener('submit', function() {
+                setTimeout(() => {
+                    @if (ViewBag.TotalRevenue != null)
+                    {
+                                <text>
+                                loadRevenueData();
+                                loadCategoryData();
+                                </text>
+                    }
+                }, 500);
+            });
         });
+
+        // 🔄 Переключение группировки (недели/месяцы)
+        function switchGroupBy(groupBy) {
+            currentGroupBy = groupBy;
+            document.querySelectorAll('[data-group-by]').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.groupBy === groupBy);
+            });
+            loadRevenueData();
+        }
+
+        // 📈 Инициализация линейного графика
+        function initializeRevenueChart() {
+            const ctx = document.getElementById('revenueChart').getContext('2d');
+            revenueChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'Выручка (р.)',
+                        data: [],
+                        borderColor: 'rgb(111, 25, 181)',
+                        backgroundColor: 'rgba(111, 25, 181, 0.1)',
+                        tension: 0.4,
+                        fill: true,
+                        yAxisID: 'y'
+                    }, {
+                        label: 'Заказы',
+                        data: [],
+                        borderColor: 'rgb(40, 167, 69)',
+                        backgroundColor: 'rgba(40, 167, 69, 0.1)',
+                        tension: 0.4,
+                        fill: true,
+                        yAxisID: 'y1'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    interaction: { mode: 'index', intersect: false },
+                    plugins: {
+                        legend: { position: 'top' },
+                        tooltip: {
+                            callbacks: {
+                                label: function(ctx) {
+                                    let label = ctx.dataset.label + ': ';
+                                    label += new Intl.NumberFormat('ru-BY').format(ctx.parsed.y);
+                                    if (ctx.datasetIndex === 0) label += ' р.';
+                                    return label;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            type: 'linear',
+                            display: true,
+                            position: 'left',
+                            title: { display: true, text: 'Выручка (р.)' },
+                            ticks: {
+                                callback: function(value) {
+                                    return new Intl.NumberFormat('ru-BY', { notation: 'compact' }).format(value) + ' р.';
+                                }
+                            }
+                        },
+                        y1: {
+                            type: 'linear',
+                            display: true,
+                            position: 'right',
+                            title: { display: true, text: 'Заказы' },
+                            grid: { drawOnChartArea: false }
+                        }
+                    }
+                }
+            });
+        }
+
+        // 🥧 Инициализация круговой диаграммы
+        function initializeCategoryChart() {
+            const ctx = document.getElementById('categoryChart').getContext('2d');
+            categoryChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        data: [],
+                        backgroundColor: [
+                            '#6f19b5', '#28a745', '#dc3545', '#ffc107', '#17a2b8',
+                            '#6c757d', '#fd7e14', '#20c997', '#e83e8c', '#6610f2'
+                        ]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 10 } } },
+                        tooltip: {
+                            callbacks: {
+                                label: function(ctx) {
+                                    const total = ctx.dataset.data.reduce((a, b) => a + b, 0);
+                                    const percent = ((ctx.parsed / total) * 100).toFixed(1);
+                                    return `${ctx.label}: ${new Intl.NumberFormat('ru-BY').format(ctx.parsed)} р. (${percent}%)`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // 📥 Загрузка данных для линейного графика
+        async function loadRevenueData() {
+            try {
+                const startDate = document.getElementById('startDate')?.value || '';
+                const endDate = document.getElementById('endDate')?.value || '';
+
+                const response = await fetch(
+                    `/admin/reports/chart-data?groupBy=${currentGroupBy}&startDate=${startDate}&endDate=${endDate}`
+                );
+                const data = await response.json();
+
+                if (data.error) { console.error(data.error); return; }
+
+                revenueChart.data.labels = data.labels;
+                revenueChart.data.datasets[0].data = data.revenue;
+                revenueChart.data.datasets[1].data = data.orders;
+                revenueChart.update();
+            } catch (error) {
+                console.error('Ошибка загрузки данных графика:', error);
+            }
+        }
+
+        // 📥 Загрузка данных для круговой диаграммы
+        async function loadCategoryData() {
+            try {
+                const startDate = document.getElementById('startDate')?.value || '';
+                const endDate = document.getElementById('endDate')?.value || '';
+
+                const response = await fetch(
+                    `/admin/reports/category-chart-data?startDate=${startDate}&endDate=${endDate}`
+                );
+                const data = await response.json();
+
+                if (data.error) { console.error(data.error); return; }
+
+                categoryChart.data.labels = data.map(d => d.category);
+                categoryChart.data.datasets[0].data = data.map(d => d.revenue);
+                categoryChart.update();
+            } catch (error) {
+                console.error('Ошибка загрузки данных категорий:', error);
+            }
+        }
     </script>
 }

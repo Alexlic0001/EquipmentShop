@@ -78,16 +78,23 @@ namespace EquipmentShop_.Controllers
         }
 
         [Authorize, HttpPost("checkout"), ValidateAntiForgeryToken]
-        public async Task<IActionResult> Checkout(CheckoutViewModel model)  // ← Добавлен параметр
+        public async Task<IActionResult> Checkout(CheckoutViewModel model)
         {
+            // ✅ Явная проверка валидации модели
+            if (!ModelState.IsValid)
+            {
+                TempData["Error"] = "Пожалуйста, заполните все обязательные поля";
+                return View("Checkout", model); // Возвращаем форму с ошибками
+            }
+
             try
             {
                 var userId = GetUserId();
                 var user = await _userManager.FindByIdAsync(userId);
                 if (user == null)
                 {
-                    _logger.LogWarning("Пользователь с ID {UserId} не найден в БД (возможно, удалён)", userId);
-                    TempData["Error"] = "Ваша учётная запись была удалена. Пожалуйста, войдите снова.";
+                    _logger.LogWarning("Пользователь с ID {UserId} не найден в БД", userId);
+                    TempData["Error"] = "Ваша учётная запись была удалена";
                     return RedirectToAction("Login", "Account", new { returnUrl = Url.Action("Index", "Cart") });
                 }
 
@@ -98,7 +105,13 @@ namespace EquipmentShop_.Controllers
                     return RedirectToAction(nameof(Index));
                 }
 
-                // Передаём модель с адресом в сервис
+                // ✅ Дополнительная проверка: адрес не должен быть пустым
+                if (string.IsNullOrWhiteSpace(model.ShippingAddress) || string.IsNullOrWhiteSpace(model.ShippingCity))
+                {
+                    ModelState.AddModelError("", "Адрес доставки и город обязательны для заполнения");
+                    return View("Checkout", model);
+                }
+
                 var order = await _orderService.CreateOrderFromCartAsync(cart.Id, userId, model);
 
                 TempData["Success"] = $"Ваш заказ #{order.OrderNumber} принят!";
@@ -117,13 +130,13 @@ namespace EquipmentShop_.Controllers
             {
                 _logger.LogWarning(ex, "Ошибка при оформлении заказа");
                 TempData["Error"] = "Невозможно оформить заказ: " + ex.Message;
-                return RedirectToAction(nameof(Index));
+                return View("Checkout", model);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Неожиданная ошибка при оформлении заказа");
                 TempData["Error"] = "Не удалось создать заказ. Попробуйте позже.";
-                return RedirectToAction(nameof(Index));
+                return View("Checkout", model);
             }
         }
 
@@ -313,19 +326,21 @@ namespace EquipmentShop_.Controllers
         }
 
         // === Вспомогательные методы ===
-        private static List<CartItemViewModel> BuildCartItems(ShoppingCart cart) => cart.Items?.Select(item => new CartItemViewModel
-        {
-            Id = item.Id,
-            ProductId = item.ProductId,
-            ProductName = item.Product?.Name ?? "Товар",
-            ProductSlug = item.Product?.Slug ?? "",
-            ImageUrl = item.Product?.ImageUrl ?? "/images/products/default.jpg",
-            Price = item.Price,
-            Quantity = item.Quantity,
-            MaxQuantity = Math.Min(item.Product?.StockQuantity ?? 10, 10),
-            IsAvailable = item.Product?.IsAvailable ?? false,
-            SelectedAttributes = item.SelectedAttributes
-        }).ToList() ?? [];
+        private static List<CartItemViewModel> BuildCartItems(ShoppingCart cart) =>
+            cart.Items?.Select(item => new CartItemViewModel
+            {
+                Id = item.Id,
+                ProductId = item.ProductId,
+                ProductName = item.Product?.Name ?? "Товар",
+                ProductSlug = item.Product?.Slug ?? "",
+                ImageUrl = item.Product?.ImageUrl ?? "/images/products/default.jpg",
+                Price = item.Price,
+                Quantity = item.Quantity,
+                MaxQuantity = Math.Min(item.Product?.StockQuantity ?? 10, 10),
+                AvailableStock = item.Product?.StockQuantity ?? 0, // ← Добавьте это
+                IsAvailable = item.Product?.IsAvailable ?? false,
+                SelectedAttributes = item.SelectedAttributes
+            }).ToList() ?? [];
 
         private static List<CartItemViewModel> BuildMiniCartItems(ShoppingCart cart) => cart.Items?.Select(item => new CartItemViewModel
         {

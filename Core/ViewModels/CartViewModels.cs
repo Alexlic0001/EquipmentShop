@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace EquipmentShop.Core.ViewModels
 {
@@ -22,7 +23,13 @@ namespace EquipmentShop.Core.ViewModels
         public string ProductSlug { get; set; } = string.Empty;
         public string ImageUrl { get; set; } = string.Empty;
         public decimal Price { get; set; }
-        public int Quantity { get; set; }
+
+        [Range(1, int.MaxValue, ErrorMessage = "Количество должно быть больше 0")]
+        public int Quantity { get; set; }  // ✅ Геттер и сеттер есть по умолчанию
+
+        [NotMapped]
+        public int AvailableStock { get; set; }
+
         public int MaxQuantity { get; set; } = 10;
         public decimal TotalPrice => Price * Quantity;
         public bool IsAvailable { get; set; }

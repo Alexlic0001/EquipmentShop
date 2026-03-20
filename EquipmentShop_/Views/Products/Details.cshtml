@@ -24,7 +24,6 @@
 
             <div class="mb-3">
                 <div class="h3 text-primary">@Model.Price.ToString("N0")@AppConstants.CurrencySymbol</div>
-
             </div>
 
             <div class="mb-4">
@@ -32,25 +31,48 @@
                 {
                     @if (User.Identity.IsAuthenticated)
                     {
-                        <form asp-controller="Cart" asp-action="AddToCart" method="post">
+                        <form asp-controller="Cart" asp-action="AddToCart" method="post" id="addToCartForm">
                             @Html.AntiForgeryToken()
                             <input type="hidden" name="productId" value="@Model.Id">
+
                             <div class="row g-2">
                                 <div class="col-md-3">
                                     <input type="number"
+                                           id="quantityInput"
                                            name="quantity"
                                            value="1"
                                            min="1"
-                                           max="@Math.Min(Model.StockQuantity, 10)"
-                                           class="form-control text-center">
+                                           max="@Model.StockQuantity"
+                                           data-val="true"
+                                           data-val-range="В наличии: @Model.StockQuantity шт."
+                                           data-val-range-min="1"
+                                           data-val-range-max="@Model.StockQuantity"
+                                           class="form-control text-center quantity-input"
+                                           data-stock="@Model.StockQuantity">
+                                    <!-- ✅ Контейнер для ошибки валидации -->
+                                    <div class="quantity-error text-danger mt-1" style="font-size: 0.75rem; display: none;">
+                                        <i class="fas fa-exclamation-triangle"></i> В наличии: @Model.StockQuantity шт.
+                                    </div>
                                 </div>
                                 <div class="col-md-9">
-                                    <button type="submit" class="btn btn-primary btn-lg w-100">
+                                    <button type="submit" class="btn btn-primary btn-lg w-100" id="addToCartBtn">
                                         <i class="fas fa-cart-plus"></i> Добавить в корзину
                                     </button>
                                 </div>
                             </div>
                         </form>
+
+                        <!-- ✅ Индикатор наличия -->
+                        <small class="text-success d-block mt-2">
+                            <i class="fas fa-check-circle"></i> В наличии: @Model.StockQuantity шт.
+                        </small>
+
+                        @if (Model.StockQuantity <= 5)
+                        {
+                            <small class="text-warning d-block" style="font-size: 0.75rem;">
+                                <i class="fas fa-exclamation-circle"></i> Осталось мало товара!
+                            </small>
+                        }
                     }
                     else
                     {
@@ -91,17 +113,125 @@
 </div>
 
 @section Scripts {
+    <!-- ✅ Подключение валидации -->
+    <partial name="_ValidationScriptsPartial" />
+
     <script>
-        function changeQuantity(delta) {
-            const input = document.getElementById('quantityInput');
-            let quantity = parseInt(input.value) + delta;
-            const max = parseInt(input.max);
-            const min = parseInt(input.min);
+        document.addEventListener('DOMContentLoaded', function() {
+            const quantityInput = document.getElementById('quantityInput');
+            const addToCartBtn = document.getElementById('addToCartBtn');
+            const errorDiv = document.querySelector('.quantity-error');
+            const maxStock = parseInt(quantityInput.dataset.stock);
 
-            if (quantity > max) quantity = max;
-            if (quantity < min) quantity = min;
+            // ✅ Функция проверки количества
+            function validateQuantity() {
+                const value = parseInt(quantityInput.value) || 0;
 
-            input.value = quantity;
-        }
+                if (value > maxStock) {
+                    // Показываем ошибку
+                    if (errorDiv) {
+                        errorDiv.innerHTML = `<i class="fas fa-exclamation-triangle"></i> В наличии: ${maxStock} шт.`;
+                        errorDiv.style.display = 'block';
+                    }
+                    quantityInput.classList.add('is-invalid');
+                    quantityInput.classList.remove('is-valid');
+
+                    // Блокируем кнопку
+                    if (addToCartBtn) {
+                        addToCartBtn.disabled = true;
+                    }
+
+                    return false;
+                } else if (value < 1) {
+                    if (errorDiv) {
+                        errorDiv.innerHTML = `<i class="fas fa-exclamation-triangle"></i> Минимум: 1 шт.`;
+                        errorDiv.style.display = 'block';
+                    }
+                    quantityInput.classList.add('is-invalid');
+                    quantityInput.classList.remove('is-valid');
+
+                    if (addToCartBtn) {
+                        addToCartBtn.disabled = true;
+                    }
+
+                    return false;
+                } else {
+                    // Всё ок
+                    if (errorDiv) {
+                        errorDiv.style.display = 'none';
+                    }
+                    quantityInput.classList.remove('is-invalid');
+                    quantityInput.classList.add('is-valid');
+
+                    if (addToCartBtn) {
+                        addToCartBtn.disabled = false;
+                    }
+
+                    return true;
+                }
+            }
+
+            // ✅ Обработчики событий
+            quantityInput.addEventListener('input', validateQuantity);
+            quantityInput.addEventListener('change', validateQuantity);
+            quantityInput.addEventListener('blur', validateQuantity);
+
+            // ✅ Кнопки +/-
+            const btnContainer = quantityInput.closest('.row');
+            if (btnContainer) {
+                // Кнопка минус
+                const minusBtn = document.createElement('button');
+                minusBtn.type = 'button';
+                minusBtn.className = 'btn btn-outline-secondary btn-sm';
+                minusBtn.innerHTML = '<i class="fas fa-minus"></i>';
+                minusBtn.onclick = function() {
+                    let value = parseInt(quantityInput.value) - 1;
+                    if (value < 1) value = 1;
+                    quantityInput.value = value;
+                    validateQuantity();
+                };
+
+                // Кнопка плюс
+                const plusBtn = document.createElement('button');
+                plusBtn.type = 'button';
+                plusBtn.className = 'btn btn-outline-secondary btn-sm';
+                plusBtn.innerHTML = '<i class="fas fa-plus"></i>';
+                plusBtn.onclick = function() {
+                    let value = parseInt(quantityInput.value) + 1;
+                    if (value > maxStock) value = maxStock;
+                    quantityInput.value = value;
+                    validateQuantity();
+                };
+
+                // Вставляем кнопки вокруг input
+                quantityInput.parentElement.insertBefore(minusBtn, quantityInput);
+                quantityInput.parentElement.insertBefore(plusBtn, quantityInput.nextSibling);
+            }
+
+            // ✅ Валидация перед отправкой формы
+            const form = document.getElementById('addToCartForm');
+            if (form) {
+                form.addEventListener('submit', function(e) {
+                    if (!validateQuantity()) {
+                        e.preventDefault();
+                        alert('⚠️ Количество товара превышает доступное на складе!');
+                        quantityInput.focus();
+                    }
+                });
+            }
+
+            // ✅ Функция changeQuantity (для обратной совместимости)
+            window.changeQuantity = function(delta) {
+                let quantity = parseInt(quantityInput.value) + delta;
+                const max = parseInt(quantityInput.max);
+                const min = parseInt(quantityInput.min);
+
+                if (quantity > max) quantity = max;
+                if (quantity < min) quantity = min;
+
+                quantityInput.value = quantity;
+                validateQuantity();
+            };
+        });
     </script>
 }

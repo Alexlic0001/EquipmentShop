@@ -89,6 +89,7 @@ namespace EquipmentShop.Infrastructure.Services
             if (string.IsNullOrEmpty(userId))
                 throw new ArgumentException("UserId не может быть пустым", nameof(userId));
 
+            // Пробуем найти существующую корзину
             var cart = await _context.ShoppingCarts
                 .Include(c => c.Items)
                 .ThenInclude(i => i.Product)
@@ -98,18 +99,34 @@ namespace EquipmentShop.Infrastructure.Services
 
             if (cart == null)
             {
-                cart = new ShoppingCart
+                // Используем Guid для уникальности + пытаемся вставить с обработкой конфликта
+                var maxRetries = 3;
+                for (int i = 0; i < maxRetries; i++)
                 {
-                    Id = $"cart_{userId}",
-                    UserId = userId,
-                    CreatedAt = DateTime.UtcNow,
-                    UpdatedAt = DateTime.UtcNow,
-                    ExpiresAt = DateTime.UtcNow.AddDays(30)
-                };
+                    try
+                    {
+                        cart = new ShoppingCart
+                        {
+                            Id = $"cart_{userId}_{Guid.NewGuid():N}", // Уникальный Id
+                            UserId = userId,
+                            CreatedAt = DateTime.UtcNow,
+                            UpdatedAt = DateTime.UtcNow,
+                            ExpiresAt = DateTime.UtcNow.AddDays(30)
+                        };
+                        _context.ShoppingCarts.Add(cart);
+                        await _context.SaveChangesAsync();
+                        break;
+                    }
+                    catch (DbUpdateException ex) when
+                        (ex.InnerException?.Message?.Contains("UNIQUE constraint") == true && i < maxRetries - 1)
+                    {
+                        // Повторная попытка при конфликте
+                        await Task.Delay(100);
+                    }
+                }
 
-                _context.ShoppingCarts.Add(cart);
-                await _context.SaveChangesAsync();
-                _logger.LogInformation("Создана новая корзина для пользователя {UserId}", userId);
+                if (cart == null)
+                    throw new InvalidOperationException("Не удалось создать корзину после нескольких попыток");
             }
 
             return cart;

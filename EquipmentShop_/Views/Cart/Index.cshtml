@@ -57,8 +57,6 @@ else
         {
             <div class="row">
                 <div class="col-lg-8">
-                    <!-- ... существующий код списка товаров ... -->
-                    <!-- (оставьте как есть до блока "Итого") -->
                     <div class="card shadow-sm mb-4">
                         <div class="card-header bg-white">
                             <div class="d-flex justify-content-between align-items-center">
@@ -112,6 +110,8 @@ else
                                                         <form asp-action="UpdateQuantity" method="post" class="d-flex align-items-center">
                                                             @Html.AntiForgeryToken()
                                                             <input type="hidden" name="productId" value="@item.ProductId">
+
+                                                            <!-- Кнопка минус -->
                                                             <button type="submit"
                                                                     name="quantity"
                                                                     value="@(item.Quantity - 1)"
@@ -119,13 +119,21 @@ else
                                                                     @(!item.CanDecrease ? "disabled" : "")>
                                                                 <i class="fas fa-minus"></i>
                                                             </button>
+
+                                                            <!-- ✅ ИСПРАВЛЕНО: убран name="quantity", добавлен id для JS -->
                                                             <input type="number"
+                                                                   id="quantity-@item.ProductId"
                                                                    value="@item.Quantity"
                                                                    min="1"
                                                                    max="@item.MaxQuantity"
-                                                                   class="form-control form-control-sm text-center mx-2"
+                                                                   data-available-stock="@item.MaxQuantity"
+                                                                   data-product-name="@item.ProductName"
+                                                                   class="form-control form-control-sm text-center mx-2 quantity-input"
                                                                    style="width: 60px;"
+                                                                   @(!item.IsAvailable ? "disabled" : "")
                                                                    readonly>
+
+                                                            <!-- Кнопка плюс -->
                                                             <button type="submit"
                                                                     name="quantity"
                                                                     value="@(item.Quantity + 1)"
@@ -135,12 +143,25 @@ else
                                                             </button>
                                                         </form>
                                                     </div>
-                                                    @if (!item.IsAvailable)
+
+                                                    <!-- Отображение наличия -->
+                                                    @if (item.IsAvailable)
+                                                    {
+                                                        <small class="text-success d-block text-center mt-1" style="font-size: 0.75rem;">
+                                                            <i class="fas fa-check-circle"></i> В наличии: @item.MaxQuantity шт.
+                                                        </small>
+                                                    }
+                                                    else
                                                     {
                                                         <small class="text-danger d-block text-center mt-1">
                                                             <i class="fas fa-exclamation-circle"></i> Нет в наличии
                                                         </small>
                                                     }
+
+                                                    <!-- Контейнер для ошибок -->
+                                                    <div class="quantity-error text-danger text-center mt-1" style="font-size: 0.75rem; display: none;">
+                                                        <i class="fas fa-exclamation-triangle"></i> В наличии: @item.MaxQuantity шт.
+                                                    </div>
                                                 </td>
                                                 <td class="align-middle fw-bold">@($"{item.TotalPrice:N0} р.")</td>
                                                 <td class="align-middle">
@@ -216,7 +237,6 @@ else
                                 <span class="h4 text-primary fw-bold">@($"{Model.Total:N0} р.")</span>
                             </div>
 
-
                             <!-- АДРЕС ДОСТАВКИ -->
                             @if (!string.IsNullOrEmpty(Model.ShippingAddressPreview))
                             {
@@ -229,11 +249,10 @@ else
                                 </div>
                             }
 
-
                             <!-- ✅ ИСПРАВЛЕНО: НАСТОЯЩАЯ ФОРМА ОФОРМЛЕНИЯ -->
-                            <form asp-controller="Cart" asp-action="Checkout" method="post">
+                            <form asp-controller="Cart" asp-action="Checkout" method="post" id="checkoutForm">
                                 @Html.AntiForgeryToken()
-                                <button type="submit" class="btn btn-success btn-lg w-100">
+                                <button type="submit" class="btn btn-success btn-lg w-100" id="checkoutBtn">
                                     <i class="fas fa-check-circle"></i> Подтвердить заказ
                                 </button>
                             </form>
@@ -268,4 +287,138 @@ else
     <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
         <div class="alert alert-danger">@TempData["Error"]</div>
     </div>
+}
+
+@section Scripts {
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // ✅ ВАЛИДАЦИЯ КОЛИЧЕСТВА ТОВАРА
+            const quantityInputs = document.querySelectorAll('.quantity-input');
+
+            quantityInputs.forEach(input => {
+                // Обработка изменения значения
+                input.addEventListener('change', function() {
+                    validateQuantity(this);
+                });
+
+                // Обработка ввода с клавиатуры
+                input.addEventListener('input', function() {
+                    validateQuantity(this);
+                });
+
+                // Обработка потери фокуса
+                input.addEventListener('blur', function() {
+                    validateQuantity(this);
+                });
+            });
+
+            // ✅ Функция валидации количества
+            function validateQuantity(input) {
+                const value = parseInt(input.value) || 0;
+                const maxStock = parseInt(input.dataset.availableStock);
+                const productName = input.dataset.productName;
+                const errorDiv = input.closest('td').querySelector('.quantity-error');
+                const form = input.closest('form');
+                const submitBtn = form.querySelector('button[type="submit"]');
+
+                if (value > maxStock) {
+                    // Показываем ошибку
+                    if (errorDiv) {
+                        errorDiv.innerHTML = `<i class="fas fa-exclamation-triangle"></i> В наличии: ${maxStock} шт.`;
+                        errorDiv.style.display = 'block';
+                    }
+                    input.classList.add('is-invalid');
+                    input.classList.remove('is-valid');
+
+                    // Блокируем кнопку отправки формы
+                    if (submitBtn) {
+                        submitBtn.disabled = true;
+                    }
+
+                    // Сбрасываем значение на максимальное доступное
+                    setTimeout(() => {
+                        input.value = maxStock;
+                    }, 500);
+
+                    return false;
+                } else if (value < 1) {
+                    // Минимальное количество
+                    if (errorDiv) {
+                        errorDiv.innerHTML = `<i class="fas fa-exclamation-triangle"></i> Минимум: 1 шт.`;
+                        errorDiv.style.display = 'block';
+                    }
+                    input.classList.add('is-invalid');
+                    input.classList.remove('is-valid');
+
+                    if (submitBtn) {
+                        submitBtn.disabled = true;
+                    }
+
+                    return false;
+                } else {
+                    // Всё ок
+                    if (errorDiv) {
+                        errorDiv.style.display = 'none';
+                    }
+                    input.classList.remove('is-invalid');
+                    input.classList.add('is-valid');
+
+                    if (submitBtn) {
+                        submitBtn.disabled = false;
+                    }
+
+                    return true;
+                }
+            }
+
+            // ✅ ВАЛИДАЦИЯ ПЕРЕД ОФОРМЛЕНИЕМ ЗАКАЗА
+            const checkoutForm = document.getElementById('checkoutForm');
+            const checkoutBtn = document.getElementById('checkoutBtn');
+
+            if (checkoutForm) {
+                checkoutForm.addEventListener('submit', function(e) {
+                    let hasError = false;
+
+                    quantityInputs.forEach(input => {
+                        if (!validateQuantity(input)) {
+                            hasError = true;
+                        }
+                    });
+
+                    if (hasError) {
+                        e.preventDefault();
+                        alert('⚠️ В корзине есть товары с количеством больше доступного. Пожалуйста, исправьте количество.');
+
+                        // Прокрутка к первой ошибке
+                        const firstError = document.querySelector('.quantity-input.is-invalid');
+                        if (firstError) {
+                            firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        }
+                    }
+                });
+            }
+
+            // ✅ БЛОКИРОВКА КНОПОК +/- ПРИ ДОСТИЖЕНИИ ЛИМИТА
+            document.querySelectorAll('button[name="quantity"]').forEach(btn => {
+                btn.addEventListener('click', function(e) {
+                    const value = parseInt(this.value);
+                    const input = this.closest('form').querySelector('input[name="quantity"]');
+                    const maxStock = parseInt(input.dataset.availableStock);
+                    const currentQty = parseInt(input.value);
+
+                    // Если пытаемся увеличить больше доступного
+                    if (value > currentQty && currentQty >= maxStock) {
+                        e.preventDefault();
+
+                        const errorDiv = input.closest('td').querySelector('.quantity-error');
+                        if (errorDiv) {
+                            errorDiv.innerHTML = `<i class="fas fa-exclamation-triangle"></i> В наличии: ${maxStock} шт.`;
+                            errorDiv.style.display = 'block';
+                        }
+                        input.classList.add('is-invalid');
+                    }
+                });
+            });
+        });
+    </script>
 }

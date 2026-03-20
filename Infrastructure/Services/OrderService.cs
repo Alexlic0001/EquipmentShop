@@ -37,9 +37,9 @@ namespace EquipmentShop.Infrastructure.Services
         }
 
         public async Task<Order> CreateOrderFromCartAsync(
-    string cartId,
-    string userId,
-    CheckoutViewModel? checkoutModel = null)  // ← Новый параметр
+            string cartId,
+            string userId,
+            CheckoutViewModel? checkoutModel = null)  // ← Новый параметр
         {
             using var transaction = await _context.Database.BeginTransactionAsync();
             try
@@ -110,7 +110,7 @@ namespace EquipmentShop.Infrastructure.Services
                     Status = OrderStatus.Pending,
                     OrderDate = DateTime.UtcNow,
 
-                    //  Адрес доставки
+                    // ✅ Адрес доставки
                     ShippingAddress = shippingAddress,
                     ShippingCity = shippingCity,
                     ShippingRegion = shippingRegion,
